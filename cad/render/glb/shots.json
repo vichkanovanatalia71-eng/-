@@ -822,5 +822,61 @@
     "visible": false
    }
   }
+ },
+ {
+  "glb": "assy.glb",
+  "out": "24_detail_NFC_symbol_top.png",
+  "w": 1600,
+  "h": 1100,
+  "concrete": "#c2ad92",
+  "exposure": 0.88,
+  "envIntensity": 0.75,
+  "bg": "#eadfd1",
+  "cam": {
+   "pos": [
+    -62,
+    175,
+    92
+   ],
+   "target": [
+    -30,
+    95,
+    17
+   ],
+   "fov": 24
+  },
+  "keyPos": [
+   -200,
+   380,
+   220
+  ]
+ },
+ {
+  "glb": "section_nfc.glb",
+  "out": "25_section_NFC_tag.png",
+  "w": 1600,
+  "h": 1100,
+  "concrete": "#c2ad92",
+  "exposure": 0.88,
+  "envIntensity": 0.75,
+  "bg": "#eadfd1",
+  "cam": {
+   "pos": [
+    -44,
+    104,
+    68
+   ],
+   "target": [
+    -32,
+    88,
+    15
+   ],
+   "fov": 24
+  },
+  "keyPos": [
+   -120,
+   260,
+   260
+  ]
  }
 ]

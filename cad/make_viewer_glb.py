@@ -8,6 +8,8 @@ out = os.path.join(ROOT, "viewer", "stickbox.glb")
 L = [('body', P.body(), 'body'), ('lid', P.lid(), 'lid'), ('oring', P.oring(), 'oring'), ('felt', P.felt_pad(), 'liner')]
 if P.has_relief_lid():
     L += [('rlid', P.relief_lid(), 'lid'), ('rseal', P.relief_seal(), 'oring')]
+if P.v(P.p.NFC_ON):
+    L += [('nfc_tag', P.nfc_tag(), 'liner')]   # v3.3: NFC-мітка під верхом (видно в розрізі y = −15)
 L += [('logo_stick', P.logo_fill('GREY'), 'liner'), ('logo_box', P.logo_fill('TEAL'), 'oring'),
       ('device', P.device(), 'device'), ('ctrl_led', P.device_controls()[0], 'liner'), ('ctrl_btn', P.device_controls()[1], 'liner')]
 X.export_glb(L, out, tol=0.06, ang=0.2)

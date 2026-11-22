@@ -61,7 +61,8 @@
 <polyline class="v" points="110.978,156.168 110.978,160.964"/>
 <polyline class="v" points="111.084,161.362 111.005,161.170 110.978,160.964"/>
 <polyline class="v" points="157.671,167.190 117.992,167.190"/>
-<polyline class="v" points="95.948,167.190 75.908,167.190"/>
+<polyline class="v" points="87.665,167.190 87.431,167.190"/>
+<polyline class="v" points="81.419,167.190 75.908,167.190"/>
 <polyline class="v" points="66.389,76.509 66.389,67.499"/>
 <polyline class="v" points="76.892,67.491 66.892,67.491"/>
 <polyline class="v" points="66.892,67.499 66.389,67.499"/>
@@ -215,7 +216,8 @@
 <polyline class="v" points="137.976,157.088 131.566,157.490 125.152,157.800 118.734,158.016 112.313,158.140"/>
 <polyline class="v" points="143.568,151.170 143.539,151.686 143.463,152.213 143.336,152.745 143.158,153.275 142.926,153.795 142.642,154.297 142.307,154.775 141.926,155.220 141.504,155.625 141.046,155.986 140.560,156.299 140.054,156.559 139.535,156.768 139.012,156.924 138.490,157.030 137.976,157.088"/>
 <polyline class="v" points="157.671,167.190 117.992,167.190"/>
-<polyline class="v" points="95.948,167.190 75.908,167.190"/>
+<polyline class="v" points="87.665,167.190 87.431,167.190"/>
+<polyline class="v" points="81.419,167.190 75.908,167.190"/>
 <polyline class="v" points="210.120,71.499 210.120,182.190"/>
 <polyline class="v" points="33.880,71.499 33.880,182.190"/>
 <polyline class="v" points="212.120,62.499 212.120,67.499"/>
@@ -307,7 +309,7 @@
 <text class="t" x="353.000" y="244.000" font-size="3.2" text-anchor="start" font-weight="normal">Масштаб 1:1</text>
 <text class="t" x="353.000" y="254.000" font-size="3.2" text-anchor="start" font-weight="normal">Аркуш 6 / 7</text>
 <text class="t" x="353.000" y="264.000" font-size="3.2" text-anchor="start" font-weight="normal">Формат A3</text>
-<text class="t" x="233.000" y="283.000" font-size="2.8" text-anchor="start" font-weight="normal">Ревізія v3.2 (знак — літера I напису; Г-резервуар під однією кришкою) · 1-й кут (ISO E)</text>
+<text class="t" x="233.000" y="283.000" font-size="2.8" text-anchor="start" font-weight="normal">Ревізія v3.3 (NFC-мітка й знак NFC зверху; знак — літера I напису) · 1-й кут (ISO E)</text>
 <text class="t" x="233.000" y="289.000" font-size="2.6" text-anchor="start" font-weight="normal">Згенеровано з параметричної CAD-моделі; перед виробництвом — перевірка прототипу</text>
 <text class="t" x="25.000" y="12.000" font-size="2.9" text-anchor="start" font-weight="normal">Базування: майстер T01 → плита T03 (штифти) → гільза T02 → міст T05; міст стягується 4 шпильками M5 крізь вушка гільзи (сердечник не спливає).</text>
 <text class="t" x="25.000" y="16.600" font-size="2.9" text-anchor="start" font-weight="normal">Отвір Ø8 — телескопічний стик: шпилька форми заходить у гніздо сердечника на 3 мм. Вкладка виїмки (задня грань) — натяг 1.0 мм у стінку форми; плече сердечника (Г-резервуар) — суцільний силікон, виймається вздовж рампи.</text>

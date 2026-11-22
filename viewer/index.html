@@ -111,7 +111,7 @@ dd { margin: 0; font-family: var(--font-mono); font-size: 12px; font-variant-num
 
 <div class="app">
   <div class="stage" id="stage">
-    <div class="badge">ревізія v3.2 · розміри в мм · модель з CAD</div>
+    <div class="badge">ревізія v3.3 · розміри в мм · модель з CAD</div>
     <div class="loading" id="loading"><div>Завантаження моделі…<div class="bar"><i id="bar"></i></div></div></div>
     <div class="hint" id="hint">Перетягніть — обертати · колесо або два пальці — масштаб · права кнопка — зсув</div>
   </div>
@@ -119,7 +119,7 @@ dd { margin: 0; font-family: var(--font-mono); font-size: 12px; font-variant-num
   <aside class="panel">
     <header>
       <h1>STICKBOX 01 Monolith</h1>
-      <p>Контейнер для використаних стіків TEREA/HEETS із тримачем IQOS ILUMA ONE. Декоративний бетон. Один Г-подібний резервуар під однією кришкою.</p>
+      <p>Контейнер для використаних стіків TEREA/HEETS із тримачем IQOS ILUMA ONE. Декоративний бетон. Один Г-подібний резервуар під однією кришкою. NFC-мітка під знаком NFC на верху.</p>
     </header>
 
     <section aria-labelledby="l-lid">
@@ -151,7 +151,7 @@ dd { margin: 0; font-family: var(--font-mono); font-size: 12px; font-variant-num
       <div class="range">
         <input type="range" id="cutSlider" min="-40" max="40" value="0" step="0.5" aria-label="Положення площини розрізу">
         <output id="cutOut" for="cutSlider">y = 0</output>
-        <small>0 — вісь воронки; −20.5 — вісь тримача девайса; +20.5 — плече Г-подібного резервуара за тримачем.</small>
+        <small>0 — вісь воронки; −15 — NFC-мітка під знаком NFC; −20.5 — вісь тримача девайса; +20.5 — плече Г-подібного резервуара за тримачем.</small>
       </div>
     </section>
 
@@ -309,6 +309,7 @@ vec2 speck(vec3 p, float s){ vec3 q=p/s; vec3 i=floor(q); float b=9.0; float id=
     ctrl_led: new THREE.MeshStandardMaterial({ color: '#e9eef1', roughness: 0.35, emissive: new THREE.Color('#cfe6ff'), emissiveIntensity: 0.35 }),
     ctrl_btn: new THREE.MeshStandardMaterial({ color: new THREE.Color('#2b2d30').convertSRGBToLinear(), roughness: 0.5 }),
     stick: new THREE.MeshStandardMaterial({ color: '#f3f1ec', roughness: 0.6 }),
+    nfc_tag: flatCut(new THREE.MeshStandardMaterial({ color: '#eceae4', roughness: 0.45 }), '#b87333'),
     band: new THREE.MeshStandardMaterial({ color: '#c9b48c', roughness: 0.5 }),
   };
   M.rlid = M.lid; M.rseal = M.oring;
@@ -350,7 +351,7 @@ vec2 speck(vec3 p, float s){ vec3 q=p/s; vec3 i=floor(q); float b=9.0; float id=
       o.castShadow = true; o.receiveShadow = true;
       parts[name] = o;
     });
-    ['body', 'felt', 'rlid', 'rseal', 'logo_stick', 'logo_box', 'device', 'ctrl_led', 'ctrl_btn'].forEach((n) => parts[n] && bodyG.add(parts[n]));
+    ['body', 'felt', 'rlid', 'rseal', 'logo_stick', 'logo_box', 'nfc_tag', 'device', 'ctrl_led', 'ctrl_btn'].forEach((n) => parts[n] && bodyG.add(parts[n]));
     ['lid', 'oring'].forEach((n) => parts[n] && lidG.add(parts[n]));
     Object.keys(parts).forEach((n) => parts[n].userData.base = parts[n].position.clone());
     $('loading').hidden = true;
@@ -442,7 +443,7 @@ vec2 speck(vec3 p, float s){ vec3 q=p/s; vec3 i=floor(q); float b=9.0; float id=
   function applyCut() {
     const on = $('cutToggle').checked;
     clipPlane.constant = parseFloat($('cutSlider').value);
-    ['body', 'lid', 'oring', 'felt', 'device', 'logo_stick', 'logo_box', 'ctrl_led', 'ctrl_btn'].forEach((n) => { M[n].clippingPlanes = on ? [clipPlane] : []; M[n].needsUpdate = true; });
+    ['body', 'lid', 'oring', 'felt', 'device', 'logo_stick', 'logo_box', 'nfc_tag', 'ctrl_led', 'ctrl_btn'].forEach((n) => { M[n].clippingPlanes = on ? [clipPlane] : []; M[n].needsUpdate = true; });
     logoBare.clippingPlanes = on ? [clipPlane] : []; logoBare.needsUpdate = true;
     const v = -parseFloat($('cutSlider').value);
     $('cutOut').value = 'y = ' + (v === 0 ? '0' : v.toFixed(1));

@@ -84,6 +84,7 @@ const MAT = {
   print_grey: () => new THREE.MeshStandardMaterial({ color: '#8c949c', roughness: 0.6 }),
   ghost: () => new THREE.MeshStandardMaterial({ color: '#d7c8b4', roughness: 0.9, transparent: true, opacity: 0.25, depthWrite: false }),
   felt: () => new THREE.MeshStandardMaterial({ color: S.feltColor || '#3b3a38', roughness: 1.0 }),
+  tag: () => new THREE.MeshStandardMaterial({ color: '#eceae4', roughness: 0.45, envMapIntensity: 0.5 }),   // NFC-наліпка
   paint_stick: () => new THREE.MeshStandardMaterial({ color: '#383e42', roughness: 0.9, envMapIntensity: 0.5 }),  // матова акрилова фарба
   paint_box: () => new THREE.MeshStandardMaterial({ color: '#058b8c', roughness: 0.9, envMapIntensity: 0.5 }),
   led: () => new THREE.MeshStandardMaterial({ color: '#e8eef0', roughness: 0.35, emissive: '#cfe6ff', emissiveIntensity: 0.35 }),  // світлова смужка девайса
@@ -116,6 +117,7 @@ function guess(n){
   if (n.startsWith('ctrl_btn')) return 'button';
   if (n.startsWith('device')) return 'device';
   if (n.startsWith('stick')) return 'stick';
+  if (n.startsWith('nfc_tag')) return 'tag';
   return 'master';
 }
 root.add(gltf.scene);

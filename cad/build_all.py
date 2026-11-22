@@ -50,6 +50,7 @@ def main():
     logo_b = P.logo_fill("TEAL")   # BOX + хвиля знака → бірюзовий
     dev = P.device()
     led, btn = P.device_controls()   # v2.7: світлова смужка і кнопка (довідково)
+    nfc = P.nfc_tag() if v(p.NFC_ON) else None   # v3.3: NFC-мітка (покупна, довідково)
     prod = [("01_body_concrete", body, "body"), ("02_lid_concrete", lid, "lid"),
             ("03_seal_silicone_sponge_cord_D4_installed", oring, "oring"), ("04_felt_pad_device_pocket", felt, "liner"),
             ("05_relief_lid_concrete", rlid, "lid"), ("06_relief_seal_sponge_cord_D3_installed", rseal, "oring"),
@@ -61,11 +62,13 @@ def main():
         X.export_3mf(sh, f"{EXP}/3mf/{name}.3mf")
     X.export_step(oring_free, f"{EXP}/step/03b_seal_sponge_cord_D4_free_loop.step")
     X.export_step(dev, f"{EXP}/step/90_ref_IQOS_ILUMA_ONE_envelope.step")
-    assy = prod + [("90_ref_ILUMA_ONE_envelope", dev, "device")]
+    if nfc is not None:
+        X.export_step(nfc, f"{EXP}/step/91_ref_NFC_tag_D25_purchased.step")
+    assy = prod + [("90_ref_ILUMA_ONE_envelope", dev, "device")] + nn([("91_ref_NFC_tag_D25", nfc, "liner")])
     X.export_assembly_step(assy, f"{EXP}/step/00_STICKBOX_01_Monolith_assembly.step")
     X.export_glb(nn([("body", body, "body"), ("lid", lid, "lid"), ("oring", oring, "oring"), ("felt", felt, "liner"),
                   ("rlid", rlid, "lid"), ("rseal", rseal, "oring"), ("logo_stick", logo_s, "liner"), ("logo_box", logo_b, "oring"),
-                  ("device", dev, "device"), ("ctrl_led", led, "liner"), ("ctrl_btn", btn, "liner")]), f"{EXP}/glb/STICKBOX_01_Monolith_assembly.glb")
+                  ("nfc_tag", nfc, "liner"), ("device", dev, "device"), ("ctrl_led", led, "liner"), ("ctrl_btn", btn, "liner")]), f"{EXP}/glb/STICKBOX_01_Monolith_assembly.glb")
     print("product exported", round(time.time() - t0, 1))
 
     # ---------------- оснащення ----------------
@@ -144,7 +147,12 @@ def main():
                   ("oring_secp", oring.cut(cut_p), "oring")]), f"{SCR}/section_pocket.glb")
     X.export_glb(nn([("body", body, "body"), ("lid", lid, "lid"), ("oring", oring, "oring"), ("felt", felt, "liner"),
                   ("rlid", rlid, "lid"), ("rseal", rseal, "oring"), ("logo_stick", logo_s, "liner"), ("logo_box", logo_b, "oring"),
-                  ("device", dev, "device"), ("ctrl_led", led, "liner"), ("ctrl_btn", btn, "liner")]), f"{SCR}/assy.glb")
+                  ("nfc_tag", nfc, "liner"), ("device", dev, "device"), ("ctrl_led", led, "liner"), ("ctrl_btn", btn, "liner")]), f"{SCR}/assy.glb")
+    if nfc is not None:   # v3.3: переріз через NFC-мітку (лишається задня частина, y > центру мітки)
+        cut_n = M.box(-big, big, -big, v(p.NFC_Y), -big, big)
+        X.export_glb([("body_secn", body.cut(cut_n), "body"), ("lid_secn", lid.cut(cut_n), "lid"), ("oring_secn", oring.cut(cut_n), "oring"),
+                      ("nfc_tag", nfc.cut(cut_n), "liner"), ("logo_stick", logo_s.cut(cut_n), "liner"), ("logo_box", logo_b.cut(cut_n), "oring"),
+                      ("device", dev, "device"), ("ctrl_led", led, "liner"), ("ctrl_btn", btn, "liner")], f"{SCR}/section_nfc.glb")
     # купа стіків у перерізі (з результатів симуляції, якщо є)
     print("glb exported", round(time.time() - t0, 1))
 

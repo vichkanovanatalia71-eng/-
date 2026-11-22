@@ -73,6 +73,7 @@ comp = cq.Compound.makeCompound(sticks)
 body = P.body(); lid = P.lid(); oring = P.oring()
 RLID = P.relief_lid() if P.has_relief_lid() else None
 RSEAL = P.relief_seal() if P.has_relief_lid() else None
+NFC = P.nfc_tag() if v(p.NFC_ON) else None   # v3.3
 nn = lambda L: [x for x in L if x[1] is not None]
 cutf = M.box(-big, big, 0, big, -big, big)
 X.export_glb(nn([("body_sec", body.cut(cutf), "body"), ("lid_sec", lid.cut(cutf), "lid"), ("oring_sec", oring.cut(cutf), "oring"),
@@ -81,7 +82,7 @@ X.export_glb(nn([("body_sec", body.cut(cutf), "body"), ("lid_sec", lid.cut(cutf)
               ("stick_pile", comp, "stick")]), f"{OUT}/section_sticks.glb")
 X.export_glb(nn([("body", body, "body"), ("lid", lid, "lid"), ("oring", oring, "oring"), ("felt", P.felt_pad(), "liner"),
               ("rlid", RLID, "lid"), ("rseal", RSEAL, "oring"), ("logo_stick", P.logo_fill("GREY"), "liner"),
-              ("logo_box", P.logo_fill("TEAL"), "oring"), ("device", P.device(), "device"), ("ctrl_led", P.device_controls()[0], "liner"), ("ctrl_btn", P.device_controls()[1], "liner")]), f"{OUT}/assy.glb")
+              ("logo_box", P.logo_fill("TEAL"), "oring"), ("nfc_tag", NFC, "liner"), ("device", P.device(), "device"), ("ctrl_led", P.device_controls()[0], "liner"), ("ctrl_btn", P.device_controls()[1], "liner")]), f"{OUT}/assy.glb")
 # v3.0: переріз через плече Г-резервуара (лишається задня частина, y > осі плеча) зі стіками
 if v(p.ARM_ON):
     ya = (P.d["arm_y0"] + P.d["arm_y1"]) / 2

@@ -459,3 +459,64 @@ def wordmark_swoosh_solid(depth=None):
     if not L["mark"]:
         return None
     return _prism(L["mark"]["swoosh"][0], 0.0, v(p.LOGO_Z), depth or v(p.LOGO_DEPTH))
+
+
+# --------------------------------------------------------------------------
+# v3.3: знак NFC на верхній грані (над міткою, що клеїться зсередини). Оригінальний простий знак — «крапка» і три дуги
+# (безконтактний зв'язок) + слово NFC; офіційний N-Mark NFC Forum — товарний знак з власними правилами, тут не відтворюється.
+# --------------------------------------------------------------------------
+@lru_cache(maxsize=1)
+def nfc_symbol():
+    """Знак NFC у мм: u — праворуч (+X), v — до задньої грані (+Y); центр хвиль = центр мітки (0, 0).
+    Повертає dict(waves=полігони бірюзові (MultiPolygon), text=[(літера, полігон)] темно-сірі, info)."""
+    from shapely.geometry import Point, MultiPolygon
+    from shapely import affinity
+    w, g = v(p.NFC_STROKE), v(p.NFC_GAP)
+    rd = 1.4                                       # «крапка»
+    radii = [rd + g + w / 2]
+    for _ in range(2):
+        radii.append(radii[-1] + w + g)
+    span = np.radians(45.0)
+    parts = [Point(0, 0).buffer(rd, quad_segs=64)]
+    for r in radii:
+        t = np.linspace(-span, span, max(60, int(2 * span * r / 0.04)))
+        arc = LineString(np.c_[r * np.cos(t), r * np.sin(t)])
+        parts.append(arc.buffer(w / 2, quad_segs=32, cap_style=1))
+    waves = MultiPolygon([pg for pg in parts])
+    b = waves.bounds
+    waves = affinity.translate(waves, -(b[0] + b[2]) / 2, -(b[1] + b[3]) / 2)
+    # слово NFC: трекінг підбирається так, щоб перемички між літерами були ≥ NFC_GAP
+    cap = v(p.NFC_TEXT_CAP)
+    track = 0.0
+    for _ in range(30):
+        letters, k = _glyph_polys("NFC", p.LOGO_FONT, cap, track)
+        gmin = min(a.distance(b_) for (_, a), (_, b_) in zip(letters, letters[1:]))
+        if gmin >= g:
+            break
+        track += (g - gmin) + 0.02
+    tb = unary_union([q for _, q in letters]).bounds
+    wb = waves.bounds
+    dy = wb[1] - 2 * g - cap                       # під хвилями, проміжок 2 перемички
+    letters = [(ch, affinity.translate(q, -(tb[0] + tb[2]) / 2, dy)) for ch, q in letters]
+    allb = unary_union([waves] + [q for _, q in letters]).bounds
+    info = dict(waves_w=round(wb[2] - wb[0], 2), waves_h=round(wb[3] - wb[1], 2), radii=[round(r, 2) for r in radii],
+                text_track=round(track, 2), text_gap_min=round(gmin, 2), text_w=round(tb[2] - tb[0], 2),
+                bounds=[round(x, 2) for x in allb])
+    return dict(waves=waves, text=letters, info=info)
+
+
+def _prism_top(poly, x0, y0, depth):
+    """Призма з полігона на верхній грані (z = H), вглиб корпусу (−Z)."""
+    zt = v(p.H) + 0.01
+    F = smooth_face(poly, lambda q: (x0 + q[0], y0 + q[1], zt))
+    return cq.Solid.extrudeLinear(F, cq.Vector(0, 0, -(depth + 0.01)))
+
+
+def nfc_symbol_solids(depth=None):
+    """{'waves': [тіла], 'text': [тіла]} у координатах корпусу (центр — NFC_X, NFC_Y)."""
+    depth = depth or v(p.LOGO_DEPTH)
+    S_ = nfc_symbol()
+    x0, y0 = v(p.NFC_X), v(p.NFC_Y)
+    waves = [_prism_top(pg, x0, y0, depth) for pg in S_["waves"].geoms]
+    text = [_prism_top(pg, x0, y0, depth) for _, q in S_["text"] for pg in (q.geoms if q.geom_type == "MultiPolygon" else [q])]
+    return {"waves": waves, "text": text}

@@ -72,10 +72,16 @@ VT.dim((52, -45, H), (52, cy, H), "v", off=8, txt=f"{cy + 45:.1f}")
 VT.dim((cx, 45, H), (60, 45, H), "h", off=8, txt=f"{60 - cx:.1f}")
 VT.dim((-60, 45, H), (xc, 45, H), "h", off=8, txt=f"{xc + 60:.1f}")
 VT.center_v((xc, 0, H), 16); VT.center_h((xc, 0, H), 16)
+if v(p.NFC_ON):   # v3.3: знак NFC зверху, мітка Ø25 зсередини (у кишені стелі) — центр
+    nx_, ny_ = v(p.NFC_X), v(p.NFC_Y)
+    VT.center_v((nx_, ny_, H), 15); VT.center_h((nx_, ny_, H), 15)
+    VT.dim((-60, -45, H), (nx_, -45, H), "h", off=-8, txt=f"{nx_ + 60:.0f}")
+    VT.dim((-60, -45, H), (-60, ny_, H), "v", off=-8, txt=f"{ny_ + 45:.0f}")
+    VT.leader((nx_ + 8.5, ny_ - 12, H), 30, 22, "знак NFC; мітка Ø25 — зсередини, аркуш 7", size=2.6)
 VT.center_v((cx, cy, H), 24); VT.center_h((cx, cy, H), 16)
 VT.leader((xc + 7.8, 7.8, H), 14, -26, "Ø22 воронка (S-профіль)")
 VT.leader((xc - 2.8, -2.8, H), -26, -22, "Ø8 ⊕ наскрізний")
-VT.leader((cx - 11.1, cy + 8, H), -30, 12, f"кишеня {d['pocket_x']:.1f}×{d['pocket_y']:.1f}, ухил {v(p.DRAFT_POCKET)}°")
+VT.leader((cx - 11.1, cy + 8, H), -20, -30, f"кишеня {d['pocket_x']:.1f}×{d['pocket_y']:.1f}, ухил {v(p.DRAFT_POCKET)}°")
 VT.leader((-60 + 4.1, 45 - 4.1, H), -8, 10, f"R{v(p.R_V):.0f}")
 VL = S.view(body, "left", (238, 145), 1.0, label="ВИГЛЯД ЗЛІВА")
 VL.dim((-60, 45, 0), (-60, -45, 0), "h", off=-16)
@@ -355,7 +361,7 @@ LW = BR.wordmark_layout()
 wm = LW["letters"]
 swo = LW["swoosh"]
 mk = LW["mark"]
-S = DR.Sheet("Логотип", "Напис STICKBOX зі знаком-I: артворк дебосингу, схема фарбування", "дебосинг у корпусі 01; фарба для бетону",
+S = DR.Sheet("Логотип", "Напис STICKBOX зі знаком-I, знак NFC: артворк дебосингу, схема фарбування", "дебосинг у корпусі 01; фарба для бетону",
              "2:1 (1:1)", 7, NS, notes=[
                  f"1. Напис врізаний у фронтальну грань на {v(p.LOGO_DEPTH)} мм, стінки кишень 90° до грані (знімаються еластичною формою). "
                  "Окремого знака над написом немає (v3.2).",
@@ -363,7 +369,8 @@ S = DR.Sheet("Логотип", "Напис STICKBOX зі знаком-I: арт�
                  f"3. Перемички бетону: хвиля / стік ≥{v(p.LOGO_I_WEB)}, стік / «крапка» {v(p.LOGO_I_CAP_GAP)}, між літерами ≥{LW['info']['min_letter_gap_mm']} мм. "
                  f"Кінчики хвилі R{v(p.MARK_TIP_R)}, гачок R{v(p.MARK_HOOK_R)}, кути стіка R{v(p.MARK_BAR_R)}.",
                  "4. Montserrat Bold (OFL). Знак — з растрового логотипа замовника, плавні B-сплайни; оригінальний вектор бренду — замінити.",
-                 "5. Фарбування — після першого шару просочення; надлишки знімати врівень з гранню (техкарта 05, §6)."])
+                 "5. Фарбування — після першого шару просочення; надлишки знімати врівень з гранню (техкарта 05, §6). Фарба — не металік.",
+                 *([f"6. Знак NFC на верхній грані (той самий дебосинг {v(p.LOGO_DEPTH)} мм); під ним зсередини — мітка Ø{v(p.NFC_TAG_D):.0f} у кишені стелі, бетону над міткою {v(p.NFC_COVER):.0f} мм."] if v(p.NFC_ON) else [])])
 V = DR.View(S, "front", (135, 200), 2.0)
 Y0 = -v(p.D) / 2
 GREY, TEAL = "#383E42", "#058B8C"
@@ -411,12 +418,60 @@ kx = (wm[4][1].bounds[2] + wm[5][1].bounds[0]) / 2
 V.leader((kx, Y0, zl - Ch / 2 + 1.0), 24, 30, f"межа кольорів K|B: {kb:.1f} (мін. між літерами {min(gaps):.1f})")
 # 1:1 вид цілої грані
 VF = S.view(body, "front", (330, 152), 1.0, hidden=False, label="ФРОНТ 1:1 (розташування)", label_dy=10)
+# v3.3: знак NFC (верхня грань) і розріз кишені мітки
+nfc_w = nfc_t = 0.0
+if v(p.NFC_ON):
+    NS_ = BR.nfc_symbol()
+    nx_, ny_ = v(p.NFC_X), v(p.NFC_Y)
+    VN = DR.View(S, "top", (78, 236), 2.0)
+
+    def _fill_top(geom, color):
+        for pg in (geom.geoms if geom.geom_type == "MultiPolygon" else [geom]):
+            pg = pg.simplify(0.003)
+            dpath = ""
+            for ring in [pg.exterior] + list(pg.interiors):
+                pts = [VN.P((x, y_, H)) for x, y_ in ring.coords]
+                dpath += "M " + " L ".join(f"{a:.3f},{b:.3f}" for a, b in pts) + " Z "
+            S.el.append(f'<path d="{dpath}" fill="{color}" fill-rule="evenodd" stroke="#111" stroke-width="0.25"/>')
+    _fill_top(NS_["waves"], TEAL)
+    for _, q in NS_["text"]:
+        _fill_top(q, GREY)
+    S.el.append(f'<circle cx="{VN.P((0, 0, H))[0]:.2f}" cy="{VN.P((0, 0, H))[1]:.2f}" r="{v(p.NFC_TAG_D):.2f}" fill="none" stroke="#555" stroke-width="0.25" stroke-dasharray="2 1.2"/>')
+    VN.center_v((0, 0, H), 15); VN.center_h((0, 0, H), 15)
+    nb = NS_["info"]["bounds"]
+    VN.dim((nb[0], nb[1], H), (nb[2], nb[1], H), "h", off=-5, txt=f"{nb[2] - nb[0]:.1f}")
+    VN.dim((nb[2], nb[1], H), (nb[2], nb[3], H), "v", off=5, txt=f"{nb[3] - nb[1]:.1f}")
+    S.text((78, 274), "ЗНАК NFC (2:1), зверху", 3.0, weight="bold")
+    S.text((78, 279), f"пунктир — мітка Ø{v(p.NFC_TAG_D):.0f} під ним", 2.4)
+    nfc_w = NS_["waves"].area
+    nfc_t = sum(q.area for _, q in NS_["text"])
+    # виносний елемент G — розріз по центру мітки (y = NFC_Y), 2:1
+    from stickbox import analysis as _an  # noqa: F401
+    ND = P.nfc_pocket_dims()
+    cutG = cq.Compound.makeCompound([keep(body, "y", ny_, +1), keep(P.nfc_tag(), "y", ny_, +1)])
+    cg, rg = (176, 240), 28
+    DR.clip_begin(S, "cG", cg[0], cg[1], rg)
+    k = 2.0
+    VG = DR.View(S, "front", None, k)
+    u0, v0 = VG.uv((nx_, ny_, ND["z_top"]))
+    VG.o = (cg[0] - k * u0, cg[1] + k * v0)
+    vis, hid = DR.hlr(cutG, "front", False)
+    for rings in DR.section_faces(cutG, (0, ny_, 0), (0, 1, 0), "front"):
+        dpath = "".join("M " + " L ".join(f"{VG.p(uu, vv)[0]:.3f},{VG.p(uu, vv)[1]:.3f}" for uu, vv in ring) + " Z " for ring in rings)
+        S.el.append(f'<path class="hatch" d="{dpath}" fill-rule="evenodd"/>')
+    for pl in vis:
+        S.poly([VG.p(uu, vv) for uu, vv in pl], "v")
+    DR.clip_end(S, cg[0], cg[1], rg, "G (2:1) — кишеня NFC-мітки (розріз по центру)")
+    VG.dim((nx_ - ND["d_ceil"] / 2, ny_, ND["z_ceil"] - 0.3), (nx_ + ND["d_ceil"] / 2, ny_, ND["z_ceil"] - 0.3), "h", off=-5, txt=f"Ø{v(p.NFC_POCKET_D)}")
+    VG.dim((nx_ + 6, ny_, ND["z_top"]), (nx_ + 6, ny_, H), "v", off=0, txt=f"{v(p.NFC_COVER):.0f}")
+    VG.dim((nx_ - 6, ny_, ND["z_ceil"]), (nx_ - 6, ny_, ND["z_top"]), "v", off=0, txt=f"{ND['depth']:.1f}")
+    VG.leader((nx_ + 3, ny_, ND["z_top"] - v(p.NFC_TAG_T) / 2), 20, 14, f"мітка Ø{v(p.NFC_TAG_D):.0f} (клей)", size=2.4)
 # таблиця фарб
-ag = sum(g.area for _, g in wm[:5])
-at = sum(g.area for _, g in wm[5:]) + (swo.area if swo is not None else 0.0)
+ag = sum(g.area for _, g in wm[:5]) + nfc_t
+at = sum(g.area for _, g in wm[5:]) + (swo.area if swo is not None else 0.0) + nfc_w
 dep = v(p.LOGO_DEPTH)
-rows7 = [("RAL 7016 темно-сірий", "S T + стік-I + C K", f"{ag:.0f}", f"{ag * dep / 1000:.2f}"),
-         ("Бірюзовий RAL 5018 / еталон", "хвиля знака + B O X", f"{at:.0f}", f"{at * dep / 1000:.2f}"),
+rows7 = [("RAL 7016 темно-сірий", "S T + стік-I + C K" + (" + «NFC»" if v(p.NFC_ON) else ""), f"{ag:.0f}", f"{ag * dep / 1000:.2f}"),
+         ("Бірюзовий RAL 5018 / еталон", "хвиля + B O X" + (" + дуги NFC" if v(p.NFC_ON) else ""), f"{at:.0f}", f"{at * dep / 1000:.2f}"),
          ("Разом", "маски 07 / 08 у exports/", f"{ag + at:.0f}", f"{(ag + at) * dep / 1000:.2f}")]
 DR.table(S, 236, 186, ["Колір", "Елементи", "Площа, мм²", "Об'єм, мл"], rows7, [44, 56, 22, 22], size=2.6)
 open(f"{OUT}/07_logo_artwork_paint.svg", "w").write(S.svg())

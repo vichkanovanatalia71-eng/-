@@ -99,7 +99,42 @@ def _cavity_tool():
     tool = cav.fuse(reb).fuse(lead).clean()
     if v(p.ARM_ON):
         tool = _with_arm(tool)
+    if v(p.NFC_ON):
+        tool = tool.fuse(_nfc_pocket_tool()).clean()
     return tool
+
+
+def _nfc_pocket_tool():
+    """v3.3: кишеня під NFC-мітку в стелі порожнини (зсередини): Ø NFC_POCKET_D біля стелі, звуження NFC_POCKET_TAPER
+    догори; дно кишені (верх) — на NFC_COVER нижче верхньої грані. Сердечник отримує відповідний виступ."""
+    x, y = v(p.NFC_X), v(p.NFC_Y)
+    z_top = v(p.H) - v(p.NFC_COVER)
+    z0 = d["z_ceil_edge"] - 1.0                      # нижче купола — початок усередині порожнини
+    h = z_top - z0
+    r0 = v(p.NFC_POCKET_D) / 2
+    r1 = r0 - (z_top - d["z_ceil_c"]) * math.tan(math.radians(v(p.NFC_POCKET_TAPER)))
+    r_base = r1 + h * math.tan(math.radians(v(p.NFC_POCKET_TAPER)))
+    return cq.Solid.makeCone(r_base, r1, h, Vector(x, y, z0), Vector(0, 0, 1))
+
+
+def nfc_pocket_dims():
+    """(z дна кишені, z стелі в центрі мітки, глибина від стелі, Ø біля стелі, Ø угорі)."""
+    x, y = v(p.NFC_X), v(p.NFC_Y)
+    R = d["r_dome"]
+    rr = math.hypot(x - d["cav_xc"], y)
+    z_c = d["z_ceil_c"] - (R - math.sqrt(R * R - rr * rr))
+    z_top = v(p.H) - v(p.NFC_COVER)
+    t = math.tan(math.radians(v(p.NFC_POCKET_TAPER)))
+    r1 = v(p.NFC_POCKET_D) / 2 - (z_top - d["z_ceil_c"]) * t
+    return dict(z_top=z_top, z_ceil=z_c, depth=z_top - z_c, d_ceil=2 * (r1 + (z_top - z_c) * t), d_top=2 * r1,
+                slab=v(p.H) - z_c)
+
+
+def nfc_tag():
+    """Довідкова модель NFC-мітки (наліпка Ø NFC_TAG_D), приклеєна до дна кишені (обличчям у порожнину)."""
+    x, y = v(p.NFC_X), v(p.NFC_Y)
+    z_top = v(p.H) - v(p.NFC_COVER)
+    return cq.Solid.makeCylinder(v(p.NFC_TAG_D) / 2, v(p.NFC_TAG_T), Vector(x, y, z_top - v(p.NFC_TAG_T)))
 
 
 def has_relief_lid():
@@ -417,6 +452,10 @@ def body(product=True, with_slot=None, with_logo=None, with_cavity=True,
         if v(p.MARK_ON):
             from . import brand
             s = s.cut(brand.mark_tool())
+        if v(p.NFC_ON):                                  # v3.3: знак NFC на верхній грані
+            from . import brand
+            ns = brand.nfc_symbol_solids()
+            s = s.cut(cq.Compound.makeCompound(ns["waves"] + ns["text"]))
     return s.clean()
 
 
@@ -735,6 +774,9 @@ def logo_fill(which="STICK"):
             return cq.Compound.makeCompound(bar)
         txt = logo_fill("STICK" if which == "GREY" else "BOX")
         extra = bar if which == "GREY" else sw
+        if v(p.NFC_ON):   # v3.3: знак NFC — слово NFC темно-сіре, дуги бірюзові
+            ns = brand.nfc_symbol_solids()
+            extra = extra + (ns["text"] if which == "GREY" else ns["waves"])
         return cq.Compound.makeCompound(list(txt.Solids()) + extra)
     from . import brand
     n = len("STICK")

@@ -23,6 +23,8 @@ from OCP.BRepGProp import BRepGProp
 from . import params as p
 from .params import v
 from . import parts as P
+import cadquery as cq
+from cadquery import Vector
 from .export import mesh_of
 
 d = p.derived()
@@ -110,6 +112,12 @@ def classify_regions(pts, nrm):
     logo = ((pts[:, 1] < -v(p.D) / 2 + v(p.LOGO_DEPTH) + 0.05) & (pts[:, 2] > v(p.LOGO_Z) + _y0 - 1) & (pts[:, 2] < v(p.LOGO_Z) + _y1 + 1)
             & (pts[:, 0] > _x0 - 1) & (pts[:, 0] < _x1 + 1))
     reg[logo] = "logo"
+    if v(p.NFC_ON):   # v3.3: знак NFC на верху — та сама «логотипна» зона (перемички між дугами/літерами — не стінка)
+        nb = _br.nfc_symbol()["info"]["bounds"]
+        nx_, ny_ = v(p.NFC_X), v(p.NFC_Y)
+        nfc = ((pts[:, 2] > v(p.H) - v(p.LOGO_DEPTH) - 0.05) & (pts[:, 0] > nx_ + nb[0] - 1) & (pts[:, 0] < nx_ + nb[2] + 1)
+               & (pts[:, 1] > ny_ + nb[1] - 1) & (pts[:, 1] < ny_ + nb[3] + 1))
+        reg[nfc] = "logo"
     if v(p.MARK_ON):
         mk = (pts[:, 1] < -v(p.D) / 2 + v(p.LOGO_DEPTH) + 0.05) & (np.abs(pts[:, 2] - v(p.MARK_Z)) < v(p.MARK_H) / 2 + 1) & (np.abs(pts[:, 0] - v(p.MARK_X)) < 20)
         reg[mk] = "logo"
@@ -183,6 +191,48 @@ def arm_dir():
     """Напрямок виходу плеча сердечника (у координатах виробу): уздовж рампи до отвору."""
     t = math.radians(v(p.ARM_RAMP_DEG))
     return np.array([-math.cos(t), 0.0, -math.sin(t)])
+
+
+def nfc_check(body):
+    """v3.3: кишеня NFC-мітки в стелі і знак NFC на верху — запаси до заокруглення стелі, розтруба отвору, кишені девайса,
+    краю воронки; товщина бетону над міткою; мітка вміщується і не перетинає корпус."""
+    from shapely.geometry import Polygon, Point
+    from shapely.ops import unary_union
+    from . import brand
+    x, y = v(p.NFC_X), v(p.NFC_Y)
+    nd = P.nfc_pocket_dims()
+    # контур пласкої стелі: переріз порожнини трохи нижче краю купола (там, де закінчується заокруглення стеля→стінки)
+    z = d["z_ceil_edge"] - 0.2
+    sl = body.intersect(cq.Solid.makeBox(300, 300, 0.02, Vector(-150, -150, z)))
+    f = [f_ for f_ in sl.Faces() if f_.normalAt().z > 0.9][0]
+    polys = []
+    for w in f.innerWires():
+        pts = []
+        for e in w.Edges():
+            n = max(4, int(e.Length() / 0.3))
+            pts += [(q.x, q.y) for q in [e.positionAt(t) for t in np.linspace(0, 1, n)]]
+        polys.append(Polygon(pts).buffer(0))
+    cav = max(polys, key=lambda g: g.area)
+    if cav.geom_type == "MultiPolygon":
+        cav = max(cav.geoms, key=lambda g: g.area)
+    rp = nd["d_ceil"] / 2
+    hole = Point(d["cav_xc"], 0)
+    S_ = brand.nfc_symbol()
+    from shapely import affinity
+    sym = affinity.translate(unary_union([S_["waves"]] + [q for _, q in S_["text"]]), x, y)
+    tag = P.nfc_tag()
+    px0 = d["pocket_cx"] - d["pocket_x"] / 2
+    return dict(center=[x, y], tag_d=v(p.NFC_TAG_D), pocket_d_ceil=round(nd["d_ceil"], 2), pocket_d_top=round(nd["d_top"], 2),
+                pocket_depth_mm=round(nd["depth"], 2), slab_mm=round(nd["slab"], 2), cover_mm=v(p.NFC_COVER),
+                cover_under_symbol_mm=round(v(p.NFC_COVER) - v(p.LOGO_DEPTH), 2),
+                tag_radial_clearance_mm=round((nd["d_top"] - v(p.NFC_TAG_D)) / 2, 2),
+                tag_body_interference_mm3=round(body.intersect(tag).Volume(), 4),
+                margin_to_ceiling_fillet_mm=round(cav.exterior.distance(Point(x, y)) - rp, 2),
+                margin_to_hole_flare_mm=round(Point(x, y).distance(hole) - rp - v(p.FLARE_D) / 2, 2),
+                dist_tag_edge_to_device_pocket_mm=round(px0 - (x + v(p.NFC_TAG_D) / 2), 1),
+                symbol_to_funnel_rim_mm=round(sym.distance(hole.buffer(v(p.FUNNEL_D) / 2)), 2),
+                symbol_bounds=[round(b, 1) for b in sym.bounds],
+                symbol=S_["info"])
 
 
 def seal_wall_check():
@@ -340,6 +390,8 @@ def run(write_to=None):
         R["relief_lid_hook"] = rl_hook_check()
     if v(p.ARM_ON):
         R["seal_wall"] = seal_wall_check()
+    if v(p.NFC_ON):
+        R["nfc"] = nfc_check(body)
     R["device_fit"] = device_fit_check()
     R["slot_controls"] = slot_controls_check()
     R["seal_force"] = seal_force_estimate()
