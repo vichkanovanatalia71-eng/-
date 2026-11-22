@@ -103,7 +103,12 @@ def classify_regions(pts, nrm):
         sillz = ((pts[:, 2] > d["arm_sill_z"] - v(p.ARM_SILL_R) - 0.6) & (pts[:, 2] < d["arm_sill_z"] + 0.6)
                  & (pts[:, 0] > d["cav_x1"] - v(p.R_CAV) - 0.5) & (pts[:, 1] > d["arm_y0"] - 1.0))
         reg[(arm | corner | shelf | cres | sillz) & (reg != "pocket")] = "arm"
-    logo = (pts[:, 1] < -v(p.D) / 2 + v(p.LOGO_DEPTH) + 0.05) & (np.abs(pts[:, 2] - v(p.LOGO_Z)) < 6) & (np.abs(pts[:, 0]) < 30)
+    # v3.2: зона напису — за фактичними межами (зі знаком-I і хвилею над рядком)
+    from . import brand as _br
+    _li = _br.wordmark_layout()["info"]
+    (_x0, _x1), (_y0, _y1) = _li["x_range"], _li["y_range"]
+    logo = ((pts[:, 1] < -v(p.D) / 2 + v(p.LOGO_DEPTH) + 0.05) & (pts[:, 2] > v(p.LOGO_Z) + _y0 - 1) & (pts[:, 2] < v(p.LOGO_Z) + _y1 + 1)
+            & (pts[:, 0] > _x0 - 1) & (pts[:, 0] < _x1 + 1))
     reg[logo] = "logo"
     if v(p.MARK_ON):
         mk = (pts[:, 1] < -v(p.D) / 2 + v(p.LOGO_DEPTH) + 0.05) & (np.abs(pts[:, 2] - v(p.MARK_Z)) < v(p.MARK_H) / 2 + 1) & (np.abs(pts[:, 0] - v(p.MARK_X)) < 20)

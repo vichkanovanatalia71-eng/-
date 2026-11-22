@@ -4,7 +4,7 @@ import numpy as np
 import cadquery as cq
 from cadquery import Vector
 sys.path.insert(0, os.path.dirname(__file__))
-from stickbox import parts as P, molds as M, params as p, drawing as DR
+from stickbox import parts as P, molds as M, params as p, drawing as DR, brand as BR0
 from stickbox.params import v
 
 OUT = os.path.join(os.path.dirname(__file__), "..", "drawings")
@@ -45,7 +45,7 @@ mass_lid = AN.get("mass", {}).get("lid", {}).get("mass_kg")
 # Аркуш 1 — корпус: види
 # ======================================================================
 S = DR.Sheet("Корпус", "Деталь 01 — Корпус монолітний (загальні види)", "декоративний бетон / GFRC-премікс",
-             "1:1", 1, NS, notes=GENERAL + ["Логотип і фірмовий знак (без щита): дебосинг " + f"{v(p.LOGO_DEPTH)}" + " мм. Фарбування після виготовлення: STICK і стік-i знака — RAL 7016 (темно-сірий), BOX і хвиля знака — бірюзовий (RAL 5018 / еталон бренду).", "Напис — Montserrat Bold, великі літери " + f"{v(p.LOGO_CAP_H)}" + " мм, центр на висоті " + f"{v(p.LOGO_Z):.0f}" + "; знак — висота " + f"{v(p.MARK_H):.0f}" + " мм, центр на висоті " + f"{v(p.MARK_Z):.0f}" + "; перемички між елементами ≥1.2 мм. Виїмка 30 × " + f"{P.d['recess_top']:.1f}" + ", кути R7, кромки R1.5 (вручну)."], mass=(f"Маса ≈ {mass_body:.2f} кг (ρ 2000)" if mass_body else None))
+             "1:1", 1, NS, notes=GENERAL + ["Напис STICKBOX, літера I — фірмовий знак (стік-i + хвиля): дебосинг " + f"{v(p.LOGO_DEPTH)}" + " мм. Фарбування після виготовлення: STICK (з I) — RAL 7016 (темно-сірий), хвиля і BOX — бірюзовий (RAL 5018 / еталон бренду).", "Напис — Montserrat Bold, великі літери " + f"{v(p.LOGO_CAP_H)}" + " мм, центр на висоті " + f"{v(p.LOGO_Z):.0f}" + ", ширина " + f"{BR0.wordmark_layout()['info']['width_mm']:.1f}" + "; окремого знака немає (v3.2); перемички між елементами ≥1.2 мм. Виїмка 30 × " + f"{P.d['recess_top']:.1f}" + ", кути R7, кромки R1.5 (вручну)."], mass=(f"Маса ≈ {mass_body:.2f} кг (ρ 2000)" if mass_body else None))
 V = S.view(body, "front", (100, 145), 1.0, label="ФРОНТАЛЬНИЙ ВИГЛЯД")
 V.dim((-60, -45, 0), (60, -45, 0), "h", off=-16)
 V.dim((-60, -45, 0), (-60, -45, H), "v", off=-10)
@@ -346,19 +346,25 @@ open(f"{OUT}/06_tooling_casting_scheme.svg", "w").write(S.svg())
 print("sheet 6")
 
 # ======================================================================
-# Аркуш 7 — фірмовий знак і напис: артворк дебосингу та схема фарбування (v2.6)
+# Аркуш 7 — напис STICKBOX зі знаком-I: артворк дебосингу та схема фарбування (v3.2)
 # ======================================================================
-from stickbox import brand as BR
+BR = BR0
 from shapely import affinity as _aff
-from shapely.ops import unary_union as _uu
-S = DR.Sheet("Логотип", "Фірмовий знак + напис: артворк дебосингу, схема фарбування", "дебосинг у корпусі 01; фарба для бетону",
+from shapely.ops import unary_union as _uu, nearest_points as _np
+LW = BR.wordmark_layout()
+wm = LW["letters"]
+swo = LW["swoosh"]
+mk = LW["mark"]
+S = DR.Sheet("Логотип", "Напис STICKBOX зі знаком-I: артворк дебосингу, схема фарбування", "дебосинг у корпусі 01; фарба для бетону",
              "2:1 (1:1)", 7, NS, notes=[
-                 f"1. Знак (без щита) і напис врізані у фронтальну грань на {v(p.LOGO_DEPTH)} мм, стінки кишень 90° до грані (знімаються еластичною формою).",
-                 f"2. Перемички бетону між кишенями різних кольорів: хвиля / стік ≥{v(p.MARK_WEB)}, стік / «крапка» ≥{v(p.MARK_CAP_GAP)}, між літерами ≥1.2 мм.",
-                 f"3. Кінчики хвилі R{v(p.MARK_TIP_R)}, гачок R{v(p.MARK_HOOK_R)}, кути стіка R{v(p.MARK_BAR_R)}. Напис — Montserrat Bold (OFL), великі літери {v(p.LOGO_CAP_H)} мм.",
-                 "4. Знак з растрового логотипа замовника, контур — плавні B-сплайни (v3.1, ≤0.3 мм від трасування); оригінальний вектор бренду — замінити.",
-                 "5. Фарбування — після першого шару просочення; надлишки знімати врівень з гранню (техкарта 05, §6). Стінка за знаком ≥7.1 мм."])
-V = DR.View(S, "front", (130, 221), 2.0)
+                 f"1. Напис врізаний у фронтальну грань на {v(p.LOGO_DEPTH)} мм, стінки кишень 90° до грані (знімаються еластичною формою). "
+                 "Окремого знака над написом немає (v3.2).",
+                 f"2. Літера I — фірмовий знак: стік і «крапка» на висоту великих літер ({v(p.LOGO_CAP_H)} мм), хвиля над рядком.",
+                 f"3. Перемички бетону: хвиля / стік ≥{v(p.LOGO_I_WEB)}, стік / «крапка» {v(p.LOGO_I_CAP_GAP)}, між літерами ≥{LW['info']['min_letter_gap_mm']} мм. "
+                 f"Кінчики хвилі R{v(p.MARK_TIP_R)}, гачок R{v(p.MARK_HOOK_R)}, кути стіка R{v(p.MARK_BAR_R)}.",
+                 "4. Montserrat Bold (OFL). Знак — з растрового логотипа замовника, плавні B-сплайни; оригінальний вектор бренду — замінити.",
+                 "5. Фарбування — після першого шару просочення; надлишки знімати врівень з гранню (техкарта 05, §6)."])
+V = DR.View(S, "front", (135, 200), 2.0)
 Y0 = -v(p.D) / 2
 GREY, TEAL = "#383E42", "#058B8C"
 
@@ -373,46 +379,44 @@ def _fill(geom, color, dx=0.0, dz=0.0):
         S.el.append(f'<path d="{dpath}" fill="{color}" fill-rule="evenodd" stroke="#111" stroke-width="0.25"/>')
 
 
-mk = BR.mark_polygons()
-mx, mz = v(p.MARK_X), v(p.MARK_Z)
-_fill(mk["swoosh"], TEAL, mx, mz); _fill(mk["stem"], GREY, mx, mz); _fill(mk["cap"], GREY, mx, mz)
-wm = BR.wordmark_polygons()
-for i, (ch, g) in enumerate(wm):
-    _fill(g, GREY if i < 5 else TEAL, 0, v(p.LOGO_Z))
-# контекст: низ грані (пальцева виїмка з v2.7 — на задній грані)
-S.line(V.P((-46, Y0, 0)), V.P((46, Y0, 0)), "v")
-V.center_v((mx, Y0, mz), 46); V.center_h((mx, Y0, mz), 22); V.center_h((0, Y0, v(p.LOGO_Z)), 34)
-mall = _aff.translate(_uu(list(mk.values())), mx, mz)
-mb = mall.bounds
-wb = _uu([g for _, g in wm]).bounds
 zl = v(p.LOGO_Z)
-V.dim((mb[0], Y0, mb[3]), (mb[2], Y0, mb[3]), "h", off=8, txt=f"{mb[2] - mb[0]:.1f}")
-V.dim((mb[2], Y0, mb[1]), (mb[2], Y0, mb[3]), "v", off=30, txt=f"{mb[3] - mb[1]:.0f}")
-V.dim((mx, Y0, 0), (mx, Y0, mz), "v", off=-98, txt=f"{mz:.0f}")
-V.dim((wb[0], Y0, zl + wb[1]), (wb[2], Y0, zl + wb[1]), "h", off=-12, txt=f"{wb[2] - wb[0]:.1f}")
-V.dim((wb[2], Y0, zl + wb[1]), (wb[2], Y0, zl + wb[3]), "v", off=6, txt=f"{v(p.LOGO_CAP_H):.1f}")
-V.dim((wb[0], Y0, 0), (wb[0], Y0, zl), "v", off=-12, txt=f"{zl:.0f}")
-# виноски перемичок і кінчиків
-sw = _aff.translate(mk["swoosh"], mx, mz); st = _aff.translate(mk["stem"], mx, mz); cp = _aff.translate(mk["cap"], mx, mz)
-from shapely.ops import nearest_points as _np
-a, b = _np(sw, st); mid = ((a.x + b.x) / 2, (a.y + b.y) / 2)
-V.leader((mid[0], Y0, mid[1]), -48, 20, f"перемичка {sw.distance(st):.1f}")
-a, b = _np(st, cp); mid = ((a.x + b.x) / 2, (a.y + b.y) / 2)
-V.leader((mid[0], Y0, mid[1]), 40, -14, f"перемичка {st.distance(cp):.1f}")
-tip = max(sw.exterior.coords, key=lambda q: q[0] + q[1])
-V.leader((tip[0], Y0, tip[1]), 24, -10, f"R{v(p.MARK_TIP_R)}")
+for i, (ch, g) in enumerate(wm):
+    _fill(g, GREY if i < 5 else TEAL, 0, zl)
+if swo is not None:
+    _fill(swo, TEAL, 0, zl)
+# контекст: низ грані, межі пласкої частини фронту (далі — R вертикальних ребер)
+xf = v(p.W) / 2 - v(p.R_V)
+S.line(V.P((-xf, Y0, 0)), V.P((xf, Y0, 0)), "v")
+V.center_v((0, Y0, zl), 14); V.center_h((0, Y0, zl), 44)
+allg = _uu([g for _, g in wm] + ([swo] if swo is not None else []))
+ab = allg.bounds
+Ch = v(p.LOGO_CAP_H)
+V.dim((ab[0], Y0, zl + ab[1]), (ab[2], Y0, zl + ab[1]), "h", off=-12, txt=f"{ab[2] - ab[0]:.1f}")
+V.dim((ab[2], Y0, zl - Ch / 2), (ab[2], Y0, zl + Ch / 2), "v", off=6, txt=f"{Ch:.1f}")
+V.dim((ab[0], Y0, 0), (ab[0], Y0, zl), "v", off=-12, txt=f"{zl:.0f}")
 gaps = [ga.distance(gb) for (_, ga), (_, gb) in zip(wm, wm[1:])]
+if mk:
+    st, cp = mk["stem"][0], mk["cap"][0]
+    bars = _uu([st, cp])
+    mb = _uu([bars, swo]).bounds
+    V.dim((ab[2], Y0, zl - Ch / 2), (ab[2], Y0, zl + mb[3]), "v", off=16, txt=f"{mb[3] + Ch / 2:.1f}")   # до верху хвилі
+    a_, b_ = _np(swo, st); mid = ((a_.x + b_.x) / 2, (a_.y + b_.y) / 2)
+    V.leader((mid[0], Y0, zl + mid[1]), -10, -46, f"перемичка хвиля / стік {swo.distance(bars):.1f}")
+    a_, b_ = _np(st, cp); mid = ((a_.x + b_.x) / 2, (a_.y + b_.y) / 2)
+    V.leader((mid[0], Y0, zl + mid[1]), 10, -58, f"щілина стік / «крапка» {st.distance(cp):.1f}")
+    tip = max(swo.exterior.coords, key=lambda q: q[0] + q[1])
+    V.leader((tip[0], Y0, zl + tip[1]), 40, -34, f"кінчики хвилі R{v(p.MARK_TIP_R)}")
 kb = wm[4][1].distance(wm[5][1])
 kx = (wm[4][1].bounds[2] + wm[5][1].bounds[0]) / 2
-V.leader((kx, Y0, zl + 3.2), 30, -40, f"межа кольорів K|B: {kb:.1f} (мін. між літерами {min(gaps):.1f})")
+V.leader((kx, Y0, zl - Ch / 2 + 1.0), 24, 30, f"межа кольорів K|B: {kb:.1f} (мін. між літерами {min(gaps):.1f})")
 # 1:1 вид цілої грані
 VF = S.view(body, "front", (330, 152), 1.0, hidden=False, label="ФРОНТ 1:1 (розташування)", label_dy=10)
 # таблиця фарб
-ag = sum(g.area for _, g in wm[:5]) + mk["stem"].area + mk["cap"].area
-at = sum(g.area for _, g in wm[5:]) + mk["swoosh"].area
+ag = sum(g.area for _, g in wm[:5])
+at = sum(g.area for _, g in wm[5:]) + (swo.area if swo is not None else 0.0)
 dep = v(p.LOGO_DEPTH)
-rows7 = [("RAL 7016 темно-сірий", "STICK + стік-i знака (2 ел.)", f"{ag:.0f}", f"{ag * dep / 1000:.2f}"),
-         ("Бірюзовий RAL 5018 / еталон", "BOX + хвиля знака", f"{at:.0f}", f"{at * dep / 1000:.2f}"),
+rows7 = [("RAL 7016 темно-сірий", "S T + стік-I + C K", f"{ag:.0f}", f"{ag * dep / 1000:.2f}"),
+         ("Бірюзовий RAL 5018 / еталон", "хвиля знака + B O X", f"{at:.0f}", f"{at * dep / 1000:.2f}"),
          ("Разом", "маски 07 / 08 у exports/", f"{ag + at:.0f}", f"{(ag + at) * dep / 1000:.2f}")]
 DR.table(S, 236, 186, ["Колір", "Елементи", "Площа, мм²", "Об'єм, мл"], rows7, [44, 56, 22, 22], size=2.6)
 open(f"{OUT}/07_logo_artwork_paint.svg", "w").write(S.svg())

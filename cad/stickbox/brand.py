@@ -91,34 +91,43 @@ def _push_clear(Q, obstacle, clear, sigma=2.0, iters=4):
 FAIR_INFO = {}
 
 
-@lru_cache(maxsize=4)
-def _mark_geom(height):
-    """Геометрія знака в мм (u — праворуч, v — вгору), центр знака в (0, 0).
-    Повертає {name: (полігон, радіус 2D-скруглення кутів або None)}; хвиля — уже з плавними кривими і скругленнями."""
+def _bisect(fn, lo, hi, target, it=40):
+    """Найменше x ∈ [lo, hi], для якого fn(x) ≥ target (fn зростає з x)."""
+    for _ in range(it):
+        mid = (lo + hi) / 2
+        if fn(mid) >= target:
+            hi = mid
+        else:
+            lo = mid
+    return hi
+
+
+MARK_CANON_H = 40.0   # висота знака, на якій будуються плавні криві (масштаб розробки, v2.6–v3.1)
+
+
+@lru_cache(maxsize=1)
+def _mark_canon():
+    """Знак у канонічному масштабі (висота 40 мм, центр у (0, 0)): плавні сплайни хвилі, плавний відступ біля кута
+    «крапки», зріз перемички вздовж стіка (MARK_WEB у цьому масштабі) — без скруглень (вони абсолютні, після масштабу).
+    Повертає dict(swoosh, bar, split=(a, b), runs=[...])."""
+    from shapely.geometry import Point
     sw, bar = _px_polys()
     allb = unary_union([sw, bar]).bounds
-    s = height / (allb[3] - allb[1])
+    s = MARK_CANON_H / (allb[3] - allb[1])
     cx, cy = (allb[0] + allb[2]) / 2, (allb[1] + allb[3]) / 2
 
     def tf(poly):
         return Polygon([((x - cx) * s, (cy - y) * s) for x, y in poly.exterior.coords])
 
     sw_mm, bar_mm = tf(sw), tf(bar)
-    # «крапка» стіка: поділ лінією, щілина MARK_CAP_GAP
     cs = DATA["cap_split_px"]
     x0, y0 = cs["p"]
     k = cs["slope_dy_dx"]
     a = ((x0 - 400 - cx) * s, (cy - (y0 + k * -400)) * s)
-    bpt = ((x0 + 400 - cx) * s, (cy - (y0 + k * 400)) * s)
-    gap = LineString([a, bpt]).buffer(v(p.MARK_CAP_GAP) / 2, cap_style=2)
-    parts = sorted(list(bar_mm.difference(gap).geoms), key=lambda g: -g.centroid.y)
-    cap, stem = parts[0], parts[1]
-
-    # --- хвиля: кути (кінчики, гачок) → ділянки між ними → плавні сплайни ---
+    b = ((x0 + 400 - cx) * s, (cy - (y0 + k * 400)) * s)
     web = v(p.MARK_WEB)
     step = 0.1
-    ring = np.array(sw_mm.exterior.coords)
-    rs = _resample_open(ring, step)[:-1]
+    rs = _resample_open(np.array(sw_mm.exterior.coords), step)[:-1]
     turn = _turn_deg(rs, int(1.0 / step))
     n = len(rs)
     corners = [i for i in range(n) if abs(turn[i]) > 35 and
@@ -127,52 +136,88 @@ def _mark_geom(height):
     for ia, ib in zip(corners, corners[1:] + [corners[0] + n]):
         P = rs[np.arange(ia, ib + 1) % n]
         L = float(np.hypot(*np.diff(P, axis=0).T).sum())
-        spl, dev = _fit_fair(P, max(5, int(np.ceil(L / v(p.MARK_FAIR_PITCH))) + 3), v(p.MARK_FAIR_LAM))
+        nc = max(5, int(np.ceil(L / v(p.MARK_FAIR_PITCH))) + 3)
+        spl, dev = _fit_fair(P, nc, v(p.MARK_FAIR_LAM))
         Q = spl(np.linspace(0, 1, max(60, int(L / 0.03))))
-        from shapely.geometry import Point
         near = np.array([bar_mm.distance(Point(*q)) < web + 0.05 for q in Q])
-        # ділянка заходить у перемичку лише всередині (кут «крапки») → плавно відсунути; якщо біля кінця ділянки
-        # (край і кінчик біля стіка) — їх формує прямий зріз перемички нижче
+        # ділянка заходить у перемичку лише всередині (кут «крапки») → плавно відсунути й знову згладити тим самим
+        # сплайном; якщо біля кінця ділянки (край і кінчик біля стіка) — їх формує прямий зріз перемички нижче
         local = bool(near.any() and not near[:20].any() and not near[-20:].any())
         if local:
-            # відсунути й знову згладити тим самим сплайном (кілька ітерацій) — без локальної «вм'ятини» кривини
-            nc = max(5, int(np.ceil(L / v(p.MARK_FAIR_PITCH))) + 3)
             for _ in range(4):
                 Qp = _push_clear(Q, bar_mm, web + 0.12, sigma=3.0)
                 spl, _d = _fit_fair(_resample_open(Qp, step), nc, v(p.MARK_FAIR_LAM))
                 Q = spl(np.linspace(0, 1, len(Q)))
                 if min(bar_mm.distance(Point(*q)) for q in Q) >= web + 0.03:
                     break
-            Q = _push_clear(Q, bar_mm, web + 0.03, sigma=3.0)   # гарантія перемички (зазвичай уже без змін)
+            Q = _push_clear(Q, bar_mm, web + 0.03, sigma=3.0)
             dmin = np.sqrt(((P[:, None, :] - Q[None, ::5, :]) ** 2).sum(-1)).min(1)   # трасування → нова крива
             dev = max(dev, float(dmin.max()))
-        info.append(dict(len_mm=round(L, 1), ctrl=max(5, int(np.ceil(L / v(p.MARK_FAIR_PITCH))) + 3),
-                         max_dev_from_trace_mm=round(dev, 3), pushed=local))
+        info.append(dict(len_mm=round(L, 1), ctrl=nc, max_dev_from_trace_mm=round(dev, 3), pushed=local))
         pts.append(Q[:-1])
     fair = Polygon(np.vstack(pts)).buffer(0)
     swoosh = fair.difference(bar_mm.buffer(web, join_style=2))
     if swoosh.geom_type == "MultiPolygon":
         swoosh = max(swoosh.geoms, key=lambda g: g.area)
+    return dict(swoosh=swoosh, bar=bar_mm, split=(a, b), runs=info)
+
+
+def _mark_bounds_canon():
+    """(низ стіка, верх «крапки») у канонічному масштабі — для вписування знака замість літери I."""
+    bb = _mark_canon()["bar"].bounds
+    return bb[1], bb[3]
+
+
+@lru_cache(maxsize=8)
+def _mark_geom(scale, dx=0.0, dy=0.0, web=None, cap_gap=None):
+    """Знак у мм: канонічна форма × scale + зсув (dx, dy). Перемичка хвиля↔стік (web), щілина «крапки» (cap_gap) і радіуси —
+    абсолютні (їх диктує лиття). Якщо після масштабування хвиля ближче до стіка, ніж web, вона зсувається як ціле
+    (найкоротший зсув угору-ліворуч) — форма хвилі не обрізається. Повертає {name: (полігон, радіус скруглення або None)}."""
+    from shapely import affinity
+    C = _mark_canon()
+    web = v(p.MARK_WEB) if web is None else web
+    cap_gap = v(p.MARK_CAP_GAP) if cap_gap is None else cap_gap
+    S = lambda g: affinity.scale(g, scale, scale, origin=(0, 0))
+    bar_mm = S(C["bar"])
+    a, b = [(x * scale, y * scale) for x, y in C["split"]]
+    gap = LineString([a, b]).buffer(cap_gap / 2, cap_style=2)
+    parts = sorted(list(bar_mm.difference(gap).geoms), key=lambda g: -g.centroid.y)
+    cap, stem = parts[0], parts[1]
+    bars = unary_union([cap, stem])
+    swoosh = S(C["swoosh"])
+    shift = (0.0, 0.0)
+    if swoosh.distance(bars) < web - 1e-3:
+        best = None
+        for th in np.radians(np.arange(60, 241, 2)):
+            u = (np.cos(th), np.sin(th))
+            t = _bisect(lambda m: affinity.translate(swoosh, m * u[0], m * u[1]).distance(bars), 0.0, 6.0, web + 0.005, it=30)
+            if best is None or t < best[0]:
+                best = (t, u)
+        shift = (best[0] * best[1][0], best[0] * best[1][1])
+        swoosh = affinity.translate(swoosh, *shift)
     r = v(p.MARK_TIP_R)
     swoosh = swoosh.buffer(-r, quad_segs=64).buffer(r, quad_segs=64)            # опуклі кінчики R
     rh = v(p.MARK_HOOK_R)
     swoosh = swoosh.buffer(rh, quad_segs=64).buffer(-rh, quad_segs=64)          # увігнутий гачок R
     if swoosh.geom_type == "MultiPolygon":
         swoosh = max(swoosh.geoms, key=lambda g: g.area)
+    T = lambda g: orient(affinity.translate(g, dx, dy), 1.0)
     FAIR_INFO.clear()
-    FAIR_INFO.update(runs=info, web_min_mm=round(swoosh.distance(bar_mm.difference(gap)), 3),
-                     trace_max_dev_mm=max(i["max_dev_from_trace_mm"] for i in info))
+    FAIR_INFO.update(runs=C["runs"], web_min_mm=round(swoosh.distance(bars), 3), cap_gap_mm=round(stem.distance(cap), 3),
+                     scale=round(scale, 4), swoosh_shift_mm=round(float(np.hypot(*shift)), 3),
+                     trace_max_dev_mm=max(i["max_dev_from_trace_mm"] for i in C["runs"]))
     rb = v(p.MARK_BAR_R)
-    return {"swoosh": (orient(swoosh, 1.0), None), "stem": (orient(stem, 1.0), rb), "cap": (orient(cap, 1.0), rb)}
+    return {"swoosh": (T(swoosh), None), "stem": (T(stem), rb), "cap": (T(cap), rb)}
+
+
+def _rounded(pg, fr):
+    return pg if fr is None else pg.buffer(-fr, join_style=1, quad_segs=32).buffer(fr, join_style=1, quad_segs=32)
 
 
 def mark_polygons(height=None):
-    """Повертає dict {swoosh, stem, cap} у мм (u — праворуч, v — вгору), центр знака в (0, 0) — уже скруглені."""
-    g = _mark_geom(float(height or v(p.MARK_H)))
-    out = {}
-    for k, (pg, fr) in g.items():
-        out[k] = pg if fr is None else pg.buffer(-fr, join_style=1, quad_segs=32).buffer(fr, join_style=1, quad_segs=32)
-    return out
+    """Окремий знак (до v3.2): dict {swoosh, stem, cap} у мм, центр знака в (0, 0) — уже скруглені."""
+    g = _mark_geom(float(height or v(p.MARK_H)) / MARK_CANON_H)
+    return {k: _rounded(pg, fr) for k, (pg, fr) in g.items()}
 
 
 # ---------------- полігон → грань OCC з гладкими ребрами ----------------
@@ -247,7 +292,7 @@ def _prism(poly, x0, z_center, depth, fillet_r=None):
 def mark_solids(depth=None):
     depth = depth or v(p.LOGO_DEPTH)
     zc = v(p.MARK_Z)
-    return {k: _prism(pg, v(p.MARK_X), zc, depth, fr) for k, (pg, fr) in _mark_geom(float(v(p.MARK_H))).items()}
+    return {k: _prism(pg, v(p.MARK_X), zc, depth, fr) for k, (pg, fr) in _mark_geom(float(v(p.MARK_H)) / MARK_CANON_H).items()}
 
 
 def mark_tool():
@@ -331,19 +376,62 @@ def _glyph_polys(text, font_path, cap_h, track=0.0):
     return letters, k
 
 
-def wordmark_polygons():
-    """Літери STICKBOX у мм; центр напису по X = 0, базова лінія + cap/2 = 0 (центр по висоті великих літер)."""
-    letters, k = _glyph_polys(p.LOGO_TEXT, p.LOGO_FONT, v(p.LOGO_CAP_H), v(p.LOGO_TRACK))
-    from shapely.ops import unary_union as uu
-    allb = uu([g for _, g in letters]).bounds
-    dx = -(allb[0] + allb[2]) / 2
-    dy = -v(p.LOGO_CAP_H) / 2
+@lru_cache(maxsize=2)
+def wordmark_layout():
+    """Напис STICKBOX у мм; центр по X = 0, центр по висоті великих літер = 0.
+    v3.2 (LOGO_I_MARK): літера I — фірмовий знак: стік + «крапка» займають висоту великих літер (від базової лінії до
+    верху), хвиля піднімається над рядком. Відстані знак↔T і знак↔C — як у шрифті між T|I та I|C (не менше перемички).
+    Повертає dict(letters=[(ch, geom)], mark={name: (полігон, радіус)} або None, swoosh=полігон або None, info)."""
     from shapely import affinity
-    out = []
-    for ch, g in letters:
-        g = affinity.translate(g, dx, dy)
-        out.append((ch, g))
-    return out
+    Ch = v(p.LOGO_CAP_H)
+    letters, k = _glyph_polys(p.LOGO_TEXT, p.LOGO_FONT, Ch, v(p.LOGO_TRACK))
+    info = {}
+    mark = None
+    if v(p.LOGO_I_MARK) and "I" in p.LOGO_TEXT:
+        iI = p.LOGO_TEXT.index("I")
+        gT, gI, gC = letters[iI - 1][1], letters[iI][1], letters[iI + 1][1]
+        web = v(p.LOGO_I_WEB)
+        gap_l = max(gT.distance(gI), web)
+        gap_r = max(gI.distance(gC), web)
+        yb, yt = _mark_bounds_canon()
+        f = Ch / (yt - yb)
+        M0 = _mark_geom(f, 0.0, -yb * f, v(p.LOGO_I_WEB), v(p.LOGO_I_CAP_GAP))   # низ стіка — на базовій лінії, верх «крапки» — на Ch
+        U0 = unary_union([_rounded(pg, fr) for pg, fr in M0.values()])
+        # знак праворуч від T: найменший зсув, за якого відстань до T = gap_l
+        lo, hi = gT.bounds[0] - U0.bounds[0], gT.bounds[2] - U0.bounds[0] + gap_l + 1
+        dxm = _bisect(lambda x: affinity.translate(U0, x, 0).distance(gT), lo, hi, gap_l)
+        U = affinity.translate(U0, dxm, 0)
+        # хвіст напису (C K B O X) — найменший зсув, за якого відстань до знака = gap_r
+        tail = unary_union([g for _, g in letters[iI + 1:]])
+        lo, hi = U.bounds[0] - tail.bounds[0], U.bounds[2] - tail.bounds[0] + gap_r + 1
+        dxt = _bisect(lambda x: affinity.translate(tail, x, 0).distance(U), lo, hi, gap_r)
+        mark = {kk: (affinity.translate(pg, dxm, 0), fr) for kk, (pg, fr) in M0.items()}
+        letters = (letters[:iI] + [("I", unary_union([_rounded(*mark["stem"]), _rounded(*mark["cap"])]))]
+                   + [(ch, affinity.translate(g, dxt, 0)) for ch, g in letters[iI + 1:]])
+        info = dict(mark_scale=round(f, 4), mark_height_mm=round(MARK_CANON_H * f, 2), gap_T_mark=round(gap_l, 2),
+                    gap_mark_C=round(gap_r, 2), swoosh_above_caps_mm=round(_rounded(*mark["swoosh"]).bounds[3] - Ch, 2),
+                    **{kk: vv for kk, vv in FAIR_INFO.items() if kk != "runs"}, runs=FAIR_INFO.get("runs"))
+    geoms = [g for _, g in letters] + ([_rounded(*mark["swoosh"])] if mark else [])
+    allb = unary_union(geoms).bounds
+    dx = -(allb[0] + allb[2]) / 2
+    dy = -Ch / 2
+    letters = [(ch, affinity.translate(g, dx, dy)) for ch, g in letters]
+    if mark:
+        mark = {kk: (affinity.translate(pg, dx, dy), fr) for kk, (pg, fr) in mark.items()}
+    info.update(width_mm=round(allb[2] - allb[0], 2), x_range=(round(allb[0] + dx, 2), round(allb[2] + dx, 2)),
+                y_range=(round(allb[1] + dy, 2), round(allb[3] + dy, 2)),
+                min_letter_gap_mm=round(min(a.distance(b) for (_, a), (_, b) in zip(letters, letters[1:])), 2))
+    return dict(letters=letters, mark=mark, swoosh=_rounded(*mark["swoosh"]) if mark else None, info=info)
+
+
+def wordmark_polygons():
+    """[(літера, полігон)] у мм (центр напису в 0); при LOGO_I_MARK літера I = стік + «крапка» знака."""
+    return wordmark_layout()["letters"]
+
+
+def wordmark_swoosh():
+    """Хвиля знака-I (полігон, мм) або None."""
+    return wordmark_layout()["swoosh"]
 
 
 def _solid_from_geom(geom, x0, z_center, depth):
@@ -353,6 +441,21 @@ def _solid_from_geom(geom, x0, z_center, depth):
 
 
 def wordmark_solids(depth=None):
-    """[(літера, [solids])] — для різання і для масок фарби STICK/BOX."""
+    """[(літера, [solids])] — для різання і для масок фарби STICK/BOX. Літера I при LOGO_I_MARK — стік і «крапка» знака
+    (точні 2D-скруглення кутів). Хвиля — окремо: wordmark_swoosh_solid()."""
     depth = depth or v(p.LOGO_DEPTH)
-    return [(ch, _solid_from_geom(g, 0.0, v(p.LOGO_Z), depth)) for ch, g in wordmark_polygons()]
+    L = wordmark_layout()
+    out = []
+    for ch, g in L["letters"]:
+        if ch == "I" and L["mark"]:
+            out.append((ch, [_prism(L["mark"][kk][0], 0.0, v(p.LOGO_Z), depth, L["mark"][kk][1]) for kk in ("stem", "cap")]))
+        else:
+            out.append((ch, _solid_from_geom(g, 0.0, v(p.LOGO_Z), depth)))
+    return out
+
+
+def wordmark_swoosh_solid(depth=None):
+    L = wordmark_layout()
+    if not L["mark"]:
+        return None
+    return _prism(L["mark"]["swoosh"][0], 0.0, v(p.LOGO_Z), depth or v(p.LOGO_DEPTH))

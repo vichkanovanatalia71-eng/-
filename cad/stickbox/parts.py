@@ -291,6 +291,9 @@ def _logo_tool(depth_sign=-1):
     """Інструмент дебосингу напису STICKBOX (v2.6: з контурів гліфів Montserrat Bold, див. brand.py)."""
     from . import brand
     sols = [s for _, ss in brand.wordmark_solids() for s in ss]
+    sw = brand.wordmark_swoosh_solid()          # v3.2: хвиля знака-I
+    if sw is not None:
+        sols.append(sw)
     return cq.Compound.makeCompound(sols)
 
 
@@ -715,17 +718,23 @@ def relief_seal():
 
 
 def logo_fill(which="STICK"):
-    """Об'єм дебосингу окремих частин логотипа (під фарбу): STICK + стік знака — RAL 7016;
+    """Об'єм дебосингу окремих частин логотипа (під фарбу): STICK (з v3.2 I = стік і «крапка» знака) — RAL 7016;
     BOX + хвиля знака — бірюзовий. which: STICK | BOX | MARK_SWOOSH | MARK_BAR | GREY | TEAL."""
     if which.startswith("MARK") or which in ("GREY", "TEAL"):
         from . import brand
-        ms = brand.mark_solids()
+        if v(p.MARK_ON):   # окремий знак над написом (до v3.2)
+            ms = brand.mark_solids()
+            bar, sw = [ms["stem"], ms["cap"]], [ms["swoosh"]]
+        else:              # v3.2: знак — літера I напису; стік і «крапка» вже в групі STICK
+            bar, sw = [], [s for s in [brand.wordmark_swoosh_solid()] if s is not None]
         if which == "MARK_SWOOSH":
-            return ms["swoosh"]
+            return cq.Compound.makeCompound(sw)
         if which == "MARK_BAR":
-            return cq.Compound.makeCompound([ms["stem"], ms["cap"]])
+            if not bar:
+                return cq.Compound.makeCompound([s for ch, ss in brand.wordmark_solids() if ch == "I" for s in ss])
+            return cq.Compound.makeCompound(bar)
         txt = logo_fill("STICK" if which == "GREY" else "BOX")
-        extra = [ms["stem"], ms["cap"]] if which == "GREY" else [ms["swoosh"]]
+        extra = bar if which == "GREY" else sw
         return cq.Compound.makeCompound(list(txt.Solids()) + extra)
     from . import brand
     n = len("STICK")
