@@ -106,7 +106,7 @@ dd { margin: 0; font-family: var(--font-mono); font-size: 12px; font-variant-num
 
 <div class="app">
   <div class="stage" id="stage">
-    <div class="badge">ревізія v2.5 · розміри в мм · модель з CAD</div>
+    <div class="badge">ревізія v2.6 · розміри в мм · модель з CAD</div>
     <div class="loading" id="loading"><div>Завантаження моделі…<div class="bar"><i id="bar"></i></div></div></div>
     <div class="hint" id="hint">Перетягніть — обертати · колесо або два пальці — масштаб · права кнопка — зсув</div>
   </div>
@@ -154,7 +154,7 @@ dd { margin: 0; font-family: var(--font-mono); font-size: 12px; font-variant-num
       <label class="toggle"><span>Девайс ILUMA ONE<small>Довідково, 121.6 × 30.6 × 16.4</small></span><input type="checkbox" id="tDevice" checked></label>
       <label class="toggle"><span>Повстяна підкладка кишені<small>М'яка, 2 мм, на клеї — під девайсом</small></span><input type="checkbox" id="tLiner" checked></label>
       <label class="toggle"><span>Кришечка полегшення<small>Закриває отвір на дні, шнур-губка Ø3</small></span><input type="checkbox" id="tRlid" checked></label>
-      <label class="toggle"><span>Фарба логотипа<small>STICK — темно-сірий, BOX — бірюзовий</small></span><input type="checkbox" id="tLogo" checked></label>
+      <label class="toggle"><span>Фарба логотипа<small>STICK і стік-i — темно-сірий, BOX і хвиля — бірюзовий</small></span><input type="checkbox" id="tLogo" checked></label>
       <label class="toggle"><span>Ущільнювач кришки<small>Шнур із силіконової губки Ø4</small></span><input type="checkbox" id="tSeal" checked></label>
       <label class="toggle"><span>Розібрати на деталі</span><input type="checkbox" id="tExplode"></label>
     </section>
@@ -296,8 +296,9 @@ vec2 speck(vec3 p, float s){ vec3 q=p/s; vec3 i=floor(q); float b=9.0; float id=
     felt: flatCut(new THREE.MeshStandardMaterial({ color: '#3d3b38', roughness: 1.0 }), '#2a2927'),
     rlid: null,
     rseal: null,
-    logo_stick: new THREE.MeshStandardMaterial({ color: '#383e42', roughness: 0.5 }),
-    logo_box: new THREE.MeshStandardMaterial({ color: '#058b8c', roughness: 0.5 }),
+    // фарба: кольори бренду задані в sRGB → у лінійний простір (інакше r147 показує їх блідими); матова акрилова фарба
+    logo_stick: new THREE.MeshStandardMaterial({ color: new THREE.Color('#383e42').convertSRGBToLinear(), roughness: 0.8 }),
+    logo_box: new THREE.MeshStandardMaterial({ color: new THREE.Color('#058b8c').convertSRGBToLinear(), roughness: 0.8 }),
     device: flatCut(new THREE.MeshPhysicalMaterial({ color: '#9a7050', metalness: 0.85, roughness: 0.32, clearcoat: 0.3 }), '#5c4330'),
     stick: new THREE.MeshStandardMaterial({ color: '#f3f1ec', roughness: 0.6 }),
     band: new THREE.MeshStandardMaterial({ color: '#c9b48c', roughness: 0.5 }),
