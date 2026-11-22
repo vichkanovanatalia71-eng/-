@@ -397,5 +397,42 @@
     "outer_mold_body_kg": 1.1135017606289905,
     "core_cup_kg": 0.22457481428602272,
     "lid_mold_kg": 0.20168790614359214
-  }
+  },
+  "lid_tilt": [
+    {
+      "angle_deg": 1,
+      "interference_mm3": 0.0,
+      "front_drop_mm": 1.3083670548749113
+    },
+    {
+      "angle_deg": 3,
+      "interference_mm3": 0.0,
+      "front_drop_mm": 3.9201260968127105
+    },
+    {
+      "angle_deg": 5,
+      "interference_mm3": 0.0,
+      "front_drop_mm": 6.522601189013822
+    },
+    {
+      "angle_deg": 7,
+      "interference_mm3": 0.0,
+      "front_drop_mm": 9.11262161645895
+    },
+    {
+      "angle_deg": 8,
+      "interference_mm3": 0.2777816608760144,
+      "front_drop_mm": 10.401974526348717
+    },
+    {
+      "angle_deg": 10,
+      "interference_mm3": 7.39367543888126,
+      "front_drop_mm": 12.967402111164946
+    },
+    {
+      "angle_deg": 12,
+      "interference_mm3": 21.21134077985396,
+      "front_drop_mm": 15.512523034047032
+    }
+  ]
 }

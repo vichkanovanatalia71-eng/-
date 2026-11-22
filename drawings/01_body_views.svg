@@ -580,14 +580,6 @@
 <polygon class="arr" points="139.000,136.500 139.728,139.100 138.272,139.100"/>
 <polygon class="arr" points="139.000,145.000 138.272,142.400 139.728,142.400"/>
 <text class="dt" x="138.000" y="140.750" font-size="3.0" text-anchor="middle" font-weight="normal" transform="rotate(-90 138.000 140.750)">8.5</text>
-<line class="d" x1="122.000" y1="119.000" x2="130.000" y2="101.000"/>
-<polygon class="arr" points="122.000,119.000 122.391,116.328 123.721,116.920"/>
-<line class="d" x1="130.000" y1="101.000" x2="186.160" y2="101.000"/>
-<text class="dt" x="158.080" y="100.000" font-size="3.0" text-anchor="middle" font-weight="normal">STICKBOX: дебосинг 0.6, Inter Medium</text>
-<line class="d" x1="108.000" y1="138.000" x2="128.000" y2="106.000"/>
-<polygon class="arr" points="108.000,138.000 108.761,135.409 109.995,136.181"/>
-<line class="d" x1="128.000" y1="106.000" x2="188.840" y2="106.000"/>
-<text class="dt" x="158.420" y="105.000" font-size="3.0" text-anchor="middle" font-weight="normal">пальцева виїмка 30×8.5, R7, кромки R1.5</text>
 <polyline class="h" points="108.000,256.776 109.016,256.463 109.964,256.104 110.829,255.717 111.606,255.317"/>
 <polyline class="h" points="115.000,265.500 115.000,256.748"/>
 <polyline class="h" points="111.606,255.317 111.606,255.363"/>
@@ -1564,4 +1556,5 @@
 <text class="t" x="233.000" y="289.000" font-size="2.6" text-anchor="start" font-weight="normal">Згенеровано з параметричної CAD-моделі; перед виробництвом — перевірка прототипу</text>
 <text class="t" x="25.000" y="12.000" font-size="2.9" text-anchor="start" font-weight="normal">Загальні допуски литих поверхонь: лінійні ±0.5 (до 120 мм), кутові ±0.5°; функціональні — див. позначення ⊕.</text>
 <text class="t" x="25.000" y="16.600" font-size="2.9" text-anchor="start" font-weight="normal">⊕ Функціональні розміри (±0.25): ребейт 76.8, порожнина в зоні ущільнення 70.8, кишеня девайса, отвір Ø8 (+0.2/−0).</text>
-<text class="t" x="25.000" y="21.200" font-size="2.9" text-anchor="start" font-weight="normal">Невказані радіуси литих ребер R0.5–1. Нижня (відкрита) грань — шліфування P120→P220, площинність 0.3, притуплення R≈1.</text></svg>
+<text class="t" x="25.000" y="21.200" font-size="2.9" text-anchor="start" font-weight="normal">Невказані радіуси литих ребер R0.5–1. Нижня (відкрита) грань — шліфування P120→P220, площинність 0.3, притуплення R≈1.</text>
+<text class="t" x="25.000" y="25.800" font-size="2.9" text-anchor="start" font-weight="normal">Логотип STICKBOX — дебосинг 0.6 (Inter Medium, великі літери ≈7.6 мм, центр на висоті 24). Пальцева виїмка 30 × 8.5, кути R7, кромки R1.5 (вручну).</text></svg>

@@ -250,6 +250,7 @@ def run(write_to=None):
     R["stability"] = stability(R["assembly"]["mass_with_device_kg"], R["assembly"]["com_with_device"][2],
                                m_dev, min(base_half_min, v(p.W) / 2 - abs(R["assembly"]["com_with_device"][0])))
     R["lid_hook"] = lid_hook_check()
+    R["lid_tilt"] = lid_tilt_check()
     R["derived"] = d
     if write_to:
         with open(write_to, "w") as f:
@@ -261,3 +262,17 @@ if __name__ == "__main__":
     import sys
     r = run(sys.argv[1] if len(sys.argv) > 1 else None)
     print(json.dumps({k: r[k] for k in r if k != "derived"}, indent=1, ensure_ascii=False, default=float))
+
+
+def lid_tilt_check(angles=(1, 3, 5, 7, 8, 10, 12)):
+    """Зняття кришки за передній край: поворот навколо задньої верхньої кромки фланця (упор),
+    передня кромка йде вниз. Повертає об'єм перетину жорсткої кришки з корпусом (без О-кільця)."""
+    from cadquery import Vector
+    body, lid = P.body(), P.lid()
+    xc, yb, zp = d["cav_xc"], d["flange"] / 2, d["z_reb"]
+    out = []
+    for a in angles:
+        l = lid.rotate(Vector(xc - 50, yb, zp), Vector(xc + 50, yb, zp), a)
+        out.append(dict(angle_deg=a, interference_mm3=l.intersect(body).Volume(),
+                        front_drop_mm=v(p.LID_RECESS) - l.BoundingBox().zmin))
+    return out
