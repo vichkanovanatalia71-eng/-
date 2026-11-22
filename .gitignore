@@ -1,0 +1,5 @@
+__pycache__/
+*.pyc
+cad/render/node_modules/
+cad/render/package-lock.json
+.DS_Store

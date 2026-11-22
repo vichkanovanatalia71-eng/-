@@ -1,0 +1,148 @@
+<!doctype html>
+<html>
+<head>
+<meta charset="utf-8">
+<style>html,body{margin:0;padding:0;overflow:hidden;background:#000}canvas{display:block}</style>
+<script type="importmap">
+{ "imports": {
+  "three": "./node_modules/three/build/three.module.js",
+  "three/addons/": "./node_modules/three/examples/jsm/"
+} }
+</script>
+</head>
+<body>
+<script type="module">
+import * as THREE from 'three';
+import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
+import { RoomEnvironment } from 'three/addons/environments/RoomEnvironment.js';
+
+const S = window.SHOT;
+const W = S.w || 1600, H = S.h || 1200;
+const renderer = new THREE.WebGLRenderer({ antialias: true, preserveDrawingBuffer: true, alpha: false });
+renderer.setPixelRatio(1);
+renderer.setSize(W, H);
+renderer.outputColorSpace = THREE.SRGBColorSpace;
+renderer.toneMapping = THREE.ACESFilmicToneMapping;
+renderer.toneMappingExposure = S.exposure || 1.0;
+renderer.shadowMap.enabled = true;
+renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+renderer.localClippingEnabled = true;
+document.body.appendChild(renderer.domElement);
+
+const scene = new THREE.Scene();
+scene.background = new THREE.Color(S.bg || '#eee5da');
+const pmrem = new THREE.PMREMGenerator(renderer);
+scene.environment = pmrem.fromScene(new RoomEnvironment(renderer), 0.04).texture;
+scene.environmentIntensity = S.envIntensity || 0.9;
+
+// ---------- матеріали ----------
+function speckleConcrete(base, opts = {}) {
+  const m = new THREE.MeshStandardMaterial({ color: new THREE.Color(base), roughness: opts.rough ?? 0.86, metalness: 0.0 });
+  m.onBeforeCompile = (sh) => {
+    sh.uniforms.uSpeck = { value: opts.speck ?? 1.0 };
+    sh.vertexShader = sh.vertexShader
+      .replace('#include <common>', '#include <common>\nvarying vec3 vObj;')
+      .replace('#include <begin_vertex>', '#include <begin_vertex>\nvObj = position;');
+    sh.fragmentShader = sh.fragmentShader
+      .replace('#include <common>', `#include <common>
+varying vec3 vObj; uniform float uSpeck;
+float h31(vec3 p){ p = fract(p*0.1031); p += dot(p, p.yzx+33.33); return fract((p.x+p.y)*p.z); }
+vec3 h33(vec3 p){ p = vec3(dot(p,vec3(127.1,311.7,74.7)), dot(p,vec3(269.5,183.3,246.1)), dot(p,vec3(113.5,271.9,124.6))); return fract(sin(p)*43758.5453123); }
+float vnoise(vec3 p){ vec3 i=floor(p), f=fract(p); f=f*f*(3.0-2.0*f);
+  return mix(mix(mix(h31(i),h31(i+vec3(1,0,0)),f.x),mix(h31(i+vec3(0,1,0)),h31(i+vec3(1,1,0)),f.x),f.y),
+             mix(mix(h31(i+vec3(0,0,1)),h31(i+vec3(1,0,1)),f.x),mix(h31(i+vec3(0,1,1)),h31(i+vec3(1,1,1)),f.x),f.y),f.z); }
+vec2 speck(vec3 p, float scale){ vec3 q = p/scale; vec3 i = floor(q); float best = 9.0; float id = 0.0;
+  for(int x=-1;x<=1;x++) for(int y=-1;y<=1;y++) for(int z=-1;z<=1;z++){ vec3 c = i+vec3(x,y,z); vec3 o = h33(c);
+    float d = length(q-(c+o)); if(d<best){best=d; id=h31(c+17.0);} }
+  return vec2(best, id); }
+`)
+      .replace('#include <color_fragment>', `#include <color_fragment>
+  { vec3 P = vObj;
+    float mott = vnoise(P*0.08)*0.6 + vnoise(P*0.35)*0.4;
+    diffuseColor.rgb *= 0.94 + 0.10*mott;
+    vec2 s1 = speck(P, 0.55);
+    float r1 = 0.12 + 0.10*fract(s1.y*7.3);
+    if (s1.x < r1 && s1.y < 0.42*uSpeck) { diffuseColor.rgb = mix(diffuseColor.rgb, vec3(0.30,0.25,0.21), 0.85); }
+    else if (s1.x < r1*0.8 && s1.y > 0.88) { diffuseColor.rgb = mix(diffuseColor.rgb, vec3(0.98,0.97,0.94), 0.8); }
+    vec2 s2 = speck(P+31.7, 1.6);
+    if (s2.x < 0.10 && s2.y < 0.25*uSpeck) { diffuseColor.rgb = mix(diffuseColor.rgb, vec3(0.42,0.36,0.30), 0.7); }
+  }`);
+  };
+  return m;
+}
+const MAT = {
+  concrete: () => speckleConcrete(S.concrete || '#d7c8b4'),
+  concrete_cut: () => speckleConcrete(S.concreteCut || '#cdbda7', { rough: 0.95 }),
+  device: () => new THREE.MeshPhysicalMaterial({ color: '#9a7050', metalness: 0.85, roughness: 0.32, clearcoat: 0.3, clearcoatRoughness: 0.4 }),
+  oring: () => new THREE.MeshPhysicalMaterial({ color: '#1f9a83', roughness: 0.5, metalness: 0, sheen: 0.3 }),
+  liner: () => new THREE.MeshStandardMaterial({ color: '#2e3134', roughness: 0.75, metalness: 0 }),
+  stick: () => new THREE.MeshStandardMaterial({ color: '#f4f3ee', roughness: 0.65 }),
+  master: () => new THREE.MeshStandardMaterial({ color: '#e9e9e6', roughness: 0.55 }),
+  silicone: () => new THREE.MeshPhysicalMaterial({ color: '#4fb3a1', roughness: 0.45, transmission: 0.0, transparent: !!S.siliconeAlpha, opacity: S.siliconeAlpha || 1 }),
+  silicone_pink: () => new THREE.MeshPhysicalMaterial({ color: '#d9827a', roughness: 0.5 }),
+  print: () => new THREE.MeshStandardMaterial({ color: '#f0a040', roughness: 0.6 }),
+  print_grey: () => new THREE.MeshStandardMaterial({ color: '#8c949c', roughness: 0.6 }),
+  ghost: () => new THREE.MeshStandardMaterial({ color: '#d7c8b4', roughness: 0.9, transparent: true, opacity: 0.25, depthWrite: false }),
+};
+
+const loader = new GLTFLoader();
+const root = new THREE.Group();
+scene.add(root);
+const gltf = await loader.loadAsync(S.glb);
+gltf.scene.traverse(o => {
+  if (!o.isMesh) return;
+  o.geometry.computeVertexNormals();
+  const cfg = (S.nodes || {})[o.name] || {};
+  const mk = cfg.material || S.defaultMaterial?.[o.name] || guess(o.name);
+  o.material = MAT[mk] ? MAT[mk]() : MAT.master();
+  if (cfg.visible === false) o.visible = false;
+  if (cfg.offset) o.position.add(new THREE.Vector3(...cfg.offset));
+  o.castShadow = true; o.receiveShadow = true;
+});
+function guess(n){
+  if (n.startsWith('body') || n.startsWith('lid')) return 'concrete';
+  if (n.startsWith('oring')) return 'oring';
+  if (n.startsWith('liner')) return 'liner';
+  if (n.startsWith('device')) return 'device';
+  if (n.startsWith('stick')) return 'stick';
+  return 'master';
+}
+root.add(gltf.scene);
+if (S.rootRot) root.rotation.set(...S.rootRot);
+
+// ---------- камера ----------
+let camera;
+const tgt = new THREE.Vector3(...(S.cam.target || [0, 50, 0]));
+if (S.cam.type === 'ortho') {
+  const hh = S.cam.height / 2, ww = hh * W / H;
+  camera = new THREE.OrthographicCamera(-ww, ww, hh, -hh, 1, 5000);
+} else {
+  camera = new THREE.PerspectiveCamera(S.cam.fov || 28, W / H, 5, 8000);
+}
+camera.position.set(...S.cam.pos);
+if (S.cam.up) camera.up.set(...S.cam.up);
+camera.lookAt(tgt);
+
+// ---------- світло ----------
+const key = new THREE.DirectionalLight('#fff4e6', S.keyIntensity ?? 2.2);
+key.position.set(...(S.keyPos || [-220, 420, 260]));
+key.target.position.copy(tgt);
+key.castShadow = true;
+key.shadow.mapSize.set(4096, 4096);
+const sc = key.shadow.camera; sc.left = -260; sc.right = 260; sc.top = 260; sc.bottom = -260; sc.near = 10; sc.far = 1500;
+key.shadow.radius = 6; key.shadow.bias = -0.0004; key.shadow.normalBias = 0.6;
+scene.add(key, key.target);
+const fill = new THREE.DirectionalLight('#e8f0ff', S.fillIntensity ?? 0.6);
+fill.position.set(300, 160, -200); scene.add(fill);
+
+if (S.ground !== false) {
+  const g = new THREE.Mesh(new THREE.PlaneGeometry(4000, 4000), new THREE.ShadowMaterial({ opacity: S.shadowOpacity ?? 0.22 }));
+  g.rotation.x = -Math.PI / 2; g.position.y = S.groundY ?? -0.01; g.receiveShadow = true; scene.add(g);
+}
+
+renderer.render(scene, camera);
+renderer.render(scene, camera);
+window.__done = true;
+</script>
+</body>
+</html>

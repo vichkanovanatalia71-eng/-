@@ -1,0 +1,229 @@
+"""
+STICKBOX 01 Monolith — єдине джерело параметрів (single source of truth).
+
+Система координат виробу (у положенні використання):
+  X — ширина (вправо), Y — глибина (назад, від фронту), Z — висота (вгору).
+  Початок координат — центр опорної площини корпусу (низ, z = 0).
+  Фронтальна грань: y = -D/2. Тримач девайса — праворуч (+X).
+
+Статуси параметрів:
+  CLIENT  — затверджено замовником (зображення v2.2 «фінал» / ТЗ п.20)
+  DESIGN  — проєктне рішення цієї моделі (обґрунтування — у docs/)
+  ASSUME  — проєктне припущення, ПОТРЕБУЄ підтвердження вимірюванням/прототипом
+  DERIVED — обчислюється з інших параметрів
+
+Усі розміри — у міліметрах, кути — у градусах.
+"""
+from dataclasses import dataclass, field, asdict
+import math
+
+
+@dataclass
+class P:
+    value: float
+    status: str
+    note: str = ""
+
+
+# --------------------------------------------------------------------------
+# 1. Габарити та зовнішня форма
+# --------------------------------------------------------------------------
+W = P(120.0, "CLIENT", "Габаритна ширина (X)")
+D = P(90.0, "CLIENT", "Габаритна глибина (Y)")
+H = P(95.0, "CLIENT", "Габаритна висота (Z)")
+R_V = P(14.0, "DESIGN", "Радіус вертикальних ребер (м'який моноліт, захист кутів від сколів)")
+R_TOP = P(6.0, "DESIGN", "Радіус верхнього периметра (обмежений стінкою біля кишені девайса)")
+R_BOT = P(1.0, "DESIGN", "Технологічне притуплення нижнього ребра після шліфування (лише у виробі)")
+
+# --------------------------------------------------------------------------
+# 2. Внутрішня накопичувальна порожнина
+# --------------------------------------------------------------------------
+T_LEFT = P(9.0, "DESIGN", "Ліва стінка біля низу порожнини (з ухилом зростає до ~10.3 вгорі)")
+CAV = P(70.8, "DESIGN", "Порожнина біля низу — квадрат 70.8×70.8 (кришка ставиться у 4 положеннях)")
+R_CAV = P(16.0, "DESIGN", "Радіус вертикальних кутів порожнини (≥3×перетин О-кільця, легке миття)")
+DRAFT_CAV = P(1.0, "DESIGN", "Технологічний ухил стінок порожнини (вихід сердечника)")
+T_TOP = P(12.0, "DESIGN", "Верхня стінка в центрі (над порожниною, під воронкою)")
+DOME_SAG = P(1.5, "DESIGN", "Стріла купола стелі порожнини (відведення повітря з-під сердечника)")
+R_CEIL = P(6.0, "DESIGN", "Радіус переходу стеля→стінки порожнини")
+
+# --------------------------------------------------------------------------
+# 3. Воронка та отвір для стіків
+# --------------------------------------------------------------------------
+HOLE_D = P(8.0, "CLIENT", "Діаметр наскрізного отвору для стіка (Ø8)")
+FUNNEL_D = P(22.0, "CLIENT", "Діаметр міні-воронки по краю (≈Ø22)")
+FUNNEL_DEPTH = P(7.0, "DESIGN", "Глибина воронки (S-крива: дотична до верху, вхід у горло під 30° до вертикалі)")
+LEADIN_ANGLE = P(20.0, "DESIGN", "Заходна фаска О-кільця на вході в порожнину (Parker/Trelleborg 15–20°)")
+LEADIN_LEN = P(2.5, "DESIGN", "Осьова довжина заходної фаски (Trelleborg: ≥2.5 мм при 20° для перетину ≤3.53)")
+THROAT_R = P(0.8, "DESIGN", "Заокруглення горла воронки (кромка отвору)")
+FLARE_D = P(12.0, "DESIGN", "Діаметр розтруба на виході отвору у стелю порожнини")
+FLARE_STEP_D = P(8.6, "DESIGN", "Діаметр початку розтруба (стик форма/сердечник; лише розширення вниз)")
+FLARE_H = P(3.0, "DESIGN", "Висота розтруба (пряма ділянка Ø8 скорочена до 2 мм — більший допустимий нахил стіка)")
+
+# --------------------------------------------------------------------------
+# 4. Девайс IQOS ILUMA ONE та тримач
+# --------------------------------------------------------------------------
+DEV_L = P(121.6, "VERIFIED", "Довжина ILUMA ONE (офіц. сторінка iqos.com/gb, модель M0004)")
+DEV_W = P(30.6, "VERIFIED", "Ширина ILUMA ONE (iqos.com)")
+DEV_T = P(16.4, "VERIFIED", "Товщина ILUMA ONE (iqos.com). Переріз — стадіон (user guide)")
+DEV_CLEAR = P(0.4, "DESIGN", "Зазор девайс↔вставка на сторону (компенсується мікроребрами)")
+LINER_WALL = P(2.5, "DESIGN", "Товщина стінки силіконової вставки вгорі (внизу ~1.4 через ухил)")
+LINER_FLOOR = P(3.0, "DESIGN", "Демпферне дно вставки")
+LINER_FIT = P(0.15, "DESIGN", "Натяг вставки в бетонній кишені на сторону")
+DRAFT_POCKET = P(0.75, "DESIGN", "Ухил кишені (вихід силіконового «пальця» форми)")
+DEV_PROTRUDE = P(38.0, "DESIGN", "Виступ девайса над верхом корпусу (≈31% довжини, зручний хват)")
+T_RIGHT = P(10.0, "DESIGN", "Права зовнішня стінка біля кишені")
+T_FRONT_POCKET = P(9.0, "DESIGN", "Фронтальна стінка перед кишенею")
+SLOT_ON = P(1, "CLIENT", "Вертикальний проріз-вітрина на фронті (видно девайс) — є на рендерах v2.2")
+SLOT_W = P(8.0, "DESIGN", "Ширина прорізу (< товщини девайса 16.4 — девайс не випадає)")
+SLOT_DEPTH = P(34.0, "DESIGN", "Глибина прорізу від верху")
+
+# --------------------------------------------------------------------------
+# 5. Нижня кришка, ущільнювач, пальцева виїмка
+# --------------------------------------------------------------------------
+SHOULDER = P(3.0, "DESIGN", "Ширина упорного уступу (фланець кришки ↔ корпус)")
+FLANGE_T = P(4.5, "DESIGN", "Товщина видимого фланця кришки")
+LID_RECESS = P(0.5, "DESIGN", "Кришка заглиблена на 0.5 від опорної площини (не гойдається)")
+LID_GAP = P(0.5, "DESIGN", "Тіньовий зазор фланець↔корпус на сторону")
+PLUG_GAP = P(0.6, "DESIGN", "Радіальний зазор пробка↔стінка порожнини на сторону")
+HOOK_H = P(3.5, "DESIGN", "Висота зони хвату пальцем над фланцем (у виїмці)")
+LAND_H = P(1.0, "DESIGN", "Перемичка між зоною хвату та канавкою")
+ORING_CS = P(3.0, "DESIGN", "Перетин О-кільця VMQ (силікон)")
+ORING_SQUEEZE = P(0.6, "DESIGN", "Радіальне стиснення О-кільця (20%)")
+GROOVE_W = P(4.0, "DESIGN", "Ширина канавки (Trelleborg static: 4.00 +0.25 для перетину 3.0)")
+TOP_LIP = P(2.6, "DESIGN", "Верхній бортик над канавкою")
+ORING_ID = P(74.0, "DESIGN", "Внутрішній діаметр О-кільця у вільному стані (розтяг ~3%)")
+RECESS_W = P(30.0, "DESIGN", "Ширина пальцевої виїмки по фронту")
+RECESS_R = P(7.0, "DESIGN", "Радіус верхніх кутів виїмки")
+
+# --------------------------------------------------------------------------
+# 6. Брендинг
+# --------------------------------------------------------------------------
+LOGO_ON = P(1, "CLIENT", "Логотип STICKBOX на фронті (дебосинг)")
+LOGO_TEXT = "STICKBOX"
+LOGO_SIZE = P(10.4, "DESIGN", "Кегль (висота великих літер ≈7.6 мм, ширина ≈52 мм)")
+LOGO_DEPTH = P(0.6, "DESIGN", "Глибина дебосингу")
+LOGO_Z = P(24.0, "DESIGN", "Висота центру логотипа від низу")
+LOGO_FONT = "/usr/share/fonts/opentype/inter/Inter-Medium.otf"
+
+# --------------------------------------------------------------------------
+# 7. Технологічні припуски для майстер-моделей
+# --------------------------------------------------------------------------
+GRIND_ALLOW = P(0.5, "DESIGN", "Припуск на шліфування відкритої грані (низ корпусу / низ кришки)")
+SHRINK_COMP = P(1.002, "ASSUME", "Масштаб майстер-моделі: усадка GRC 0.09–0.15% + платиновий силікон <0.1% (калібрувати на пробних виливках!)")
+
+# --------------------------------------------------------------------------
+# 8. Матеріали (для розрахунку маси) — уточнюються після дослідження
+# --------------------------------------------------------------------------
+RHO_CONCRETE = P(2000.0, "ASSUME", "Густина GFRC-преміксу, кг/м³ (GRCA: 1900 +300/−200; щільний мікробетон до 2300)")
+RHO_SILICONE = P(1100.0, "ASSUME", "Густина силіконового компаунду, кг/м³")
+DEV_MASS = P(0.0685, "VERIFIED", "Маса ILUMA ONE, кг (iqos.com/gb, /ph)")
+STICK_D = P(7.2, "ASSUME", "Діаметр TEREA ≈7.2 (патент PMI US11375753B2, ±10%; офіц. специфікації немає)")
+HEETS_D = P(7.42, "VERIFIED", "Діаметр HEETS / Marlboro HeatSticks (FDA review doc)")
+STICK_L = P(45.0, "VERIFIED", "Довжина стіка ≈45 (FDA для HEETS; патенти PMI для TEREA). Після використання не змінюється")
+
+
+def v(p):
+    return p.value if isinstance(p, P) else p
+
+
+# --------------------------------------------------------------------------
+# Похідні величини
+# --------------------------------------------------------------------------
+@dataclass
+class Derived:
+    pass
+
+
+def derived():
+    d = {}
+    W_, D_, H_ = v(W), v(D), v(H)
+    tan_c = math.tan(math.radians(v(DRAFT_CAV)))
+    tan_p = math.tan(math.radians(v(DRAFT_POCKET)))
+
+    # Порожнина (низ)
+    cav_x0 = -W_ / 2 + v(T_LEFT)
+    cav_x1 = cav_x0 + v(CAV)
+    cav_xc = (cav_x0 + cav_x1) / 2
+    cav_y0, cav_y1 = -v(CAV) / 2, v(CAV) / 2
+    d.update(cav_x0=cav_x0, cav_x1=cav_x1, cav_xc=cav_xc, cav_y0=cav_y0, cav_y1=cav_y1)
+    d["t_front_back"] = D_ / 2 - v(CAV) / 2
+
+    # Кришка / ребейт
+    z_reb = v(FLANGE_T) + v(LID_RECESS)  # глибина ребейту (=верх фланця)
+    d["z_reb"] = z_reb
+    d["reb"] = v(CAV) + 2 * v(SHOULDER)
+    d["r_reb"] = v(R_CAV) + v(SHOULDER)
+    d["flange"] = d["reb"] - 2 * v(LID_GAP)
+    d["r_flange"] = d["r_reb"] - v(LID_GAP)
+    d["plug"] = v(CAV) - 2 * v(PLUG_GAP)
+    d["r_plug"] = v(R_CAV) - v(PLUG_GAP)
+    plug_h = v(HOOK_H) + v(LAND_H) + v(GROOVE_W) + v(TOP_LIP)
+    d["plug_h"] = plug_h
+    d["lid_t"] = v(FLANGE_T) + plug_h
+    d["z_plug_top"] = v(LID_RECESS) + d["lid_t"]
+    # канавка (координати кришки, z=0 — низ кришки)
+    g0 = v(FLANGE_T) + v(HOOK_H) + v(LAND_H)
+    d["groove_z0"], d["groove_z1"] = g0, g0 + v(GROOVE_W)
+    gz_mid = (d["groove_z0"] + d["groove_z1"]) / 2
+    # півширина пробки на висоті середини канавки (пробка має ухил DRAFT_CAV)
+    plug_half_mid = d["plug"] / 2 - (gz_mid - v(FLANGE_T)) * tan_c
+    cav_half_mid = v(CAV) / 2 - (gz_mid + v(LID_RECESS) - z_reb) * tan_c
+    groove_depth = v(ORING_CS) - v(ORING_SQUEEZE) - (cav_half_mid - plug_half_mid)
+    d["groove_depth"] = groove_depth
+    d["groove_bottom_half"] = plug_half_mid - groove_depth
+    d["gland_depth"] = cav_half_mid - d["groove_bottom_half"]
+    d["squeeze_pct"] = (v(ORING_CS) - d["gland_depth"]) / v(ORING_CS) * 100
+    d["groove_fill_pct"] = (math.pi / 4 * v(ORING_CS) ** 2) / (v(GROOVE_W) * d["gland_depth"]) * 100
+    r_gb = d["r_plug"] - (gz_mid - v(FLANGE_T)) * tan_c - groove_depth
+    d["r_groove_bottom"] = r_gb
+    side = 2 * d["groove_bottom_half"]
+    perim = 4 * (side - 2 * r_gb) + 2 * math.pi * r_gb
+    d["groove_perimeter"] = perim
+    d["oring_stretch_pct"] = (perim / (math.pi * v(ORING_ID)) - 1) * 100
+    d["recess_top"] = z_reb + v(HOOK_H)
+
+    # Кишеня девайса
+    liner_in_x = v(DEV_T) + 2 * v(DEV_CLEAR)
+    liner_in_y = v(DEV_W) + 2 * v(DEV_CLEAR)
+    pocket_x = liner_in_x + 2 * v(LINER_WALL)
+    pocket_y = liner_in_y + 2 * v(LINER_WALL)
+    d.update(liner_in_x=liner_in_x, liner_in_y=liner_in_y, pocket_x=pocket_x, pocket_y=pocket_y)
+    dev_z0 = H_ + v(DEV_PROTRUDE) - v(DEV_L)
+    pocket_floor = dev_z0 - v(LINER_FLOOR)
+    d.update(dev_z0=dev_z0, pocket_floor=pocket_floor, pocket_depth=H_ - pocket_floor)
+    px = W_ / 2 - v(T_RIGHT) - pocket_x / 2
+    py = -D_ / 2 + v(T_FRONT_POCKET) + pocket_y / 2
+    d.update(pocket_cx=px, pocket_cy=py)
+    d["pocket_inset_floor"] = d["pocket_depth"] * tan_p
+    d["liner_wall_bottom"] = v(LINER_WALL) - d["pocket_inset_floor"]
+
+    # Стеля порожнини
+    z_ceil_c = H_ - v(T_TOP)
+    d["z_ceil_c"] = z_ceil_c
+    half_top = v(CAV) / 2 - (z_ceil_c - z_reb) * tan_c
+    s = v(DOME_SAG)
+    d["r_dome"] = (half_top ** 2 + s ** 2) / (2 * s)
+    d["z_ceil_edge"] = z_ceil_c - s
+
+    # Перегородка порожнина ↔ кишеня (на рівні дна кишені і біля стелі)
+    cav_right_at = lambda z: cav_x1 - max(0.0, z - z_reb) * tan_c
+    pocket_left_at = lambda z: px - pocket_x / 2 + (H_ - z) * tan_p
+    d["partition_at_floor"] = pocket_left_at(pocket_floor) - cav_right_at(pocket_floor)
+    d["partition_at_ceil"] = pocket_left_at(z_ceil_c) - cav_right_at(z_ceil_c)
+    return d
+
+
+def table():
+    """Повна таблиця параметрів для документації."""
+    rows = []
+    for k, val in globals().items():
+        if isinstance(val, P):
+            rows.append((k, val.value, val.status, val.note))
+    return rows
+
+
+if __name__ == "__main__":
+    import json
+    dd = derived()
+    for k, val in dd.items():
+        print(f"{k:24s} {val:10.3f}")
