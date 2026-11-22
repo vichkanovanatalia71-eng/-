@@ -1,0 +1,312 @@
+{
+  "W": {
+    "value": 120.0,
+    "status": "CLIENT",
+    "note": "Габаритна ширина (X)"
+  },
+  "D": {
+    "value": 90.0,
+    "status": "CLIENT",
+    "note": "Габаритна глибина (Y)"
+  },
+  "H": {
+    "value": 95.0,
+    "status": "CLIENT",
+    "note": "Габаритна висота (Z)"
+  },
+  "R_V": {
+    "value": 14.0,
+    "status": "DESIGN",
+    "note": "Радіус вертикальних ребер (м'який моноліт, захист кутів від сколів)"
+  },
+  "R_TOP": {
+    "value": 6.0,
+    "status": "DESIGN",
+    "note": "Радіус верхнього периметра (обмежений стінкою біля кишені девайса)"
+  },
+  "R_BOT": {
+    "value": 1.0,
+    "status": "DESIGN",
+    "note": "Ручне притуплення нижнього зовнішнього ребра після шліфування (у CAD не моделюється)"
+  },
+  "T_LEFT": {
+    "value": 9.0,
+    "status": "DESIGN",
+    "note": "Ліва стінка біля низу порожнини (з ухилом зростає до ~10.3 вгорі)"
+  },
+  "CAV": {
+    "value": 70.8,
+    "status": "DESIGN",
+    "note": "Порожнина біля низу — квадрат 70.8×70.8 (кришка ставиться у 4 положеннях)"
+  },
+  "R_CAV": {
+    "value": 16.0,
+    "status": "DESIGN",
+    "note": "Радіус вертикальних кутів порожнини (≥3×перетин О-кільця, легке миття)"
+  },
+  "DRAFT_CAV": {
+    "value": 1.0,
+    "status": "DESIGN",
+    "note": "Технологічний ухил стінок порожнини (вихід сердечника)"
+  },
+  "T_TOP": {
+    "value": 12.0,
+    "status": "DESIGN",
+    "note": "Верхня стінка в центрі (над порожниною, під воронкою)"
+  },
+  "DOME_SAG": {
+    "value": 1.5,
+    "status": "DESIGN",
+    "note": "Стріла купола стелі порожнини (відведення повітря з-під сердечника)"
+  },
+  "R_CEIL": {
+    "value": 6.0,
+    "status": "DESIGN",
+    "note": "Радіус переходу стеля→стінки порожнини"
+  },
+  "HOLE_D": {
+    "value": 8.0,
+    "status": "CLIENT",
+    "note": "Діаметр наскрізного отвору для стіка (Ø8)"
+  },
+  "FUNNEL_D": {
+    "value": 22.0,
+    "status": "CLIENT",
+    "note": "Діаметр міні-воронки по краю (≈Ø22)"
+  },
+  "FUNNEL_DEPTH": {
+    "value": 7.0,
+    "status": "DESIGN",
+    "note": "Глибина воронки (S-крива: дотична до верху, вхід у горло під 30° до вертикалі)"
+  },
+  "LEADIN_ANGLE": {
+    "value": 20.0,
+    "status": "DESIGN",
+    "note": "Заходна фаска О-кільця на вході в порожнину (Parker/Trelleborg 15–20°)"
+  },
+  "LEADIN_LEN": {
+    "value": 2.5,
+    "status": "DESIGN",
+    "note": "Осьова довжина заходної фаски (Trelleborg: ≥2.5 мм при 20° для перетину ≤3.53)"
+  },
+  "THROAT_R": {
+    "value": 0.8,
+    "status": "DESIGN",
+    "note": "Заокруглення горла воронки (кромка отвору)"
+  },
+  "FLARE_D": {
+    "value": 12.0,
+    "status": "DESIGN",
+    "note": "Діаметр розтруба на виході отвору у стелю порожнини"
+  },
+  "FLARE_STEP_D": {
+    "value": 8.6,
+    "status": "DESIGN",
+    "note": "Діаметр початку розтруба (стик форма/сердечник; лише розширення вниз)"
+  },
+  "FLARE_H": {
+    "value": 3.0,
+    "status": "DESIGN",
+    "note": "Висота розтруба (пряма ділянка Ø8 скорочена до 2 мм — більший допустимий нахил стіка)"
+  },
+  "DEV_L": {
+    "value": 121.6,
+    "status": "VERIFIED",
+    "note": "Довжина ILUMA ONE (офіц. сторінка iqos.com/gb, модель M0004)"
+  },
+  "DEV_W": {
+    "value": 30.6,
+    "status": "VERIFIED",
+    "note": "Ширина ILUMA ONE (iqos.com)"
+  },
+  "DEV_T": {
+    "value": 16.4,
+    "status": "VERIFIED",
+    "note": "Товщина ILUMA ONE (iqos.com). Переріз — стадіон (user guide)"
+  },
+  "DEV_CLEAR": {
+    "value": 0.4,
+    "status": "DESIGN",
+    "note": "Зазор девайс↔вставка на сторону (компенсується мікроребрами)"
+  },
+  "LINER_WALL": {
+    "value": 2.5,
+    "status": "DESIGN",
+    "note": "Товщина стінки силіконової вставки вгорі (внизу ~1.4 через ухил)"
+  },
+  "LINER_FLOOR": {
+    "value": 3.0,
+    "status": "DESIGN",
+    "note": "Демпферне дно вставки"
+  },
+  "LINER_FIT": {
+    "value": 0.15,
+    "status": "DESIGN",
+    "note": "Натяг вставки в бетонній кишені на сторону"
+  },
+  "DRAFT_POCKET": {
+    "value": 0.75,
+    "status": "DESIGN",
+    "note": "Ухил кишені (вихід силіконового «пальця» форми)"
+  },
+  "DEV_PROTRUDE": {
+    "value": 38.0,
+    "status": "DESIGN",
+    "note": "Виступ девайса над верхом корпусу (≈31% довжини, зручний хват)"
+  },
+  "T_RIGHT": {
+    "value": 10.0,
+    "status": "DESIGN",
+    "note": "Права зовнішня стінка біля кишені"
+  },
+  "T_FRONT_POCKET": {
+    "value": 9.0,
+    "status": "DESIGN",
+    "note": "Фронтальна стінка перед кишенею"
+  },
+  "SLOT_ON": {
+    "value": 1,
+    "status": "CLIENT",
+    "note": "Вертикальний проріз-вітрина на фронті (видно девайс) — є на рендерах v2.2"
+  },
+  "SLOT_W": {
+    "value": 8.0,
+    "status": "DESIGN",
+    "note": "Ширина прорізу (< товщини девайса 16.4 — девайс не випадає)"
+  },
+  "SLOT_DEPTH": {
+    "value": 34.0,
+    "status": "DESIGN",
+    "note": "Глибина прорізу від верху"
+  },
+  "SHOULDER": {
+    "value": 3.0,
+    "status": "DESIGN",
+    "note": "Ширина упорного уступу (фланець кришки ↔ корпус)"
+  },
+  "FLANGE_T": {
+    "value": 4.5,
+    "status": "DESIGN",
+    "note": "Товщина видимого фланця кришки"
+  },
+  "LID_RECESS": {
+    "value": 0.5,
+    "status": "DESIGN",
+    "note": "Кришка заглиблена на 0.5 від опорної площини (не гойдається)"
+  },
+  "LID_GAP": {
+    "value": 0.5,
+    "status": "DESIGN",
+    "note": "Тіньовий зазор фланець↔корпус на сторону"
+  },
+  "PLUG_GAP": {
+    "value": 0.6,
+    "status": "DESIGN",
+    "note": "Радіальний зазор пробка↔стінка порожнини на сторону"
+  },
+  "HOOK_H": {
+    "value": 3.5,
+    "status": "DESIGN",
+    "note": "Висота зони хвату пальцем над фланцем (у виїмці)"
+  },
+  "LAND_H": {
+    "value": 1.0,
+    "status": "DESIGN",
+    "note": "Перемичка між зоною хвату та канавкою"
+  },
+  "ORING_CS": {
+    "value": 3.0,
+    "status": "DESIGN",
+    "note": "Перетин О-кільця VMQ (силікон)"
+  },
+  "ORING_SQUEEZE": {
+    "value": 0.6,
+    "status": "DESIGN",
+    "note": "Радіальне стиснення О-кільця (20%)"
+  },
+  "GROOVE_W": {
+    "value": 4.0,
+    "status": "DESIGN",
+    "note": "Ширина канавки (Trelleborg static: 4.00 +0.25 для перетину 3.0)"
+  },
+  "TOP_LIP": {
+    "value": 2.6,
+    "status": "DESIGN",
+    "note": "Верхній бортик над канавкою"
+  },
+  "ORING_ID": {
+    "value": 74.0,
+    "status": "DESIGN",
+    "note": "Внутрішній діаметр О-кільця у вільному стані (розтяг ~3%)"
+  },
+  "RECESS_W": {
+    "value": 30.0,
+    "status": "DESIGN",
+    "note": "Ширина пальцевої виїмки по фронту"
+  },
+  "RECESS_R": {
+    "value": 7.0,
+    "status": "DESIGN",
+    "note": "Радіус верхніх кутів виїмки"
+  },
+  "LOGO_ON": {
+    "value": 1,
+    "status": "CLIENT",
+    "note": "Логотип STICKBOX на фронті (дебосинг)"
+  },
+  "LOGO_SIZE": {
+    "value": 10.4,
+    "status": "DESIGN",
+    "note": "Кегль (висота великих літер ≈7.6 мм, ширина ≈52 мм)"
+  },
+  "LOGO_DEPTH": {
+    "value": 0.6,
+    "status": "DESIGN",
+    "note": "Глибина дебосингу"
+  },
+  "LOGO_Z": {
+    "value": 24.0,
+    "status": "DESIGN",
+    "note": "Висота центру логотипа від низу"
+  },
+  "GRIND_ALLOW": {
+    "value": 0.5,
+    "status": "DESIGN",
+    "note": "Припуск на шліфування відкритої грані (низ корпусу / низ кришки)"
+  },
+  "SHRINK_COMP": {
+    "value": 1.002,
+    "status": "ASSUME",
+    "note": "Масштаб майстер-моделі: усадка GRC 0.09–0.15% + платиновий силікон <0.1% (калібрувати на пробних виливках!)"
+  },
+  "RHO_CONCRETE": {
+    "value": 2000.0,
+    "status": "ASSUME",
+    "note": "Густина GFRC-преміксу, кг/м³ (GRCA: 1900 +300/−200; щільний мікробетон до 2300)"
+  },
+  "RHO_SILICONE": {
+    "value": 1100.0,
+    "status": "ASSUME",
+    "note": "Густина силіконового компаунду, кг/м³"
+  },
+  "DEV_MASS": {
+    "value": 0.0685,
+    "status": "VERIFIED",
+    "note": "Маса ILUMA ONE, кг (iqos.com/gb, /ph)"
+  },
+  "STICK_D": {
+    "value": 7.2,
+    "status": "ASSUME",
+    "note": "Діаметр TEREA ≈7.2 (патент PMI US11375753B2, ±10%; офіц. специфікації немає)"
+  },
+  "HEETS_D": {
+    "value": 7.42,
+    "status": "VERIFIED",
+    "note": "Діаметр HEETS / Marlboro HeatSticks (FDA review doc)"
+  },
+  "STICK_L": {
+    "value": 45.0,
+    "status": "VERIFIED",
+    "note": "Довжина стіка ≈45 (FDA для HEETS; патенти PMI для TEREA). Після використання не змінюється"
+  }
+}

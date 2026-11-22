@@ -99,7 +99,7 @@ def _cavity_tool():
     return cav.fuse(reb).fuse(lead).clean()
 
 
-def _funnel_tool():
+def _funnel_tool(with_flare=True):
     """Воронка (S-крива, дотична до верху та до отвору) + отвір Ø8 + розтруб на виході."""
     H = v(p.H)
     r_h = v(p.HOOK_H) * 0 + v(p.HOLE_D) / 2
@@ -128,8 +128,22 @@ def _funnel_tool():
     r_low = r_fl + slope * 2.0
     fl = (cq.Workplane("XZ").moveTo(0, z_low).lineTo(r_low, z_low).lineTo(r_step, z_step)
           .lineTo(0, z_step).close().revolve(360, (0, 0, 0), (0, 1, 0)).val())
-    tool = funnel.fuse(fl).clean()
+    tool = funnel.fuse(fl).clean() if with_flare else funnel
     return tool.translate(Vector(d["cav_xc"], 0, 0))
+
+
+def flare_boss(preload=0.3):
+    """Конус розтруба як частина сердечника (від стелі до стику зі шпилькою форми + натяг)."""
+    z_c = d["z_ceil_c"]
+    z_step = z_c + v(p.FLARE_H)
+    r_step = v(p.FLARE_STEP_D) / 2
+    r_fl = v(p.FLARE_D) / 2
+    slope = (r_fl - r_step) / v(p.FLARE_H)
+    z_low = z_c - 2.0
+    r_low = r_fl + slope * 2.0
+    prof = (cq.Workplane("XZ").moveTo(0, z_low).lineTo(r_low, z_low).lineTo(r_step, z_step)
+            .lineTo(r_step, z_step + preload).lineTo(0, z_step + preload).close())
+    return prof.revolve(360, (0, 0, 0), (0, 1, 0)).val().translate(Vector(d["cav_xc"], 0, 0))
 
 
 def _pocket_tool():
@@ -182,7 +196,7 @@ def _logo_tool(depth_sign=-1):
 
 
 def body(product=True, with_slot=None, with_logo=None, with_cavity=True,
-         with_recess=True, height_extra=0.0):
+         with_recess=True, height_extra=0.0, funnel_flare=None):
     """
     product=True  — геометрія готового виробу (з притупленнями після шліфування).
     product=False — геометрія для майстер-моделі (без притуплень відкритої грані).
@@ -192,7 +206,9 @@ def body(product=True, with_slot=None, with_logo=None, with_cavity=True,
     with_slot = bool(v(p.SLOT_ON)) if with_slot is None else with_slot
     with_logo = bool(v(p.LOGO_ON)) if with_logo is None else with_logo
     H = v(p.H)
-    s = _outer_block(H + height_extra, bottom_arris=product).translate(Vector(0, 0, -height_extra))
+    # Нижні кромки (зовнішня R≈1 і внутрішня кромка ребейту R≈0.5) — ручне притуплення після
+    # шліфування відкритої грані; у CAD не моделюються (відкрита грань формується не силіконом).
+    s = _outer_block(H + height_extra, bottom_arris=False).translate(Vector(0, 0, -height_extra))
 
     # кишеня девайса
     s = s.cut(_pocket_tool())
@@ -216,7 +232,7 @@ def body(product=True, with_slot=None, with_logo=None, with_cavity=True,
             print("WARN slot fillet:", ex)
 
     # верхня воронка + отвір + розтруб
-    s = s.cut(_funnel_tool())
+    s = s.cut(_funnel_tool(with_flare=with_cavity if funnel_flare is None else funnel_flare))
     z_t = H - v(p.FUNNEL_DEPTH)
     throat = edges_where(s, lambda e, pts: all(abs(q.z - z_t) < 0.02 for q in pts)
                          and all(math.hypot(q.x - d["cav_xc"], q.y) < v(p.HOLE_D) / 2 + 0.05 for q in pts))
@@ -234,16 +250,12 @@ def body(product=True, with_slot=None, with_logo=None, with_cavity=True,
         outer = edges_where(s, lambda e, pts: all(abs(q.z - zr) < 0.02 for q in pts)
                             and all(max(abs(q.x - xc), abs(q.y)) > half_cav + 1.0 for q in pts))
         s = fillet_edges(s, outer, 0.5)     # внутрішній кут ребейту
-        if product:
-            rim = edges_where(s, lambda e, pts: all(abs(q.z) < 0.02 for q in pts)
-                              and all(max(abs(q.x - xc), abs(q.y)) < d["reb"] / 2 + 0.3 for q in pts))
-            s = fillet_edges(s, rim, 0.5)
         if with_recess:
             s = s.cut(_recess_tool())
             def on_recess(e, pts):
                 return (all(abs(q.x) <= v(p.RECESS_W) / 2 + 0.05 for q in pts)
                         and all(abs(q.y + v(p.D) / 2) < 0.02 for q in pts)
-                        and all(1.45 < q.z < 10 for q in pts))
+                        and all(-height_extra + 0.05 < q.z < 10 for q in pts))
             try:
                 s = fillet_edges(s, edges_where(s, on_recess), 1.5)
             except Exception as ex:  # pragma: no cover

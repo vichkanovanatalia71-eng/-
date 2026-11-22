@@ -32,17 +32,17 @@ def export_step(shape, path):
     cq.exporters.export(cq.Workplane().add(shape), path, exportType="STEP")
 
 
-def export_stl(shape, path, tol=0.01, ang=0.05):
+def export_stl(shape, path, tol=0.02, ang=0.1):
     os.makedirs(os.path.dirname(path), exist_ok=True)
     cq.exporters.export(cq.Workplane().add(shape), path, exportType="STL", tolerance=tol, angularTolerance=ang)
 
 
-def export_3mf(shape, path, tol=0.01, ang=0.05):
+def export_3mf(shape, path, tol=0.02, ang=0.1):
     os.makedirs(os.path.dirname(path), exist_ok=True)
     cq.exporters.export(cq.Workplane().add(shape), path, exportType="3MF", tolerance=tol, angularTolerance=ang)
 
 
-def export_glb(named_shapes, path, tol=0.03, ang=0.1):
+def export_glb(named_shapes, path, tol=0.05, ang=0.15):
     """named_shapes: list of (name, shape, material_key). Координати: мм, Z-up → glTF Y-up."""
     os.makedirs(os.path.dirname(path), exist_ok=True)
     scene = trimesh.Scene()

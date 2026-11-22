@@ -1,0 +1,102 @@
+[
+ {
+  "glb": "assy.glb",
+  "w": 1400,
+  "h": 1050,
+  "cam": {
+   "pos": [
+    -235,
+    205,
+    300
+   ],
+   "target": [
+    0,
+    52,
+    0
+   ],
+   "fov": 28
+  },
+  "exposure": 0.88,
+  "envIntensity": 0.75,
+  "bg": "#eadfd1",
+  "out": "30_cmf_sand_speckle.png",
+  "concrete": "#c2ad92",
+  "linerColor": "#2e3134",
+  "oringColor": "#1f9a83"
+ },
+ {
+  "glb": "assy.glb",
+  "w": 1400,
+  "h": 1050,
+  "cam": {
+   "pos": [
+    -235,
+    205,
+    300
+   ],
+   "target": [
+    0,
+    52,
+    0
+   ],
+   "fov": 28
+  },
+  "exposure": 0.88,
+  "envIntensity": 0.75,
+  "bg": "#eadfd1",
+  "out": "31_cmf_graphite.png",
+  "concrete": "#5d5d5b",
+  "linerColor": "#1d1f21",
+  "oringColor": "#c99a5b"
+ },
+ {
+  "glb": "assy.glb",
+  "w": 1400,
+  "h": 1050,
+  "cam": {
+   "pos": [
+    -235,
+    205,
+    300
+   ],
+   "target": [
+    0,
+    52,
+    0
+   ],
+   "fov": 28
+  },
+  "exposure": 0.88,
+  "envIntensity": 0.75,
+  "bg": "#eadfd1",
+  "out": "32_cmf_bone_white.png",
+  "concrete": "#ddd6c9",
+  "linerColor": "#8f8a80",
+  "oringColor": "#3f4a44"
+ },
+ {
+  "glb": "assy.glb",
+  "w": 1400,
+  "h": 1050,
+  "cam": {
+   "pos": [
+    -235,
+    205,
+    300
+   ],
+   "target": [
+    0,
+    52,
+    0
+   ],
+   "fov": 28
+  },
+  "exposure": 0.88,
+  "envIntensity": 0.75,
+  "bg": "#eadfd1",
+  "out": "33_cmf_terracotta.png",
+  "concrete": "#b3755a",
+  "linerColor": "#3a2a24",
+  "oringColor": "#e3c9a8"
+ }
+]

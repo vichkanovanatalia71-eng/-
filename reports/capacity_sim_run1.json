@@ -1,0 +1,47 @@
+{
+ "runs": [
+  {
+   "seed": 0,
+   "no_shake": 27,
+   "with_shake": 49,
+   "shakes": 5,
+   "inside": 48
+  },
+  {
+   "seed": 1,
+   "no_shake": 30,
+   "with_shake": 31,
+   "shakes": 4,
+   "inside": 31
+  },
+  {
+   "seed": 2,
+   "no_shake": 18,
+   "with_shake": 48,
+   "shakes": 10,
+   "inside": 48
+  },
+  {
+   "seed": 3,
+   "no_shake": 41,
+   "with_shake": 47,
+   "shakes": 4,
+   "inside": 47
+  },
+  {
+   "seed": 4,
+   "no_shake": 34,
+   "with_shake": 34,
+   "shakes": 3,
+   "inside": 34
+  }
+ ],
+ "no_shake_mean": 30.0,
+ "no_shake_min": 18,
+ "no_shake_max": 41,
+ "with_shake_mean": 41.8,
+ "with_shake_min": 31,
+ "with_shake_max": 49,
+ "stick_d": 7.2,
+ "elapsed_s": 653.5536193847656
+}

@@ -3,3 +3,4 @@ __pycache__/
 cad/render/node_modules/
 cad/render/package-lock.json
 .DS_Store
+cad/render/glb/*.glb
