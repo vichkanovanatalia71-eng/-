@@ -1,8 +1,9 @@
 """Генерує reports/geometry_protocol.md та docs/02_specification_bom.md з даних моделі."""
-import json, os, sys, datetime, re
+import json, os, sys, datetime, re, math
 sys.path.insert(0, os.path.dirname(__file__))
 from stickbox import params as p
 from stickbox.params import v
+from stickbox import parts as P_
 
 ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
 R = json.load(open(f"{ROOT}/reports/analysis.json"))
@@ -68,8 +69,15 @@ pulls = {"cavity": "сердечник ↓ (−Z)", "pocket": "«палець» 
 for k, w in R["draft"].items():
     L.append(f"| {k} | {pulls.get(k,'')} | {f(w['area_mm2'],0)} | {f(w['undercut_area_mm2'],1)} | {f(w['draft_p05_deg'],2)} |")
 u = R["undercut_rays"]
+if "collapse_faces" in u["cavity"]:
+    L.append(f"\n**v3.4, тонкі стінки:** над порогом резервуар ширший за шийку ущільнення, тому жорсткий сердечник вийти не зміг би "
+             f"({u['cavity']['rigid_blocked_faces']} граней). Силіконова чашка після виймання хребта підтискається всередину не більш ніж на "
+             f"**{u['cavity']['collapse_max_mm']:.2f} мм** (еквідистанта шийки, однаково і в кутах) — перехід 60° працює як напрямна. "
+             "Справжнім піднутренням вважається лише заблокована грань у межах контуру шийки — таких нижче.")
 L.append(f"\nПроменевий тест піднутрень: порожнина — {u['cavity']['blocked_faces']} заблокованих граней з {u['cavity']['faces']}; "
-         f"кишеня — {u['pocket']['blocked_faces']} з {u['pocket']['faces']}. **Справжніх піднутрень немає.** "
+         f"кишеня — {u['pocket']['blocked_faces']} з {u['pocket']['faces']}"
+         + (f"; порожнина полегшення основи (вставка ↓) — {u['base_void']['blocked_faces']} з {u['base_void']['faces']}" if "base_void" in u else "")
+         + ". **Справжніх піднутрень немає.** "
          "Малі «від'ємні» площі — фаски/скруглення на межах зон класифікації; зона прорізу формується ребром силікону, що "
          "відгинається разом зі стінкою форми (−Y), тому вертикальний ухил там не є критерієм.\n")
 L.append("## 6. Прохідність стіка крізь отвір Ø8 (пряма ділянка 2 мм)\n")
@@ -212,6 +220,23 @@ if "nfc" in R:
     L.append(f"\nЗнак: «крапка» + 3 дуги (радіуси {', '.join(str(r_) for r_ in si_['radii'])} мм, товщина {v(p.NFC_STROKE)}, перемички {v(p.NFC_GAP)}), "
              f"під ним «NFC» {v(p.NFC_TEXT_CAP)} мм (перемички між літерами {si_['text_gap_min']} мм); габарит {si_['bounds'][2] - si_['bounds'][0]:.1f} × "
              f"{si_['bounds'][3] - si_['bounds'][1]:.1f} мм. Дальність зчитування крізь бетон тут не розраховується — це перевіряє тест Т22 на зразку.\n")
+if v(p.WALL_ON):
+    L.append("## 8d. Товщини стінок і полегшення (v3.4)\n")
+    _tn = math.tan(math.radians(v(p.DRAFT_CAV)))
+    _top = d["z_ceil_edge"] - d["up_zt"]
+    L.append("| Елемент | Було (v3.3) | Тепер | Обмеження |\n|---|---|---|---|")
+    L.append(f"| Ліва / задня стінка над порогом | 7.5 (угорі ≈8.5) | **{v(p.WALL_T):.1f}** (угорі ≈{v(p.WALL_T) + _top * _tn:.1f}) | ухил {v(p.DRAFT_CAV)}° сердечника |")
+    L.append(f"| Фронтальна стінка над порогом | 7.5 | **{v(p.WALL_FRONT_T):.1f}** | заглиблення напису {v(p.LOGO_DEPTH)} → за літерами ≥{v(p.WALL_FRONT_T) - v(p.LOGO_DEPTH):.1f} |")
+    L.append(f"| Права стінка плеча | 7.0 | **{v(p.WALL_T):.1f}** | кути плеча R{d['arm_r']:.0f} |")
+    L.append("| Задня стінка плеча | 7.5 | 7.5 (без змін) | плече сердечника — суцільний силікон без хребта: має пройти шийку без підтиску |")
+    L.append(f"| Зона ущільнення (z < {d['up_z0']:.0f}) | 7.5, бортик ребейту 4.5 | без змін | шнур Ø4, канавка, упор кришки |")
+    L.append(f"| Перехід шийка → тонка стінка | — | смуга {v(p.WALL_STEP_DEG):.0f}°, z {d['up_z0']:.0f}–{d['up_zt']:.1f}, крок {d['up_step']:.1f} | стіки не затримуються; напрямна для чашки сердечника |")
+    L.append(f"| Вертикальні кути резервуара | R16 | R{d['up_r']:.1f} (еквідистанта шийки) → стінка в куті ≈9 | підтиск чашки однаковий; кути — зона ударів |")
+    L.append("| Права перегородка до кишені девайса, стінки кишені, верхня плита | без змін | без змін | тримач девайса; воронка 6 + отвір 2 + розтруб 1 = 9 |")
+    if v(p.BASE_VOID_ON):
+        _bv = P_.base_void_dims()
+        L.append(f"| Основа під рампою плеча | суцільна (до ≈37 мм) | **порожнина знизу** {_bv['x1'] - _bv['x0']:.1f} × {_bv['y1'] - _bv['y0']:.1f}, висота {_bv['z_at_x0']:.0f}–{_bv['z_at_x1']:.0f}, стінки {v(p.WALL_T):.0f} | відкрита в основу (без кришки), ухил {v(p.BASE_VOID_DRAFT):.0f}°; вставка на мості сердечника |")
+    L.append("")
 L.append("## 9. Оснащення\n")
 L.append("| Позиція | B-Rep валідне | Об'єм, мл | Габарит друку, мм |\n|---|---|---|---|")
 for k, t in R["tooling"].items():

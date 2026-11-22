@@ -230,7 +230,8 @@ def relief_core_outer(neck=BRIDGE_RAISE):
 
 
 def core_spine_and_bridge():
-    """Жорсткий хребет (знімний, ухил 2°) + міст із ніжками та штифтами у вушка гільзи."""
+    """Жорсткий хребет (знімний, ухил 2°) + міст із ніжками та штифтами у вушка гільзи.
+    v3.4: на мосту — вставка порожнини полегшення основи (BASE_VOID_ON), виходить униз разом із хребтом."""
     xc = d["cav_xc"] * K
     z_open = -GA * K
     zb1 = z_open - BRIDGE_RAISE          # низ мосту
@@ -261,6 +262,14 @@ def core_spine_and_bridge():
         rz_top = (d["rel_top"] - rskin) * K
         rspine = P.prism_rrect(rw - 2 * rskin, rh - 2 * rskin, 3.0, zb1 - 0.01, rz_top, cx=rcx, cy=rcy, taper=2.0)
         plate = plate.fuse(pad).fuse(link).fuse(rspine)
+    if v(p.BASE_VOID_ON):
+        # v3.4: вставка порожнини полегшення основи — на мості (виходить униз разом із хребтом), майданчик + перемичка до плити
+        bvd = P.base_void_dims()
+        ins = S(P.base_void_tool(z_bottom=zb1 / K - 0.2))
+        bx0, bx1, by0, by1 = bvd["x0"] * K, bvd["x1"] * K, bvd["y0"] * K, bvd["y1"] * K
+        pad = P.prism_rrect(bx1 - bx0 - 2, by1 - by0 - 2, v(p.BASE_VOID_R) - 1, zb0, zb1, cx=(bx0 + bx1) / 2, cy=(by0 + by1) / 2)
+        link = box(xc + neck_w / 2 - 3, bx0 + 3, (by0 + by1) / 2 - 8, (by0 + by1) / 2 + 8, zb0, zb1)
+        plate = plate.fuse(ins).fuse(pad).fuse(link)
     s = plate.fuse(spine)
     # заливні та вентиляційні отвори в зоні шийки (між хребтом і контуром шийки)
     r_mid = (side0 / 2 + d["reb"] * K / 2) / 2

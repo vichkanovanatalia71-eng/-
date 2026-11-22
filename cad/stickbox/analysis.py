@@ -105,6 +105,12 @@ def classify_regions(pts, nrm):
         sillz = ((pts[:, 2] > d["arm_sill_z"] - v(p.ARM_SILL_R) - 0.6) & (pts[:, 2] < d["arm_sill_z"] + 0.6)
                  & (pts[:, 0] > d["cav_x1"] - v(p.R_CAV) - 0.5) & (pts[:, 1] > d["arm_y0"] - 1.0))
         reg[(arm | corner | shelf | cres | sillz) & (reg != "pocket")] = "arm"
+    if v(p.BASE_VOID_ON):   # v3.4: порожнина полегшення знизу (нижче площини рампи) — окрема зона, вставка виходить униз
+        bv = P.base_void_dims()
+        zv = np.array([bv["zv"](x) for x in pts[:, 0]])
+        void = ((pts[:, 0] > bv["x0"] - 1.5) & (pts[:, 0] < bv["x1"] + 1.5) & (pts[:, 1] > bv["y0"] - 1.5) & (pts[:, 1] < bv["y1"] + 1.5)
+                & (pts[:, 2] < zv + 0.6) & (pts[:, 2] > -1.0))
+        reg[void] = "base_void"
     # v3.2: зона напису — за фактичними межами (зі знаком-I і хвилею над рядком)
     from . import brand as _br
     _li = _br.wordmark_layout()["info"]
@@ -162,13 +168,33 @@ def undercut_rays(body_shape):
     n = m.face_normals
     reg = classify_regions(c, n)
     res = {}
-    for name, pull in (("cavity", np.array([0, 0, -1.0])), ("pocket", np.array([0, 0, 1.0]))):
+    for name, pull in (("cavity", np.array([0, 0, -1.0])), ("pocket", np.array([0, 0, 1.0])),
+                       *([("base_void", np.array([0, 0, -1.0]))] if v(p.BASE_VOID_ON) else [])):
         msk = np.where(reg == name)[0]
         orig = c[msk] + n[msk] * 0.02
         dirs = np.tile(pull, (len(msk), 1))
         hit = m.ray.intersects_any(orig, dirs)
         res[name] = dict(faces=int(len(msk)), blocked_faces=int(hit.sum()),
                          blocked_area_mm2=float(m.area_faces[msk][hit].sum()))
+        if name == "cavity" and v(p.WALL_ON):
+            # v3.4: тонкостінна частина ширша за шийку ущільнення → жорсткий сердечник би не вийшов; силіконова чашка
+            # (після виймання хребта) підтискається всередину на відстань від точки до контуру шийки. Справжнє піднутрення —
+            # лише заблокована грань, що лежить у межах контуру шийки (її підтиск не звільняє).
+            from shapely.geometry import box as _sbox, Point as _Pt
+            e = (d["up_z0"] - d["z_reb"]) * math.tan(math.radians(v(p.DRAFT_CAV)))
+            hn, rn, xc_ = v(p.CAV) / 2 - e, v(p.R_CAV) - e, d["cav_xc"]
+            neck = _sbox(xc_ - hn + rn, -hn + rn, xc_ + hn - rn, hn - rn).buffer(rn, quad_segs=32)
+            # знакова відстань до контуру шийки (+ назовні, − усередині); грань на самому контурі (±0.1) підтиску не потребує
+            out = np.array([(1.0 if not neck.contains(_Pt(q[0], q[1])) else -1.0) * neck.exterior.distance(_Pt(q[0], q[1]))
+                            for q in c[msk]])
+            above = c[msk][:, 2] > d["up_z0"] - 0.1
+            coll = hit & above & (out > -0.1)
+            real = hit & ~coll
+            out = np.maximum(out, 0.0)
+            res[name].update(rigid_blocked_faces=int(hit.sum()), blocked_faces=int(real.sum()),
+                             blocked_area_mm2=float(m.area_faces[msk][real].sum()),
+                             collapse_faces=int(coll.sum()), collapse_max_mm=float(out[above].max()) if above.any() else 0.0,
+                             note="тонкі стінки: чашка сердечника підтискається на collapse_max_mm, щоб пройти шийку")
     if v(p.ARM_ON):
         # етап 1: плече сердечника ковзає вздовж рампи, доки кожна точка не опиниться над основною частиною (x < cav_x1 − 1);
         # етап 2 — униз (−Z) через отвір, як основна частина. Піднутрення = перетин променя раніше, ніж точка вийде з плеча.

@@ -97,11 +97,87 @@ def _cavity_tool():
     lead = prism_rrect(v(p.CAV) + 2 * rad, v(p.CAV) + 2 * rad, v(p.R_CAV) + rad, zr - 0.01, zr + L, cx=xc,
                        taper=v(p.LEADIN_ANGLE))
     tool = cav.fuse(reb).fuse(lead).clean()
+    if v(p.WALL_ON):
+        tool = _with_thin_walls(tool, sph)
     if v(p.ARM_ON):
         tool = _with_arm(tool)
     if v(p.NFC_ON):
         tool = tool.fuse(_nfc_pocket_tool()).clean()
     return tool
+
+
+def _rr_sketch(x0, x1, y0, y1, r, r_right=None):
+    """Прямокутник із заокругленими кутами; r_right — окремий радіус двох правих кутів (+X)."""
+    sk = cq.Sketch().rect(x1 - x0, y1 - y0)
+    if r_right is None or abs(r_right - r) < 1e-9:
+        return sk.vertices().fillet(r)
+    return sk.vertices("<X").fillet(r).reset().vertices(">X").fillet(r_right)
+
+
+def _rr_wire(x0, x1, y0, y1, r, z, r_right=None):
+    f = _rr_sketch(x0, x1, y0, y1, r, r_right)._faces.Faces()[0]
+    return f.outerWire().translate(Vector((x0 + x1) / 2, (y0 + y1) / 2, z))
+
+
+def _with_thin_walls(tool, sph):
+    """v3.4: над зоною ущільнення резервуар ширшає до стінок WALL_T (фронт WALL_FRONT_T): шийка (стінка під шнуром,
+    бортик ребейту) — без змін до порогу up_z0; далі похила смуга WALL_STEP_DEG до up_zt; вище — тонкостінна частина
+    з тим самим ухилом, куполом стелі й R_CEIL. Права стінка (перегородка до кишені девайса) — без змін.
+    Сердечник проходить шийку, підтискаючись усередину на up_step (після виймання хребта)."""
+    zr, xc = d["z_reb"], d["cav_xc"]
+    tn = math.tan(math.radians(v(p.DRAFT_CAV)))
+    z0, zt = d["up_z0"], d["up_zt"]
+    h = v(p.CAV) / 2
+    def neck(z):
+        e = (z - zr) * tn
+        return (xc - h + e, xc + h - e, -h + e, h - e, v(p.R_CAV) - e)
+    nx0, nx1, ny0, ny1, nr = neck(z0)
+    ux1, nr_t = neck(zt)[1], neck(zt)[4]                  # права стінка і праві кути — продовження шийки
+    up = (d["up_x0"], ux1, d["up_y0"], d["up_y1"], d["up_r"])
+    trans = cq.Solid.makeLoft([_rr_wire(nx0, nx1, ny0, ny1, nr, z0), _rr_wire(*up, zt, r_right=nr_t)], True)
+    top_extra = 3.0
+    U = (cq.Workplane("XY", origin=((up[0] + up[1]) / 2, (up[2] + up[3]) / 2, zt - 0.01))
+         .placeSketch(_rr_sketch(*up, r_right=nr_t)).extrude(d["z_ceil_c"] + top_extra - zt + 0.01, taper=v(p.DRAFT_CAV)).val())
+    U = U.intersect(sph)
+    top_face = max(U.Faces(), key=lambda f: f.Center().z)
+    U = U.fillet(v(p.R_CEIL), top_face.Edges())
+    # спільні грані (права стінка, купол) → звичайне об'єднання OCC мовчки повертає один операнд; нечітке (1 мкм) — коректне
+    out = tool.fuse(trans, tol=1e-3).fuse(U, tol=1e-3).clean()
+    assert out.isInside(Vector(d["up_x0"] + 0.5, 0, (zt + d["z_ceil_edge"]) / 2)), "thin-wall cavity fuse failed"
+    return out
+
+
+def base_void_dims():
+    """v3.4: порожнина полегшення знизу під рампою плеча: план (x0, x1, y0, y1), стеля — площина рампи мінус WALL_T."""
+    xc = d["cav_xc"]
+    x0 = xc + d["reb"] / 2 + v(p.WALL_T)                      # 5 мм до ребейту кришки
+    x1 = v(p.W) / 2 - v(p.WALL_T)
+    y0 = d["pocket_cy"] + d["pocket_y"] / 2 + v(p.WALL_T)       # 5 мм до заднього торця кишені девайса
+    y1 = v(p.D) / 2 - v(p.WALL_T)
+    sill = d["arm_sill_z"]
+    xs = d["cav_x1"] - (sill - d["z_reb"]) * math.tan(math.radians(v(p.DRAFT_CAV)))
+    t = math.radians(v(p.ARM_RAMP_DEG))
+    zv = lambda x: sill + (x - xs) * math.tan(t) - v(p.WALL_T) / math.cos(t)
+    return dict(x0=x0, x1=x1, y0=y0, y1=y1, zv=zv, z_at_x0=zv(x0), z_at_x1=zv(x1))
+
+
+def base_void_tool(z_bottom=-3.0):
+    """Тіло порожнини полегшення (віднімається з корпусу; та сама форма — друкована вставка на мості сердечника)."""
+    b = base_void_dims()
+    x0, x1, y0, y1 = b["x0"], b["x1"], b["y0"], b["y1"]
+    ztop = b["z_at_x1"] + 1.0
+    V = prism_rrect(x1 - x0, y1 - y0, v(p.BASE_VOID_R), z_bottom, ztop, cx=(x0 + x1) / 2, cy=(y0 + y1) / 2,
+                    taper=v(p.BASE_VOID_DRAFT))
+    xa, xb = x0 - 5, x1 + 5
+    pts = [(xa, z_bottom - 1), (xb, z_bottom - 1), (xb, b["zv"](xb)), (xa, b["zv"](xa))]
+    keep = cq.Workplane("XZ", origin=(0, 60, 0)).polyline(pts).close().extrude(120).val()
+    V = V.intersect(keep)
+    try:   # внутрішній кут стеля→стінки порожнини R2 (без концентратора напружень)
+        top = [f for f in V.Faces() if f.normalAt().z > 0.3 and f.Center().z > b["z_at_x0"] - 1]
+        V = V.fillet(2.0, [e for f in top for e in f.Edges()])
+    except Exception as ex:  # pragma: no cover
+        print("WARN base void fillet:", ex)
+    return V
 
 
 def _nfc_pocket_tool():
@@ -145,7 +221,7 @@ def _arm_tool():
     """v3.0: плече Г-подібного резервуара за кишенею девайса.
     Знизу — поріг (стінка під ущільнювачем суцільна) і рампа ARM_RAMP_DEG до порогу.
     Стеля пласка на висоті краю купола, заокруглення R_CEIL робиться на простій призмі (стабільна геометрія OCC)."""
-    R = v(p.ARM_R)
+    R = d["arm_r"] if v(p.WALL_ON) else v(p.ARM_R)
     x0 = d["cav_x1"] - v(p.R_CAV) - R - 2.0          # заходить у пряму ділянку задньої стінки основної порожнини
     x1, y0, y1 = d["arm_x1"], d["arm_y0"], d["arm_y1"]
     A = prism_rrect(x1 - x0, y1 - y0, R, d["z_reb"], d["z_ceil_edge"], cx=(x0 + x1) / 2, cy=(y0 + y1) / 2,
@@ -447,6 +523,8 @@ def body(product=True, with_slot=None, with_logo=None, with_cavity=True,
                     except Exception as ex:  # pragma: no cover
                         print("WARN rl recess fillet:", ex)
 
+    if with_cavity and v(p.BASE_VOID_ON):            # v3.4: порожнина полегшення знизу (формує вставка, не зовнішня форма)
+        s = s.cut(base_void_tool(z_bottom=-height_extra - 2.0))
     if with_logo:
         s = s.cut(_logo_tool())
         if v(p.MARK_ON):

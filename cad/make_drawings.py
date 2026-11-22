@@ -113,12 +113,24 @@ VA.dim((xc - d["reb"] / 2, 0, 0), (xc + d["reb"] / 2, 0, 0), "h", off=-12, txt=f
 VA.dim((-60, 0, 0), (-60, 0, d["z_ceil_c"]), "v", off=-8, txt=f"{d['z_ceil_c']:.0f} (стеля, центр)")
 VA.dim((xc + 14, 0, d["z_ceil_c"]), (xc + 14, 0, H), "v", off=6, txt=f"{v(p.T_TOP):.0f}")
 VA.dim((60, 0, 0), (60, 0, d["z_reb"]), "v", off=8, txt=f"{d['z_reb']:.1f} ⊕")
-VA.dim((-60, 0, 30), (d["cav_x0"], 0, 30), "h", off=6, txt=f"{v(p.T_LEFT):.0f}")
+if v(p.WALL_ON):   # v3.4: зона ущільнення — 7.5; над порогом — тонкі стінки WALL_T (60° перехід)
+    _tn = math.tan(math.radians(v(p.DRAFT_CAV)))
+    VA.dim((-60, 0, 12), (d["cav_x0"] + (12 - d["z_reb"]) * _tn, 0, 12), "h", off=6, txt=f"{v(p.T_LEFT):.1f}")
+    _zw = d["up_zt"] + 4
+    VA.dim((-60, 0, _zw), (d["up_x0"] + (_zw - d["up_zt"]) * _tn, 0, _zw), "h", off=6, txt=f"{v(p.WALL_T):.0f}")
+    VA.leader((d["up_x0"] + 1.2, 0, (d["up_z0"] + d["up_zt"]) / 2), 22, -26, f"перехід {v(p.WALL_STEP_DEG):.0f}°, z {d['up_z0']:.0f}–{d['up_zt']:.1f}", size=2.6)
+else:
+    VA.dim((-60, 0, 30), (d["cav_x0"], 0, 30), "h", off=6, txt=f"{v(p.T_LEFT):.0f}")
 VA.leader((d["cav_x1"] - 0.6, 0, 60), 12, -16, f"ухил {v(p.DRAFT_CAV)}°")
 VA.leader((xc + 20, 0, d["z_ceil_edge"] + 0.5), 18, -22, f"купол R{d['r_dome']:.0f}, стріла {v(p.DOME_SAG)}")
 cutC = keep(body, "x", xc, +1)
 VC = S.view(cutC, "left", (238, 150), 1.0, label="РОЗРІЗ C-C", section=(cutC, (xc, 0, 0), (1, 0, 0)))
 VC.dim((xc, -45, 0), (xc, d["cav_y0"], 0), "h", off=-8, txt=f"{d['t_front_back']:.1f}")
+if v(p.WALL_ON):
+    _zw = 60.0
+    _tn = math.tan(math.radians(v(p.DRAFT_CAV)))
+    VC.dim((xc, -45, _zw), (xc, d["up_y0"] + (_zw - d["up_zt"]) * _tn, _zw), "h", off=0, txt=f"{v(p.WALL_FRONT_T)}")
+    VC.dim((xc, 45, _zw), (xc, d["up_y1"] - (_zw - d["up_zt"]) * _tn, _zw), "h", off=0, txt=f"{v(p.WALL_T):.0f}")
 VC.dim((xc, 45, 0), (xc, -45, 0), "h", off=-16, txt="90")
 VC.dim((xc, 45, 0), (xc, 45, d["recess_top"]), "v", off=8, txt=f"{d['recess_top']:.1f} (виїмка)")
 # виносний елемент E — воронка, 4:1
@@ -244,6 +256,9 @@ if not P.has_relief_lid():
     VAa.leader((d["cav_x1"] + 12, ya, d["arm_sill_z"] + 12 * math.tan(math.radians(v(p.ARM_RAMP_DEG)))), -6, -22, f"рампа {v(p.ARM_RAMP_DEG):.0f}°")
     VAa.leader((d["cav_x1"] - 0.6, ya, v(p.LID_RECESS) + (d["groove_z0"] + d["groove_z1"]) / 2), -34, 22, "шнур Ø4 — суцільна стінка")
     VAa.dim((d["arm_x1"], ya, 0), (d["arm_x1"], ya, d["z_ceil_edge"]), "v", off=12, txt=f"{d['z_ceil_edge']:.1f}")
+    if v(p.BASE_VOID_ON):   # v3.4: порожнина полегшення знизу під рампою
+        bv = P.base_void_dims()
+        VAa.leader(((bv["x0"] + bv["x1"]) / 2, ya, 8), -26, -62, f"порожнина полегшення знизу, стінки {v(p.WALL_T):.0f}", size=2.6)
     # позначення площин розрізу на виді H-H
     a_, b_ = VH.P((-64, ya, zH)), VH.P((64, ya, zH))
     S.line(a_, b_, "c"); S.text((a_[0] - 3, a_[1] + 1), "A", 3.6, weight="bold"); S.text((b_[0] + 3, b_[1] + 1), "A", 3.6, weight="bold")
