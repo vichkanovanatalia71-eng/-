@@ -207,7 +207,10 @@ def relief_core_outer(neck=BRIDGE_RAISE):
     top = max(rel.Faces(), key=lambda f: f.Center().z)
     rel = rel.fillet(4.0, top.Edges())
     cx, cy, w, h = _relief_xywh()
-    neck_s = P.prism_rrect(w, h, v(p.RELIEF_R), z_open - neck, z_open + 0.01, cx=cx, cy=cy)
+    if v(p.RL_ON):   # v2.5: шийка по контуру ребейту кришечки
+        neck_s = P.prism_rrect(d["rl_reb_w"], d["rl_reb_h"], d["rl_r_reb"], z_open - neck, z_open + 0.01, cx=cx, cy=cy)
+    else:
+        neck_s = P.prism_rrect(w, h, v(p.RELIEF_R), z_open - neck, z_open + 0.01, cx=cx, cy=cy)
     return rel.fuse(neck_s).clean()
 
 
@@ -237,7 +240,7 @@ def core_spine_and_bridge():
     if v(p.RELIEF_ON):
         rcx, rcy, rw, rh = _relief_xywh()
         rcx, rcy, rw, rh = rcx * K, rcy * K, rw * K, rh * K
-        pad = P.prism_rrect(rw + 8, rh + 8, v(p.RELIEF_R) + 4, zb0, zb1, cx=rcx, cy=rcy)
+        pad = P.prism_rrect(d["rl_reb_w"] * K - 2, d["rl_reb_h"] * K - 2, d["rl_r_reb"] * K - 1, zb0, zb1, cx=rcx, cy=rcy)
         link = box(min(xc, rcx), max(xc, rcx), rcy - 7, rcy + 7, zb0, zb1)
         rskin = 6.0
         rz_top = (d["rel_top"] - rskin) * K
@@ -301,7 +304,13 @@ LID_SIL = 12.0
 LID_PINS = [(-15.6 - 25, 0.0), (-15.6 + 25, 0.0)]
 
 
-def lid_master():
+def lid_master(kind="main"):
+    if kind == "relief":
+        mm = P.relief_lid(product=False, grind_allow=GA)
+        z0 = v(p.LID_RECESS) - GA
+        for (x, y) in rl_pins():
+            mm = mm.cut(cyl(2.6, z0 - 1, z0 + 3.0, x, y))
+        return S(mm)
     m = P.lid(product=False, grind_allow=GA)
     z0 = v(p.LID_RECESS) - GA
     for (x, y) in LID_PINS:
@@ -309,40 +318,49 @@ def lid_master():
     return S(m)
 
 
-def _lid_sleeve_dims():
-    bb = lid_master().BoundingBox()
+def _lid_sleeve_dims(kind="main"):
+    bb = lid_master(kind).BoundingBox()
     return (bb.xmin - LID_SIL, bb.xmax + LID_SIL, bb.ymin - LID_SIL, bb.ymax + LID_SIL, bb.zmin, bb.zmax + 10.0)
 
 
-def lid_lugs():
-    ix0, ix1, iy0, iy1, _, _ = _lid_sleeve_dims()
+def lid_lugs(kind="main"):
+    ix0, ix1, iy0, iy1, _, _ = _lid_sleeve_dims(kind)
     o = 4 + 6
     return [(ix0 - o + 6, iy0 - o + 6), (ix1 + o - 6, iy0 - o + 6), (ix1 + o - 6, iy1 + o - 6), (ix0 - o + 6, iy1 + o - 6)]
 
 
-def lid_sleeve():
-    ix0, ix1, iy0, iy1, z0, z1 = _lid_sleeve_dims()
+def lid_sleeve(kind="main"):
+    ix0, ix1, iy0, iy1, z0, z1 = _lid_sleeve_dims(kind)
     t = 4.0
     cxy = ((ix0 + ix1) / 2, (iy0 + iy1) / 2)
     outer = _rrp(cxy, ix1 - ix0 + 2 * t, iy1 - iy0 + 2 * t, 8, z0, z1 - z0)
     inner = _rrp(cxy, ix1 - ix0, iy1 - iy0, 6, z0 - 1, z1 - z0 + 2)
     s = outer.cut(inner)
-    for (x, y) in lid_lugs():
+    for (x, y) in lid_lugs(kind):
         s = s.fuse(cyl(6, z0, z1, x, y)).cut(inner)
         s = s.cut(cyl(PIN_HOLE / 2, z0 - 1, z1 + 1, x, y))
     return s.clean()
 
 
-def lid_base_plate():
-    ix0, ix1, iy0, iy1, z0, z1 = _lid_sleeve_dims()
+def lid_base_plate(kind="main"):
+    ix0, ix1, iy0, iy1, z0, z1 = _lid_sleeve_dims(kind)
     t = 5.0
     cxy = ((ix0 + ix1) / 2, (iy0 + iy1) / 2)
     plate = _rrp(cxy, ix1 - ix0 + 30, iy1 - iy0 + 30, 8, z0 - t, t)
-    for (x, y) in lid_lugs():
+    for (x, y) in lid_lugs(kind):
         plate = plate.fuse(cyl(PIN_D / 2 - 0.1, z0, z0 + 6, x, y))
-    for (x, y) in LID_PINS:
-        plate = plate.fuse(cyl(2.5 * K - 0.15, z0, z0 + 3, x * K, y * K))
+    if kind == "main":
+        for (x, y) in LID_PINS:
+            plate = plate.fuse(cyl(2.5 * K - 0.15, z0, z0 + 3, x * K, y * K))
+    else:
+        for (x, y) in rl_pins():
+            plate = plate.fuse(cyl(2.5 * K - 0.15, z0, z0 + 2.5, x * K, y * K))
     return plate.clean()
+
+
+def rl_pins():
+    cx, cy, w, h = P._relief_xy()
+    return [(cx, cy - h / 4), (cx, cy + h / 4)]
 
 
 # ==========================================================================
@@ -409,7 +427,6 @@ def gauges():
 
 
 def all_tooling():
-    cup, lcore = liner_mold()
     go, stick_g = gauges()
     return {
         "body_master": body_master(),
@@ -423,8 +440,9 @@ def all_tooling():
         "lid_master": lid_master(),
         "lid_sleeve": lid_sleeve(),
         "lid_base_plate": lid_base_plate(),
-        "liner_mold_cup": cup,
-        "liner_mold_core": lcore,
+        "rlid_master": lid_master("relief"),
+        "rlid_sleeve": lid_sleeve("relief"),
+        "rlid_base_plate": lid_base_plate("relief"),
         "gauge_hole_go_7p90": go,
         "gauge_stick_heets": stick_g,
     }

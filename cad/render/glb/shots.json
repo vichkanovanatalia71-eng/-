@@ -213,10 +213,24 @@
      0
     ]
    },
-   "liner": {
+   "rlid": {
     "offset": [
      0,
-     52,
+     -46,
+     0
+    ]
+   },
+   "rseal": {
+    "offset": [
+     0,
+     -32,
+     0
+    ]
+   },
+   "felt": {
+    "offset": [
+     0,
+     40,
      0
     ]
    },
@@ -397,10 +411,16 @@
    "body": {
     "visible": false
    },
-   "liner": {
+   "felt": {
     "visible": false
    },
    "device": {
+    "visible": false
+   },
+   "logo_stick": {
+    "visible": false
+   },
+   "logo_box": {
     "visible": false
    }
   },
@@ -571,36 +591,93 @@
   "bg": "#eadfd1"
  },
  {
-  "glb": "tooling_liner_section.glb",
-  "out": "23_tooling_liner_section.png",
+  "glb": "tooling_rlid_section.glb",
+  "out": "23_tooling_relief_lid_section.png",
   "w": 1400,
-  "h": 1600,
+  "h": 1050,
   "cam": {
    "pos": [
-    -90,
-    120,
-    -180
+    -40,
+    60,
+    150
    ],
    "target": [
-    38,
-    55,
-    0
+    42,
+    -8,
+    22
    ],
-   "fov": 34
+   "fov": 30
   },
   "nodes": {
-   "t_cup": {
+   "t_rl_concrete": {
+    "material": "concrete"
+   },
+   "t_rl_sil": {
+    "material": "silicone"
+   },
+   "t_rl_sleeve": {
     "material": "print"
-   },
-   "t_lcore": {
-    "material": "print_grey"
-   },
-   "liner_cast": {
-    "material": "liner"
    }
   },
   "exposure": 0.88,
   "envIntensity": 0.75,
-  "bg": "#eadfd1"
+  "bg": "#eadfd1",
+  "groundY": -21
+ },
+ {
+  "glb": "assy.glb",
+  "out": "14_logo_two_colors.png",
+  "w": 1600,
+  "h": 1000,
+  "concrete": "#c2ad92",
+  "exposure": 0.88,
+  "envIntensity": 0.75,
+  "bg": "#eadfd1",
+  "cam": {
+   "pos": [
+    -20,
+    30,
+    170
+   ],
+   "target": [
+    0,
+    24,
+    40
+   ],
+   "fov": 30
+  },
+  "keyPos": [
+   -150,
+   300,
+   350
+  ]
+ },
+ {
+  "glb": "section_pocket.glb",
+  "out": "15_pocket_felt_detail.png",
+  "w": 1400,
+  "h": 1200,
+  "concrete": "#c2ad92",
+  "exposure": 0.88,
+  "envIntensity": 0.75,
+  "bg": "#eadfd1",
+  "cam": {
+   "pos": [
+    -30,
+    70,
+    -110
+   ],
+   "target": [
+    40.6,
+    25,
+    20
+   ],
+   "fov": 30
+  },
+  "keyPos": [
+   -150,
+   420,
+   -300
+  ]
  }
 ]

@@ -165,7 +165,7 @@ def _pocket_tool():
     pk = stadium_prism(wx0, wy0, d["pocket_cx"], d["pocket_cy"], zf, H + extra,
                        taper=-v(p.DRAFT_POCKET))
     bot = min(pk.Faces(), key=lambda f: f.Center().z)
-    pk = pk.fillet(3.0, bot.Edges())
+    pk = pk.fillet(v(p.POCKET_FLOOR_R), bot.Edges())
     return pk
 
 
@@ -225,7 +225,7 @@ def body(product=True, with_slot=None, with_logo=None, with_cavity=True,
     s = fillet_edges(s, edges_where(s, lambda e, pts: all(abs(q.z - H) < 0.02 for q in pts)
                                     and all(q.x > d["pocket_cx"] - d["pocket_x"] / 2 - 0.5 for q in pts)
                                     and all(abs(q.y - d["pocket_cy"]) < d["pocket_y"] / 2 + 0.5 for q in pts)),
-                     1.0)
+                     v(p.POCKET_MOUTH_R))
     if with_slot:
         s = s.cut(_slot_tool())
         # заокруглення кромок прорізу на фронті та зверху
@@ -289,23 +289,47 @@ def body(product=True, with_slot=None, with_logo=None, with_cavity=True,
             s = fillet_edges(s, top_e, 4.0)
         except Exception as ex:  # pragma: no cover
             print("WARN relief fillet:", ex)
+        if v(p.RL_ON):
+            zr = d["rl_z_reb"]
+            rcx, rcy, rw, rh = _relief_xy()
+            near = lambda q: abs(q.x - rcx) < d["rl_reb_w"] / 2 + 0.3 and abs(q.y - rcy) < d["rl_reb_h"] / 2 + 0.3
+            inner = edges_where(s, lambda e, pts: all(abs(q.z - zr) < 0.02 for q in pts) and all(near(q) for q in pts)
+                                and all(abs(q.x - rcx) < rw / 2 + 1.2 and abs(q.y - rcy) < rh / 2 + 1.2 for q in pts))
+            outer_e = edges_where(s, lambda e, pts: all(abs(q.z - zr) < 0.02 for q in pts) and all(near(q) for q in pts)
+                                  and any(abs(q.x - rcx) > rw / 2 + 1.5 or abs(q.y - rcy) > rh / 2 + 1.5 for q in pts))
+            for es, r in ((inner, 0.3), (outer_e, 0.3)):
+                try:
+                    s = fillet_edges(s, es, r)
+                except Exception as ex:  # pragma: no cover
+                    print("WARN relief rebate fillet:", ex)
 
     if with_logo:
         s = s.cut(_logo_tool())
     return s.clean()
 
 
-def _relief_tool(height_extra=0.0):
-    """Полегшувальна порожнина правої колонки: відкрита знизу, ухил 1° (вихід сердечника)."""
+def _relief_xy():
     w = d["rel_x1"] - d["rel_x0"]
     h = d["rel_y1"] - d["rel_y0"]
-    cx = (d["rel_x0"] + d["rel_x1"]) / 2
-    cy = (d["rel_y0"] + d["rel_y1"]) / 2
+    return (d["rel_x0"] + d["rel_x1"]) / 2, (d["rel_y0"] + d["rel_y1"]) / 2, w, h
+
+
+def _relief_tool(height_extra=0.0, rebate=True):
+    """Полегшувальна порожнина правої колонки: відкрита знизу, ухил DRAFT_CAV (вихід сердечника).
+    v2.5: знизу — ребейт під кришечку з ущільнювачем та заходна фаска 30°."""
+    cx, cy, w, h = _relief_xy()
     z0 = -height_extra - 1.0
-    # профіль задано на z = 0; продовжуємо вниз без зміни (низ — відкрита грань)
     below = prism_rrect(w, h, v(p.RELIEF_R), z0, 0.01, cx=cx, cy=cy)
     up = prism_rrect(w, h, v(p.RELIEF_R), 0.0, d["rel_top"], cx=cx, cy=cy, taper=v(p.DRAFT_CAV))
-    return below.fuse(up).clean()
+    t = below.fuse(up)
+    if rebate and v(p.RL_ON):
+        zr = d["rl_z_reb"]
+        reb = prism_rrect(d["rl_reb_w"], d["rl_reb_h"], d["rl_r_reb"], z0, zr, cx=cx, cy=cy)
+        L = 1.6
+        rad = L * math.tan(math.radians(30))
+        lead = prism_rrect(w + 2 * rad, h + 2 * rad, v(p.RELIEF_R) + rad, zr - 0.01, zr + L, cx=cx, cy=cy, taper=30.0)
+        t = t.fuse(reb).fuse(lead)
+    return t.clean()
 
 
 # --------------------------------------------------------------------------
@@ -448,6 +472,89 @@ def liner(with_slot=None):
 # --------------------------------------------------------------------------
 # Макети
 # --------------------------------------------------------------------------
+def felt_pad():
+    """v2.5: м'яка повстяна підкладка на дні кишені (самоклеюча), стадіон по пласкій частині дна."""
+    inset = d["pocket_inset_floor"]
+    fx = d["pocket_x"] - 2 * inset - 2 * v(p.POCKET_FLOOR_R) - 2 * v(p.FELT_INSET)
+    fy = d["pocket_y"] - 2 * inset - 2 * v(p.POCKET_FLOOR_R) - 2 * v(p.FELT_INSET)
+    z0 = d["pocket_floor"]
+    pad = stadium_prism(fx, fy, d["pocket_cx"], d["pocket_cy"], z0, z0 + v(p.LINER_FLOOR))
+    top = max(pad.Faces(), key=lambda f: f.Center().z)
+    return pad.fillet(0.6, top.Edges())
+
+
+def felt_pad_dims():
+    inset = d["pocket_inset_floor"]
+    fx = d["pocket_x"] - 2 * inset - 2 * v(p.POCKET_FLOOR_R) - 2 * v(p.FELT_INSET)
+    fy = d["pocket_y"] - 2 * inset - 2 * v(p.POCKET_FLOOR_R) - 2 * v(p.FELT_INSET)
+    return fx, fy
+
+
+def relief_lid(product=True, grind_allow=0.0):
+    """v2.5: кришечка полегшувальної порожнини (фланець урівень + пробка з канавкою під шнур Ø3)."""
+    cx, cy, rw, rh = _relief_xy()
+    z0 = v(p.LID_RECESS)
+    ft = v(p.RL_FLANGE_T)
+    fl = prism_rrect(d["rl_flange_w"], d["rl_flange_h"], d["rl_r_reb"] - v(p.RL_GAP), z0 - grind_allow, z0 + ft, cx=cx, cy=cy)
+    zt = z0 + d["rl_t"]
+    plug = prism_rrect(d["rl_plug_w"], d["rl_plug_h"], d["rl_r_plug"], z0 + ft - EPS, zt, cx=cx, cy=cy, taper=v(p.DRAFT_CAV))
+    s = fl.fuse(plug).clean()
+    top = max(s.Faces(), key=lambda f: f.Center().z)
+    s = s.chamfer(0.8, None, top.Edges())
+    zf = z0 + ft
+    corner = edges_where(s, lambda e, pts: all(abs(q.z - zf) < 0.02 for q in pts)
+                         and all(abs(q.x - cx) < d["rl_plug_w"] / 2 + 0.05 and abs(q.y - cy) < d["rl_plug_h"] / 2 + 0.05 for q in pts))
+    s = fillet_edges(s, corner, 0.4)
+    if product:
+        bot = min(s.Faces(), key=lambda f: f.Center().z)
+        s = s.fillet(0.6, bot.Edges())
+    g0 = zf + v(p.RL_LAND)
+    g1 = g0 + v(p.RL_GROOVE_W)
+    gd = d["rl_groove_depth"]
+    zm = (g0 + g1) / 2
+    shrink = (zm - zf) * TAN_C
+    gw, gh = d["rl_plug_w"] - 2 * shrink - 2 * gd, d["rl_plug_h"] - 2 * shrink - 2 * gd
+    ring_out = prism_rrect(d["rl_plug_w"] + 6, d["rl_plug_h"] + 6, d["rl_r_plug"] + 3, g0, g1, cx=cx, cy=cy)
+    ring_in = prism_rrect(gw, gh, max(1.0, d["rl_r_plug"] - shrink - gd), g0 - 1, g1 + 1, cx=cx, cy=cy)
+    s = s.cut(ring_out.cut(ring_in))
+    gedges = edges_where(s, lambda e, pts: all(abs(q.z - g0) < 0.02 or abs(q.z - g1) < 0.02 for q in pts))
+    try:
+        s = fillet_edges(s, gedges, 0.3)
+    except Exception as ex:  # pragma: no cover
+        print("WARN rl groove fillet:", ex)
+    return s.clean()
+
+
+def relief_seal():
+    """Губчастий шнур Ø3 кришечки у встановленому стані (радіально — глибина залозу)."""
+    cx, cy, rw, rh = _relief_xy()
+    z0 = v(p.LID_RECESS) + v(p.RL_FLANGE_T)
+    g0 = z0 + v(p.RL_LAND)
+    zm = g0 + v(p.RL_GROOVE_W) / 2
+    gd = d["rl_groove_depth"]
+    shrink = (zm - z0) * TAN_C
+    # фактичний залоз з урахуванням ухилів стінки порожнини (від z=0) і пробки (від основи пробки)
+    gland = gd + v(p.RL_PLUG_GAP) - zm * TAN_C + (zm - z0) * TAN_C
+    a_rad = gland / 2
+    hw = (d["rl_plug_w"] - 2 * shrink) / 2 - gd + a_rad
+    hh = (d["rl_plug_h"] - 2 * shrink) / 2 - gd + a_rad
+    r_c = max(1.0, d["rl_r_plug"] - shrink - gd) + a_rad
+    pts = [Vector(cx - hw, cy - hh, zm), Vector(cx + hw, cy - hh, zm), Vector(cx + hw, cy + hh, zm), Vector(cx - hw, cy + hh, zm)]
+    w0 = cq.Wire.makePolygon(pts, close=True)
+    w = w0.fillet2D(r_c, w0.Vertices())
+    prof = cq.Workplane("YZ", origin=(cx, cy - hh, zm)).ellipse(a_rad, v(p.RL_CS) / 2 * 0.98)
+    return prof.sweep(cq.Workplane("XY").add(w), transition="right").val()
+
+
+def logo_fill(which="STICK"):
+    """Об'єм дебосингу окремих частин логотипа (під фарбу): STICK — RAL 7016, BOX — бірюзовий."""
+    full = _logo_tool()
+    sols = sorted(full.Solids(), key=lambda so: so.Center().x)
+    n = len("STICK")
+    group = sols[:n] if which == "STICK" else sols[n:]
+    return cq.Compound.makeCompound(group)
+
+
 def device():
     cx, cy = d["pocket_cx"], d["pocket_cy"]
     z0 = d["dev_z0"]

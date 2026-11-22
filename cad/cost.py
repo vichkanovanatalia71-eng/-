@@ -12,7 +12,9 @@ R = json.load(open(f"{ROOT}/reports/analysis.json"))
 
 PRICES = {  # EUR, орієнтовно — ПЕРЕВІРИТИ У ПОСТАЧАЛЬНИКІВ
     "concrete_mix_eur_per_kg": (1.5, 3.5),     # GFRC-премікс / декор. суміш з пігментом і фіброю
-    "silicone_platinum_eur_per_kg": (25, 45),  # платиновий силікон для форм і вставки
+    "silicone_platinum_eur_per_kg": (25, 45),  # платиновий силікон для форм
+    "felt_eur": (0.05, 0.3),                  # вирубка повсті з клейовою основою
+    "paint_eur": (0.1, 0.4),                  # фарба для логотипа (на виріб)
     "oring_eur": (0.3, 1.5),                   # губчастий силіконовий шнур Ø4, ≈0.26 м + клей
     "sealer_eur_per_m2": (4, 10),              # просочення + 2 шари матового PU-лаку
     "pads_eur_set": (0.2, 0.6),
@@ -21,19 +23,18 @@ PRICES = {  # EUR, орієнтовно — ПЕРЕВІРИТИ У ПОСТАЧ
     "labour_eur_per_h": (5, 12),
     "packaging_eur": (1.0, 3.0),
 }
-LABOUR_MIN = 22          # хв на комплект: заміс, лиття 2 форм, розпалублення, шліфування, герметизація, збирання (припущення)
+LABOUR_MIN = 26          # хв на комплект: заміс, лиття 2 форм, розпалублення, шліфування, герметизація, збирання (припущення)
 MOLD_LIFE = (30, 60)     # виливків на комплект форм (припущення до тесту Т12)
 LOSS = 1.10              # втрати суміші 10%
 
 m = R["mass"]
-concrete_kg = (m["body"]["mass_kg"] + m["lid"]["mass_kg"]) * LOSS * 1.01  # + припуск на шліфування
-liner_kg = m["liner"]["mass_kg"] * 1.15
-area_m2 = (P.body().Area() + P.lid().Area()) / 1e6
+concrete_kg = (m["body"]["mass_kg"] + m["lid"]["mass_kg"] + m["relief_lid"]["mass_kg"]) * LOSS * 1.01  # + припуск на шліфування
+area_m2 = (P.body().Area() + P.lid().Area() + P.relief_lid().Area()) / 1e6
 sil = R["silicone"]
 mold_sil_kg = (sil["outer_mold_body_kg"] + sil["core_cup_kg"] + sil["lid_mold_kg"]) * 1.1
 tool = R["tooling"]
-fdm_keys = ["T02_body_sleeve", "T03_body_base_plate", "T04_finger_stiffener", "T05_core_spine_bridge", "T09_lid_sleeve", "T10_lid_base_plate", "T17_stiffener_holder"]
-resin_keys = ["T01_body_master", "T06_core_mold", "T08_lid_master", "T11_liner_mold_cup", "T12_liner_mold_core", "T13_gauge_hole_go_7p90", "T14_gauge_stick_heets"]
+fdm_keys = ["T02_body_sleeve", "T03_body_base_plate", "T04_finger_stiffener", "T05_core_spine_bridge", "T09_lid_sleeve", "T10_lid_base_plate", "T17_stiffener_holder", "T19_rlid_sleeve", "T20_rlid_base_plate"]
+resin_keys = ["T01_body_master", "T06_core_mold", "T08_lid_master", "T18_rlid_master", "T13_gauge_hole_go_7p90", "T14_gauge_stick_heets"]
 fdm_kg = sum(tool[k]["volume_ml"] for k in tool if any(k.startswith(x[:3]) and x in k for x in fdm_keys)) * 1.27 / 1000 * 0.45  # ~45% ефективне заповнення
 resin_l = sum(tool[k]["volume_ml"] for k in tool if any(x in k for x in resin_keys)) / 1000 * 0.35  # порожнисті/з товщиною стінки
 
@@ -43,7 +44,9 @@ def add(name, qty, unit, price_key, mult=1.0):
     rows.append((name, f"{qty:.3g} {unit}", lo * qty * mult, hi * qty * mult))
 
 add("Бетонна суміш (корпус + кришка, +10% втрат)", concrete_kg, "кг", "concrete_mix_eur_per_kg")
-add("Силікон вставки тримача", liner_kg, "кг", "silicone_platinum_eur_per_kg")
+add("Повстяна підкладка (вирубка, клейова основа)", 1, "шт", "felt_eur")
+add("Шнур-губка Ø3 кришечки (≈0.09 м) + клей", 1, "компл", "oring_eur", 0.5)
+add("Фарба логотипа (2 кольори), ≈0.5 мл", 1, "компл", "paint_eur")
 add("Ущільнювач: шнур-губка Ø4 (≈0.26 м) + клей", 1, "компл", "oring_eur")
 add("Герметизація (усі поверхні)", area_m2, "м²", "sealer_eur_per_m2")
 add("Опори", 1, "компл", "pads_eur_set")
@@ -67,7 +70,7 @@ L.append("## 2. Одноразові витрати на оснащення (1 �
 L.append("| Стаття | Кількість | Мін, € | Макс, € |\n|---|---|---|---|")
 L.append(f"| Платиновий силікон форм (корпус + сердечник + кришка, +10%) | {mold_sil_kg:.2f} кг | {mold_lo:.0f} | {mold_hi:.0f} |")
 L.append(f"| Друк FDM (гільзи, плити, хребет, ребро), ефективна маса | ≈{fdm_kg:.2f} кг | {fdm_kg*PRICES['petg_eur_per_kg'][0]:.0f} | {fdm_kg*PRICES['petg_eur_per_kg'][1]:.0f} |")
-L.append(f"| Друк смолою (майстри, форма сердечника, форма вставки, калібри) | ≈{resin_l:.2f} л | {resin_l*PRICES['resin_eur_per_l'][0]:.0f} | {resin_l*PRICES['resin_eur_per_l'][1]:.0f} |")
+L.append(f"| Друк смолою (майстри, форма сердечника, майстер кришечки, калібри) | ≈{resin_l:.2f} л | {resin_l*PRICES['resin_eur_per_l'][0]:.0f} | {resin_l*PRICES['resin_eur_per_l'][1]:.0f} |")
 L.append(f"| **Разом оснащення** | | **{mold_lo + tool_lo:.0f}** | **{mold_hi + tool_hi:.0f}** |\n")
 L.append(f"Амортизація силіконових форм при ресурсі {MOLD_LIFE[0]}–{MOLD_LIFE[1]} виливків: **{amort_lo:.2f}–{amort_hi:.2f} € / комплект**. "
          "Друковане оснащення практично не зношується.\n")

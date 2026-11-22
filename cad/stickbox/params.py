@@ -65,11 +65,11 @@ FLARE_H = P(1.0, "DESIGN", "Висота розтруба (пряма ділян
 DEV_L = P(121.6, "VERIFIED", "Довжина ILUMA ONE (офіц. сторінка iqos.com/gb, модель M0004)")
 DEV_W = P(30.6, "VERIFIED", "Ширина ILUMA ONE (iqos.com)")
 DEV_T = P(16.4, "VERIFIED", "Товщина ILUMA ONE (iqos.com). Переріз — стадіон (user guide)")
-DEV_CLEAR = P(0.4, "DESIGN", "Зазор девайс↔вставка на сторону (компенсується мікроребрами)")
-LINER_WALL = P(2.5, "DESIGN", "Товщина стінки силіконової вставки вгорі (внизу ~1.4 через ухил)")
-LINER_FLOOR = P(3.0, "DESIGN", "Демпферне дно вставки")
+DEV_CLEAR = P(1.2, "DESIGN", "Зазор девайс↔стінка кишені вгорі на сторону (v2.5: без вставки; внизу ≈0.45 через ухил)")
+LINER_WALL = P(0.0, "DESIGN", "v2.5: силіконову вставку прибрано (рішення замовника)")
+LINER_FLOOR = P(2.0, "DESIGN", "v2.5: товщина м'якої повстяної підкладки на дні кишені (самоклеюча)")
 LINER_FIT = P(0.15, "DESIGN", "Натяг вставки в бетонній кишені на сторону")
-DRAFT_POCKET = P(0.75, "DESIGN", "Ухил кишені (вихід силіконового «пальця» форми)")
+DRAFT_POCKET = P(0.5, "DESIGN", "Ухил кишені (вихід силіконового «пальця»); 0.5° — щоб девайс не хитався без вставки")
 DEV_PROTRUDE = P(38.0, "DESIGN", "Виступ девайса над верхом корпусу (≈31% довжини, зручний хват)")
 T_RIGHT = P(10.0, "DESIGN", "Права зовнішня стінка біля кишені")
 T_FRONT_POCKET = P(8.0, "DESIGN", "Фронтальна стінка перед кишенею")
@@ -109,7 +109,21 @@ RELIEF_ON = P(1, "DESIGN", "Полегшувальна порожнина в п�
 RELIEF_WALL = P(7.5, "DESIGN", "Стінки полегшувальної порожнини до порожнини стіків і кишені (перемичка біля ребейту 4.5)")
 RELIEF_OUT = P(7.0, "DESIGN", "Зовнішні стінки (права, задня) біля полегшувальної порожнини")
 RELIEF_TOP = P(9.0, "DESIGN", "Верхня стінка над полегшувальною порожниною")
-RELIEF_R = P(6.0, "DESIGN", "Радіус кутів полегшувальної порожнини")
+FELT_INSET = P(0.8, "DESIGN", "Відступ краю повстяної підкладки від плоскої частини дна кишені")
+POCKET_FLOOR_R = P(1.5, "DESIGN", "Радіус кромки дна кишені (v2.5: менше — ширша пласка площа під підкладку)")
+POCKET_MOUTH_R = P(1.5, "DESIGN", "Радіус кромки входу в кишеню (v2.5: м'який вхід для девайса без вставки)")
+RL_ON = P(1, "CLIENT", "v2.5: полегшувальна порожнина закривається кришечкою з ущільнювачем")
+RL_SHOULDER = P(2.5, "DESIGN", "Упорний уступ кришечки полегшення")
+RL_FLANGE_T = P(4.0, "DESIGN", "Фланець кришечки полегшення")
+RL_GAP = P(0.5, "DESIGN", "Тіньовий зазор фланця кришечки на сторону")
+RL_PLUG_GAP = P(0.6, "DESIGN", "Радіальний зазор пробки кришечки на сторону")
+RL_CS = P(3.0, "DESIGN", "Ущільнювач кришечки: шнур із закритопористої силіконової губки Ø3")
+RL_SQUEEZE = P(0.8, "DESIGN", "Стиснення шнура Ø3 (≈27%)")
+RL_GROOVE_W = P(4.0, "DESIGN", "Ширина канавки кришечки")
+RL_LAND = P(1.5, "DESIGN", "Перемичка між фланцем і канавкою")
+RL_LIP = P(3.0, "DESIGN", "Бортик над канавкою кришечки")
+RL_WEB = P(4.5, "DESIGN", "Мін. перемичка між ребейтом основної кришки та ребейтом кришечки")
+RELIEF_R = P(7.0, "DESIGN", "Радіус кутів полегшувальної порожнини (концентрично з R14 корпусу → бортик ребейту 4.5 у куті)")
 
 # --------------------------------------------------------------------------
 # 6. Брендинг
@@ -117,9 +131,11 @@ RELIEF_R = P(6.0, "DESIGN", "Радіус кутів полегшувально�
 LOGO_ON = P(1, "CLIENT", "Логотип STICKBOX на фронті (дебосинг)")
 LOGO_TEXT = "STICKBOX"
 LOGO_SIZE = P(10.4, "DESIGN", "Кегль (висота великих літер ≈7.6 мм, ширина ≈52 мм)")
-LOGO_DEPTH = P(0.6, "DESIGN", "Глибина дебосингу")
+LOGO_DEPTH = P(0.8, "DESIGN", "Глибина дебосингу (v2.5: 0.8 — під заливку фарбою)")
 LOGO_Z = P(24.0, "DESIGN", "Висота центру логотипа від низу")
 LOGO_FONT = "/usr/share/fonts/opentype/inter/Inter-Medium.otf"
+LOGO_COLOR_STICK = ("RAL 7016", "#383E42", "темно-сірий (антрацит) — літери STICK")
+LOGO_COLOR_BOX = ("RAL 5018", "#058B8C", "бірюзовий — літери BOX (підібрати за еталоном бренду)")
 
 # --------------------------------------------------------------------------
 # 7. Технологічні припуски для майстер-моделей
@@ -209,7 +225,7 @@ def derived():
     pocket_y = liner_in_y + 2 * v(LINER_WALL)
     d.update(liner_in_x=liner_in_x, liner_in_y=liner_in_y, pocket_x=pocket_x, pocket_y=pocket_y)
     dev_z0 = H_ + v(DEV_PROTRUDE) - v(DEV_L)
-    pocket_floor = dev_z0 - v(LINER_FLOOR)
+    pocket_floor = dev_z0 - v(LINER_FLOOR)   # v2.5: дно кишені = низ девайса − повстяна підкладка
     d.update(dev_z0=dev_z0, pocket_floor=pocket_floor, pocket_depth=H_ - pocket_floor)
     px = W_ / 2 - v(T_RIGHT) - pocket_x / 2
     py = -D_ / 2 + v(T_FRONT_POCKET) + pocket_y / 2
@@ -235,11 +251,26 @@ def derived():
     d["r_tray"] = max(3.0, d["r_plug"] - v(SKIRT_W))
     d["tray_depth"] = d["lid_t"] - v(LID_FLOOR)
     # полегшувальна порожнина (низ, з ухилом 1°): x від перегородки до правої стінки, y від кишені до задньої стінки
-    rx0 = cav_x1 + v(RELIEF_WALL)
+    reb_right = (cav_x0 + cav_x1) / 2 + d["reb"] / 2
+    rx0 = max(cav_x1 + v(RELIEF_WALL), (reb_right + v(RL_WEB) + v(RL_SHOULDER)) if v(RL_ON) else -1e9)
     rx1 = W_ / 2 - v(RELIEF_OUT)
     ry0 = py + pocket_y / 2 + v(RELIEF_WALL)
     ry1 = D_ / 2 - v(RELIEF_OUT)
     d.update(rel_x0=rx0, rel_x1=rx1, rel_y0=ry0, rel_y1=ry1, rel_top=H_ - v(RELIEF_TOP))
+    # кришечка полегшувальної порожнини
+    rw, rh = rx1 - rx0, ry1 - ry0
+    d["rl_reb_w"], d["rl_reb_h"] = rw + 2 * v(RL_SHOULDER), rh + 2 * v(RL_SHOULDER)
+    d["rl_r_reb"] = v(RELIEF_R) + v(RL_SHOULDER)
+    d["rl_z_reb"] = v(RL_FLANGE_T) + v(LID_RECESS)
+    d["rl_flange_w"], d["rl_flange_h"] = d["rl_reb_w"] - 2 * v(RL_GAP), d["rl_reb_h"] - 2 * v(RL_GAP)
+    d["rl_plug_w"], d["rl_plug_h"] = rw - 2 * v(RL_PLUG_GAP), rh - 2 * v(RL_PLUG_GAP)
+    d["rl_r_plug"] = v(RELIEF_R) - v(RL_PLUG_GAP)
+    d["rl_plug_len"] = v(RL_LAND) + v(RL_GROOVE_W) + v(RL_LIP)
+    d["rl_t"] = v(RL_FLANGE_T) + d["rl_plug_len"]
+    d["rl_groove_depth"] = v(RL_CS) - v(RL_SQUEEZE) - v(RL_PLUG_GAP)
+    gp = 2 * (rw - 2 * v(RL_PLUG_GAP) - 2 * d["rl_groove_depth"]) + 2 * (rh - 2 * v(RL_PLUG_GAP) - 2 * d["rl_groove_depth"]) \
+        - (8 - 2 * math.pi) * max(1.0, v(RELIEF_R) - v(RL_PLUG_GAP) - d["rl_groove_depth"])
+    d["rl_seal_cut_len"] = (gp + math.pi * v(RL_CS)) / 1.03
     return d
 
 

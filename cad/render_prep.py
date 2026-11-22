@@ -36,11 +36,15 @@ sil_lid = lid_in.cut(T["lid_master"])
 lid_cast = M.S(P.lid(product=False, grind_allow=M.GA))
 X.export_glb([(n, flip(s.cut(half)), mk) for n, s, mk in [("t_lid_sleeve", T["lid_sleeve"], "print"), ("t_lid_sil", sil_lid, "silicone"),
               ("t_lid_concrete", lid_cast, "lid")]], f"{OUT}/tooling_lid_section.glb", tol=0.04, ang=0.12)
-# форма вставки в розрізі
-cup, core = M.liner_mold()
-cut_l = M.box(-big, big, P.d["pocket_cy"], big, -big, big)
-X.export_glb([("t_cup", cup.cut(cut_l), "print"), ("t_lcore", core.cut(cut_l), "print_grey"), ("liner_cast", P.liner().cut(cut_l), "liner")],
-             f"{OUT}/tooling_liner_section.glb", tol=0.03, ang=0.1)
+# форма малої кришечки в розрізі (пробкою донизу)
+rx0, rx1, ry0, ry1, rz0, rz1 = M._lid_sleeve_dims("relief")
+rl_in = M._rrp(((rx0 + rx1) / 2, (ry0 + ry1) / 2), rx1 - rx0, ry1 - ry0, 6, rz0, rz1 - rz0)
+sil_rl = rl_in.cut(T["rlid_master"])
+rl_cast = M.S(P.relief_lid(product=False, grind_allow=M.GA))
+cyr = P._relief_xy()[1] * M.K
+cut_r = M.box(-big, big, cyr, big, -big, big)
+X.export_glb([(n, flip(s.cut(cut_r)), mk) for n, s, mk in [("t_rl_sleeve", T["rlid_sleeve"], "print"), ("t_rl_sil", sil_rl, "silicone"),
+              ("t_rl_concrete", rl_cast, "lid")]], f"{OUT}/tooling_rlid_section.glb", tol=0.03, ang=0.1)
 
 # купа стіків
 if "--sim" in sys.argv:
@@ -63,8 +67,10 @@ comp = cq.Compound.makeCompound(sticks)
 body = P.body(); lid = P.lid(); oring = P.oring()
 cutf = M.box(-big, big, 0, big, -big, big)
 X.export_glb([("body_sec", body.cut(cutf), "body"), ("lid_sec", lid.cut(cutf), "lid"), ("oring_sec", oring.cut(cutf), "oring"),
-              ("liner", P.liner(), "liner"), ("device", P.device(), "device"),
+              ("felt", P.felt_pad(), "liner"), ("rlid", P.relief_lid(), "lid"), ("rseal", P.relief_seal(), "oring"),
+              ("logo_stick", P.logo_fill("STICK"), "liner"), ("logo_box", P.logo_fill("BOX"), "oring"), ("device", P.device(), "device"),
               ("stick_pile", comp, "stick")], f"{OUT}/section_sticks.glb")
-X.export_glb([("body", body, "body"), ("lid", lid, "lid"), ("oring", oring, "oring"), ("liner", P.liner(), "liner"),
-              ("device", P.device(), "device")], f"{OUT}/assy.glb")
+X.export_glb([("body", body, "body"), ("lid", lid, "lid"), ("oring", oring, "oring"), ("felt", P.felt_pad(), "liner"),
+              ("rlid", P.relief_lid(), "lid"), ("rseal", P.relief_seal(), "oring"), ("logo_stick", P.logo_fill("STICK"), "liner"),
+              ("logo_box", P.logo_fill("BOX"), "oring"), ("device", P.device(), "device")], f"{OUT}/assy.glb")
 print("ok", len(sticks), "sticks")

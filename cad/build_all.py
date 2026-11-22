@@ -41,10 +41,16 @@ def main():
     lid = P.lid()
     oring = P.oring()
     oring_free = P.oring_free()
-    liner = P.liner()
+    felt = P.felt_pad()
+    rlid = P.relief_lid()
+    rseal = P.relief_seal()
+    logo_s = P.logo_fill("STICK")
+    logo_b = P.logo_fill("BOX")
     dev = P.device()
     prod = [("01_body_concrete", body, "body"), ("02_lid_concrete", lid, "lid"),
-            ("03_seal_silicone_sponge_cord_D4_installed", oring, "oring"), ("04_device_liner_silicone", liner, "liner")]
+            ("03_seal_silicone_sponge_cord_D4_installed", oring, "oring"), ("04_felt_pad_device_pocket", felt, "liner"),
+            ("05_relief_lid_concrete", rlid, "lid"), ("06_relief_seal_sponge_cord_D3_installed", rseal, "oring"),
+            ("07_logo_paint_mask_STICK_RAL7016", logo_s, "liner"), ("08_logo_paint_mask_BOX_turquoise", logo_b, "oring")]
     for name, sh, _ in prod:
         X.export_step(sh, f"{EXP}/step/{name}.step")
         X.export_stl(sh, f"{EXP}/stl/{name}.stl")
@@ -53,8 +59,9 @@ def main():
     X.export_step(dev, f"{EXP}/step/90_ref_IQOS_ILUMA_ONE_envelope.step")
     assy = prod + [("90_ref_ILUMA_ONE_envelope", dev, "device")]
     X.export_assembly_step(assy, f"{EXP}/step/00_STICKBOX_01_Monolith_assembly.step")
-    X.export_glb([("body", body, "body"), ("lid", lid, "lid"), ("oring", oring, "oring"),
-                  ("liner", liner, "liner"), ("device", dev, "device")], f"{EXP}/glb/STICKBOX_01_Monolith_assembly.glb")
+    X.export_glb([("body", body, "body"), ("lid", lid, "lid"), ("oring", oring, "oring"), ("felt", felt, "liner"),
+                  ("rlid", rlid, "lid"), ("rseal", rseal, "oring"), ("logo_stick", logo_s, "liner"), ("logo_box", logo_b, "oring"),
+                  ("device", dev, "device")], f"{EXP}/glb/STICKBOX_01_Monolith_assembly.glb")
     print("product exported", round(time.time() - t0, 1))
 
     # ---------------- оснащення ----------------
@@ -63,14 +70,14 @@ def main():
         "body_master": lambda s: s, "body_sleeve": lambda s: s, "body_base_plate": lambda s: s,
         "finger_stiffener": flip, "stiffener_holder": flip, "core_silicone": lambda s: s, "core_spine_bridge": lambda s: s,
         "core_mold": flip, "lid_master": lambda s: s, "lid_sleeve": lambda s: s, "lid_base_plate": lambda s: s,
-        "liner_mold_cup": lambda s: s, "liner_mold_core": flip,
+        "rlid_master": lambda s: s, "rlid_sleeve": lambda s: s, "rlid_base_plate": lambda s: s,
         "gauge_hole_go_7p90": lambda s: s, "gauge_stick_heets": lambda s: s,
     }
     numbering = {
         "body_master": "T01", "body_sleeve": "T02", "body_base_plate": "T03", "finger_stiffener": "T04",
         "core_spine_bridge": "T05", "core_mold": "T06", "core_silicone": "T07_ref_cast_part",
         "lid_master": "T08", "lid_sleeve": "T09", "lid_base_plate": "T10",
-        "liner_mold_cup": "T11", "liner_mold_core": "T12",
+        "rlid_master": "T18", "rlid_sleeve": "T19", "rlid_base_plate": "T20",
         "gauge_hole_go_7p90": "T13", "gauge_stick_heets": "T14", "stiffener_holder": "T17",
     }
     tool_info = {}
@@ -92,18 +99,20 @@ def main():
     sil_lid = lid_in.cut(T["lid_master"])
     X.export_step(sil_body, f"{TOOL}/step/T15_ref_outer_silicone_mold_body.step")
     X.export_step(sil_lid, f"{TOOL}/step/T16_ref_silicone_mold_lid.step")
-    cup, lcore = M.liner_mold()
-    sil_liner_ml = P.liner().Volume() / 1000
+    rx0, rx1, ry0, ry1, rz0, rz1 = M._lid_sleeve_dims("relief")
+    rl_in = M._rrp(((rx0 + rx1) / 2, (ry0 + ry1) / 2), rx1 - rx0, ry1 - ry0, 6, rz0, rz1 - rz0)
+    sil_rlid = rl_in.cut(T["rlid_master"])
     rho_s = v(p.RHO_SILICONE)
     silicone = {
         "outer_mold_body_ml": sil_body.Volume() / 1000,
         "core_cup_ml": T["core_silicone"].Volume() / 1000,
         "lid_mold_ml": sil_lid.Volume() / 1000,
-        "liner_per_piece_ml": sil_liner_ml,
+        "relief_lid_mold_ml": sil_rlid.Volume() / 1000,
     }
     silicone["outer_mold_body_kg"] = silicone["outer_mold_body_ml"] * rho_s / 1e6
     silicone["core_cup_kg"] = silicone["core_cup_ml"] * rho_s / 1e6
     silicone["lid_mold_kg"] = silicone["lid_mold_ml"] * rho_s / 1e6
+    silicone["relief_lid_mold_kg"] = silicone["relief_lid_mold_ml"] * rho_s / 1e6
     print("tooling exported", round(time.time() - t0, 1))
 
     # GLB для рендерів: оснащення в базуванні лиття
@@ -123,10 +132,12 @@ def main():
     X.export_glb(sec_parts, f"{SCR}/section_y0.glb")
     cut_p = M.box(-big, big, P.d["pocket_cy"], big, -big, big)
     X.export_glb([("body_secp", body.cut(cut_p), "body"), ("lid_secp", lid.cut(cut_p), "lid"),
-                  ("liner_secp", liner.cut(cut_p), "liner"), ("device_secp", dev.cut(cut_p), "device"),
+                  ("felt_secp", felt.cut(cut_p), "liner"), ("device_secp", dev.cut(cut_p), "device"),
+                  ("rlid_secp", rlid.cut(cut_p), "lid"), ("rseal_secp", rseal.cut(cut_p), "oring"),
                   ("oring_secp", oring.cut(cut_p), "oring")], f"{SCR}/section_pocket.glb")
-    X.export_glb([("body", body, "body"), ("lid", lid, "lid"), ("oring", oring, "oring"),
-                  ("liner", liner, "liner"), ("device", dev, "device")], f"{SCR}/assy.glb")
+    X.export_glb([("body", body, "body"), ("lid", lid, "lid"), ("oring", oring, "oring"), ("felt", felt, "liner"),
+                  ("rlid", rlid, "lid"), ("rseal", rseal, "oring"), ("logo_stick", logo_s, "liner"), ("logo_box", logo_b, "oring"),
+                  ("device", dev, "device")], f"{SCR}/assy.glb")
     # купа стіків у перерізі (з результатів симуляції, якщо є)
     print("glb exported", round(time.time() - t0, 1))
 

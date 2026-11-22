@@ -190,17 +190,21 @@ def run(write_to=None):
     body = P.body()
     lid = P.lid()
     oring = P.oring()
-    liner = P.liner()
+    felt = P.felt_pad()
+    rlid = P.relief_lid()
+    rseal = P.relief_seal()
     dev = P.device()
     R = {}
     R["mass"] = {
         "body": mass_props(body, rho_c),
         "lid": mass_props(lid, rho_c),
         "oring": mass_props(oring, rho_s),
-        "liner": mass_props(liner, rho_s),
+        "relief_lid": mass_props(rlid, rho_c),
+        "relief_seal": mass_props(rseal, rho_s),
+        "felt": mass_props(felt, 400.0),
         "device_dummy_volume_ml": dev.Volume() / 1000,
     }
-    parts_m = [(R["mass"][k]["mass_kg"], np.array(R["mass"][k]["com"])) for k in ("body", "lid", "oring", "liner")]
+    parts_m = [(R["mass"][k]["mass_kg"], np.array(R["mass"][k]["com"])) for k in ("body", "lid", "oring", "relief_lid", "relief_seal", "felt")]
     m_tot = sum(m for m, _ in parts_m)
     com = sum(m * c for m, c in parts_m) / m_tot
     dev_c = np.array(mass_props(dev, 1)["com"])
@@ -208,11 +212,13 @@ def run(write_to=None):
     com_dev = (com * m_tot + dev_c * m_dev) / (m_tot + m_dev)
     R["assembly"] = dict(mass_kg=m_tot, com=com.tolist(), mass_with_device_kg=m_tot + m_dev,
                          com_with_device=com_dev.tolist())
-    R["validity"] = {k: s.isValid() for k, s in (("body", body), ("lid", lid), ("oring", oring), ("liner", liner))}
+    R["validity"] = {k: s.isValid() for k, s in (("body", body), ("lid", lid), ("oring", oring), ("felt", felt),
+                                                     ("relief_lid", rlid), ("relief_seal", rseal))}
 
-    shapes = dict(body=body, lid=lid, oring=oring, liner=liner, device=dev)
-    pairs = [("body", "lid"), ("body", "oring"), ("lid", "oring"), ("body", "liner"), ("liner", "device"),
-             ("body", "device"), ("lid", "liner")]
+    shapes = dict(body=body, lid=lid, oring=oring, felt=felt, relief_lid=rlid, relief_seal=rseal, device=dev)
+    pairs = [("body", "lid"), ("body", "oring"), ("lid", "oring"), ("body", "felt"), ("felt", "device"),
+             ("body", "device"), ("body", "relief_lid"), ("body", "relief_seal"), ("relief_lid", "relief_seal"),
+             ("lid", "relief_lid")]
     R["interference_mm3"] = {f"{a}-{b}": common_volume(shapes[a], shapes[b]) for a, b in pairs}
     R["min_clearance_mm"] = {f"{a}-{b}": min_distance(shapes[a], shapes[b]) for a, b in pairs}
 

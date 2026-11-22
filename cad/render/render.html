@@ -83,6 +83,9 @@ const MAT = {
   print: () => new THREE.MeshStandardMaterial({ color: '#f0a040', roughness: 0.6 }),
   print_grey: () => new THREE.MeshStandardMaterial({ color: '#8c949c', roughness: 0.6 }),
   ghost: () => new THREE.MeshStandardMaterial({ color: '#d7c8b4', roughness: 0.9, transparent: true, opacity: 0.25, depthWrite: false }),
+  felt: () => new THREE.MeshStandardMaterial({ color: S.feltColor || '#3b3a38', roughness: 1.0 }),
+  paint_stick: () => new THREE.MeshStandardMaterial({ color: '#383e42', roughness: 0.55 }),
+  paint_box: () => new THREE.MeshStandardMaterial({ color: '#058b8c', roughness: 0.55 }),
 };
 
 const loader = new GLTFLoader();
@@ -100,7 +103,11 @@ gltf.scene.traverse(o => {
   o.castShadow = true; o.receiveShadow = true;
 });
 function guess(n){
-  if (n.startsWith('body') || n.startsWith('lid')) return 'concrete';
+  if (n.startsWith('logo_stick')) return 'paint_stick';
+  if (n.startsWith('logo_box')) return 'paint_box';
+  if (n.startsWith('felt')) return 'felt';
+  if (n.startsWith('rseal')) return 'oring';
+  if (n.startsWith('body') || n.startsWith('lid') || n.startsWith('rlid')) return 'concrete';
   if (n.startsWith('oring')) return 'oring';
   if (n.startsWith('liner')) return 'liner';
   if (n.startsWith('device')) return 'device';

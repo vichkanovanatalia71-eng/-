@@ -106,7 +106,7 @@ dd { margin: 0; font-family: var(--font-mono); font-size: 12px; font-variant-num
 
 <div class="app">
   <div class="stage" id="stage">
-    <div class="badge">ревізія v2.4 · розміри в мм · модель з CAD</div>
+    <div class="badge">ревізія v2.5 · розміри в мм · модель з CAD</div>
     <div class="loading" id="loading"><div>Завантаження моделі…<div class="bar"><i id="bar"></i></div></div></div>
     <div class="hint" id="hint">Перетягніть — обертати · колесо або два пальці — масштаб · права кнопка — зсув</div>
   </div>
@@ -144,7 +144,7 @@ dd { margin: 0; font-family: var(--font-mono); font-size: 12px; font-variant-num
       <div class="range">
         <input type="range" id="cutSlider" min="-40" max="40" value="0" step="0.5" aria-label="Положення площини розрізу">
         <output id="cutOut" for="cutSlider">y = 0</output>
-        <small>0 — вісь воронки; −19 — вісь тримача девайса.</small>
+        <small>0 — вісь воронки; −20.5 — вісь тримача девайса.</small>
       </div>
     </section>
 
@@ -152,7 +152,9 @@ dd { margin: 0; font-family: var(--font-mono); font-size: 12px; font-variant-num
       <span class="label" id="l-show">Показати</span>
       <label class="toggle"><span>Стіки всередині<small>59 шт., розкладка з фізичної симуляції</small></span><input type="checkbox" id="tSticks" checked></label>
       <label class="toggle"><span>Девайс ILUMA ONE<small>Довідково, 121.6 × 30.6 × 16.4</small></span><input type="checkbox" id="tDevice" checked></label>
-      <label class="toggle"><span>Силіконова вставка тримача</span><input type="checkbox" id="tLiner" checked></label>
+      <label class="toggle"><span>Повстяна підкладка кишені<small>М'яка, 2 мм, на клеї — під девайсом</small></span><input type="checkbox" id="tLiner" checked></label>
+      <label class="toggle"><span>Кришечка полегшення<small>Закриває отвір на дні, шнур-губка Ø3</small></span><input type="checkbox" id="tRlid" checked></label>
+      <label class="toggle"><span>Фарба логотипа<small>STICK — темно-сірий, BOX — бірюзовий</small></span><input type="checkbox" id="tLogo" checked></label>
       <label class="toggle"><span>Ущільнювач кришки<small>Шнур із силіконової губки Ø4</small></span><input type="checkbox" id="tSeal" checked></label>
       <label class="toggle"><span>Розібрати на деталі</span><input type="checkbox" id="tExplode"></label>
     </section>
@@ -175,11 +177,12 @@ dd { margin: 0; font-family: var(--font-mono); font-size: 12px; font-variant-num
         <dt>Отвір / воронка</dt><dd>Ø8 / Ø22</dd>
         <dt>Порожнина</dt><dd>336 мл</dd>
         <dt>Місткість (симуляція)</dt><dd>≈52 / ≈58 стіків</dd>
-        <dt>Бетон на комплект</dt><dd>489 мл</dd>
-        <dt>Маса при ρ 1800</dt><dd>≈0.90 кг</dd>
+        <dt>Бетон на комплект</dt><dd>509 мл</dd>
+        <dt>Маса при ρ 1800</dt><dd>≈0.92 кг</dd>
+        <dt>Кишеня девайса</dt><dd>18.8 × 33.0, повсть</dd>
         <dt>Ущільнювач</dt><dd>губка Ø4, 27.5%</dd>
       </dl>
-      <p class="note">Місткість: без струшування / зі струшуванням. Маса залежить від густини суміші; при ρ 2000 — ≈1.00 кг.</p>
+      <p class="note">Місткість: без струшування / зі струшуванням. Маса залежить від густини суміші; при ρ 1700 — ≈0.87 кг, при ρ 2000 — ≈1.02 кг.</p>
       <button class="ghost" id="resetBtn" type="button">Скинути вигляд</button>
     </section>
   </aside>
@@ -290,12 +293,19 @@ vec2 speck(vec3 p, float s){ vec3 q=p/s; vec3 i=floor(q); float b=9.0; float id=
     body: concrete(CMF[0].concrete),
     lid: concrete(CMF[0].concrete),
     oring: flatCut(new THREE.MeshPhysicalMaterial({ color: CMF[0].seal, roughness: 0.55 }), '#167a68'),
-    liner: flatCut(new THREE.MeshStandardMaterial({ color: CMF[0].liner, roughness: 0.75 }), '#1c1e20'),
+    felt: flatCut(new THREE.MeshStandardMaterial({ color: '#3d3b38', roughness: 1.0 }), '#2a2927'),
+    rlid: null,
+    rseal: null,
+    logo_stick: new THREE.MeshStandardMaterial({ color: '#383e42', roughness: 0.5 }),
+    logo_box: new THREE.MeshStandardMaterial({ color: '#058b8c', roughness: 0.5 }),
     device: flatCut(new THREE.MeshPhysicalMaterial({ color: '#9a7050', metalness: 0.85, roughness: 0.32, clearcoat: 0.3 }), '#5c4330'),
     stick: new THREE.MeshStandardMaterial({ color: '#f3f1ec', roughness: 0.6 }),
     band: new THREE.MeshStandardMaterial({ color: '#c9b48c', roughness: 0.5 }),
   };
-  Object.values(M).forEach((m) => { m.envMapIntensity = 0.45; });
+  M.rlid = M.lid; M.rseal = M.oring;
+  const logoBare = concrete(CMF[0].concrete);
+  Object.values(M).forEach((m) => { if (m) m.envMapIntensity = 0.45; });
+  logoBare.envMapIntensity = 0.45;
   M.device.envMapIntensity = 1.0;
 
   // ---------- scene graph ----------
@@ -331,7 +341,7 @@ vec2 speck(vec3 p, float s){ vec3 q=p/s; vec3 i=floor(q); float b=9.0; float id=
       o.castShadow = true; o.receiveShadow = true;
       parts[name] = o;
     });
-    ['body', 'liner', 'device'].forEach((n) => parts[n] && bodyG.add(parts[n]));
+    ['body', 'felt', 'rlid', 'rseal', 'logo_stick', 'logo_box', 'device'].forEach((n) => parts[n] && bodyG.add(parts[n]));
     ['lid', 'oring'].forEach((n) => parts[n] && lidG.add(parts[n]));
     Object.keys(parts).forEach((n) => parts[n].userData.base = parts[n].position.clone());
     $('loading').hidden = true;
@@ -370,7 +380,7 @@ vec2 speck(vec3 p, float s){ vec3 q=p/s; vec3 i=floor(q); float b=9.0; float id=
     lidG.position.set(-128 * away, -out - 19.5 * away, 22 * away);   // кришка лягає на стіл ліворуч від виробу
     lidG.rotation.x = 0;
     const e = S.explode;
-    const off = { lid: -62 * e, oring: -38 * e, liner: 55 * e, device: 125 * e, body: 0 };
+    const off = { lid: -62 * e, oring: -38 * e, rlid: -50 * e, rseal: -32 * e, felt: 100 * e, device: 140 * e, body: 0 };
     Object.keys(parts).forEach((n) => {
       const b = parts[n].userData.base; if (!b) return;
       parts[n].position.set(b.x, b.y + (off[n] || 0), b.z);
@@ -403,14 +413,20 @@ vec2 speck(vec3 p, float s){ vec3 q=p/s; vec3 i=floor(q); float b=9.0; float id=
   $('tExplode').addEventListener('change', (e) => { if (e.target.checked) animateTo('lid', 0); animateTo('explode', e.target.checked ? 1 : 0); });
   $('tSticks').addEventListener('change', update);
   $('tDevice').addEventListener('change', (e) => { if (parts.device) parts.device.visible = e.target.checked; });
-  $('tLiner').addEventListener('change', (e) => { if (parts.liner) parts.liner.visible = e.target.checked; });
+  $('tLiner').addEventListener('change', (e) => { if (parts.felt) parts.felt.visible = e.target.checked; });
+  $('tRlid').addEventListener('change', (e) => { ['rlid', 'rseal'].forEach((n) => parts[n] && (parts[n].visible = e.target.checked)); });
+  $('tLogo').addEventListener('change', (e) => {
+    if (parts.logo_stick) parts.logo_stick.material = e.target.checked ? M.logo_stick : logoBare;
+    if (parts.logo_box) parts.logo_box.material = e.target.checked ? M.logo_box : logoBare;
+  });
   $('tSeal').addEventListener('change', (e) => { if (parts.oring) parts.oring.visible = e.target.checked; });
   $('autoRot').addEventListener('change', (e) => { controls.autoRotate = e.target.checked; });
 
   function applyCut() {
     const on = $('cutToggle').checked;
     clipPlane.constant = parseFloat($('cutSlider').value);
-    ['body', 'lid', 'oring', 'liner', 'device'].forEach((n) => { M[n].clippingPlanes = on ? [clipPlane] : []; M[n].needsUpdate = true; });
+    ['body', 'lid', 'oring', 'felt', 'device', 'logo_stick', 'logo_box'].forEach((n) => { M[n].clippingPlanes = on ? [clipPlane] : []; M[n].needsUpdate = true; });
+    logoBare.clippingPlanes = on ? [clipPlane] : []; logoBare.needsUpdate = true;
     const v = -parseFloat($('cutSlider').value);
     $('cutOut').value = 'y = ' + (v === 0 ? '0' : v.toFixed(1));
     $('cutSlider').disabled = !on;
@@ -422,7 +438,7 @@ vec2 speck(vec3 p, float s){ vec3 q=p/s; vec3 i=floor(q); float b=9.0; float id=
     const c = CMF[+b.dataset.cmf];
     M.body.color.set(c.concrete); M.lid.color.set(c.concrete);
     M.body.userData.cut.value.set(c.concrete).multiplyScalar(0.78); M.lid.userData.cut.value.copy(M.body.userData.cut.value);
-    M.liner.color.set(c.liner); M.oring.color.set(c.seal);
+    M.oring.color.set(c.seal); logoBare.color.set(c.concrete);
     document.querySelectorAll('.sw').forEach((x) => x.setAttribute('aria-pressed', String(x === b)));
   }));
 
