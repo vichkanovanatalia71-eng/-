@@ -164,12 +164,14 @@ def stiffener_holder():
 # 2. Сердечник порожнини
 # ==========================================================================
 def _recess_tab(z_from):
-    """Вкладка, що формує пальцеву виїмку (від стінки форми до порожнини) + натяг."""
+    """Вкладка, що формує пальцеву виїмку (від стінки форми до порожнини) + натяг.
+    v2.7: виїмка на задній грані, по осі кришки."""
     w, r = v(p.RECESS_W), v(p.RECESS_R)
     top = d["recess_top"]
-    y0 = -v(p.D) / 2 - TAB_PRELOAD
-    y1 = d["cav_y0"] + v(p.R_CAV)
-    prof = (cq.Workplane("XZ", origin=(0, y0, 0))
+    s_ = 1 if v(p.RECESS_SIDE) > 0 else -1
+    y0 = s_ * (v(p.D) / 2 + TAB_PRELOAD)
+    y1 = (d["cav_y1"] - v(p.R_CAV)) if s_ > 0 else (d["cav_y0"] + v(p.R_CAV))
+    prof = (cq.Workplane("XZ", origin=(d["recess_x"], y0, 0))
             .moveTo(-w / 2, z_from).lineTo(w / 2, z_from).lineTo(w / 2, top - r)
             .radiusArc((w / 2 - r, top), -r)
             .lineTo(-w / 2 + r, top)
@@ -211,7 +213,20 @@ def relief_core_outer(neck=BRIDGE_RAISE):
         neck_s = P.prism_rrect(d["rl_reb_w"], d["rl_reb_h"], d["rl_r_reb"], z_open - neck, z_open + 0.01, cx=cx, cy=cy)
     else:
         neck_s = P.prism_rrect(w, h, v(p.RELIEF_R), z_open - neck, z_open + 0.01, cx=cx, cy=cy)
-    return rel.fuse(neck_s).clean()
+    rel = rel.fuse(neck_s)
+    if v(p.RL_ON) and v(p.RL_RECESS_ON):   # v2.7: вкладка виїмки кришечки на правій грані + натяг у стінку форми
+        wr, rr, top = v(p.RL_RECESS_W), v(p.RL_RECESS_R), d["rl_recess_top"]
+        x0 = v(p.W) / 2 + TAB_PRELOAD
+        x1 = d["rel_x1"] - 2.0
+        z_from = z_open - neck
+        tab = (cq.Workplane("YZ", origin=(x0, cy, 0))
+               .moveTo(-wr / 2, z_from).lineTo(wr / 2, z_from).lineTo(wr / 2, top - rr)
+               .radiusArc((wr / 2 - rr, top), -rr)
+               .lineTo(-wr / 2 + rr, top)
+               .radiusArc((-wr / 2, top - rr), -rr)
+               .close().extrude(-(x0 - x1)).val())
+        rel = rel.fuse(tab)
+    return rel.clean()
 
 
 def core_spine_and_bridge():

@@ -47,6 +47,7 @@ def main():
     logo_s = P.logo_fill("GREY")   # STICK + стік-i знака → RAL 7016
     logo_b = P.logo_fill("TEAL")   # BOX + хвиля знака → бірюзовий
     dev = P.device()
+    led, btn = P.device_controls()   # v2.7: світлова смужка і кнопка (довідково)
     prod = [("01_body_concrete", body, "body"), ("02_lid_concrete", lid, "lid"),
             ("03_seal_silicone_sponge_cord_D4_installed", oring, "oring"), ("04_felt_pad_device_pocket", felt, "liner"),
             ("05_relief_lid_concrete", rlid, "lid"), ("06_relief_seal_sponge_cord_D3_installed", rseal, "oring"),
@@ -61,7 +62,7 @@ def main():
     X.export_assembly_step(assy, f"{EXP}/step/00_STICKBOX_01_Monolith_assembly.step")
     X.export_glb([("body", body, "body"), ("lid", lid, "lid"), ("oring", oring, "oring"), ("felt", felt, "liner"),
                   ("rlid", rlid, "lid"), ("rseal", rseal, "oring"), ("logo_stick", logo_s, "liner"), ("logo_box", logo_b, "oring"),
-                  ("device", dev, "device")], f"{EXP}/glb/STICKBOX_01_Monolith_assembly.glb")
+                  ("device", dev, "device"), ("ctrl_led", led, "liner"), ("ctrl_btn", btn, "liner")], f"{EXP}/glb/STICKBOX_01_Monolith_assembly.glb")
     print("product exported", round(time.time() - t0, 1))
 
     # ---------------- оснащення ----------------
@@ -132,12 +133,12 @@ def main():
     X.export_glb(sec_parts, f"{SCR}/section_y0.glb")
     cut_p = M.box(-big, big, P.d["pocket_cy"], big, -big, big)
     X.export_glb([("body_secp", body.cut(cut_p), "body"), ("lid_secp", lid.cut(cut_p), "lid"),
-                  ("felt_secp", felt.cut(cut_p), "liner"), ("device_secp", dev.cut(cut_p), "device"),
+                  ("felt_secp", felt.cut(cut_p), "liner"), ("device_secp", dev.cut(cut_p), "device"), ("ctrl_led_secp", led, "liner"), ("ctrl_btn_secp", btn, "liner"),
                   ("rlid_secp", rlid.cut(cut_p), "lid"), ("rseal_secp", rseal.cut(cut_p), "oring"),
                   ("oring_secp", oring.cut(cut_p), "oring")], f"{SCR}/section_pocket.glb")
     X.export_glb([("body", body, "body"), ("lid", lid, "lid"), ("oring", oring, "oring"), ("felt", felt, "liner"),
                   ("rlid", rlid, "lid"), ("rseal", rseal, "oring"), ("logo_stick", logo_s, "liner"), ("logo_box", logo_b, "oring"),
-                  ("device", dev, "device")], f"{SCR}/assy.glb")
+                  ("device", dev, "device"), ("ctrl_led", led, "liner"), ("ctrl_btn", btn, "liner")], f"{SCR}/assy.glb")
     # купа стіків у перерізі (з результатів симуляції, якщо є)
     print("glb exported", round(time.time() - t0, 1))
 

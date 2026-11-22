@@ -65,10 +65,15 @@ section { display: flex; flex-direction: column; gap: 10px; }
   font: 600 14px var(--font-body); padding: 12px 14px; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 8px;
 }
 .primary:hover { filter: brightness(1.06); }
+.secondary {
+  appearance: none; border: 1px solid var(--accent); border-radius: var(--radius); background: transparent; color: var(--accent);
+  font: 600 13px var(--font-body); padding: 9px 12px; cursor: pointer;
+}
+.secondary:hover { background: var(--chip); }
 .primary:disabled { opacity: .45; cursor: not-allowed; }
 button:focus-visible, input:focus-visible, label:focus-within { outline: 2px solid var(--accent); outline-offset: 2px; }
 .row { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }
-.seg { display: grid; grid-template-columns: repeat(4, 1fr); gap: 4px; background: var(--chip); padding: 4px; border-radius: var(--radius); }
+.seg { display: grid; grid-template-columns: repeat(3, 1fr); gap: 4px; background: var(--chip); padding: 4px; border-radius: var(--radius); }
 .seg button {
   appearance: none; border: 0; background: transparent; color: var(--ink); font: 500 12.5px var(--font-body);
   padding: 7px 4px; border-radius: 7px; cursor: pointer;
@@ -106,7 +111,7 @@ dd { margin: 0; font-family: var(--font-mono); font-size: 12px; font-variant-num
 
 <div class="app">
   <div class="stage" id="stage">
-    <div class="badge">ревізія v2.6 · розміри в мм · модель з CAD</div>
+    <div class="badge">ревізія v2.7 · розміри в мм · модель з CAD</div>
     <div class="loading" id="loading"><div>Завантаження моделі…<div class="bar"><i id="bar"></i></div></div></div>
     <div class="hint" id="hint">Перетягніть — обертати · колесо або два пальці — масштаб · права кнопка — зсув</div>
   </div>
@@ -123,8 +128,9 @@ dd { margin: 0; font-family: var(--font-mono); font-size: 12px; font-variant-num
       <div class="range">
         <input type="range" id="lidSlider" min="0" max="100" value="0" step="1" aria-label="Положення кришки">
         <output id="lidOut" for="lidSlider">0%</output>
-        <small id="lidPhase">Кришка встановлена врівень з низом корпусу.</small>
+        <small id="lidPhase">Кришка встановлена врівень з низом корпусу. Виїмка для пальця — на задній грані.</small>
       </div>
+      <button class="secondary" id="rlBtn" type="button">Зняти малу кришечку (виїмка справа)</button>
     </section>
 
     <section aria-labelledby="l-view">
@@ -132,6 +138,8 @@ dd { margin: 0; font-family: var(--font-mono); font-size: 12px; font-variant-num
       <div class="seg" role="group" aria-labelledby="l-view">
         <button type="button" data-view="iso" aria-pressed="true">3/4</button>
         <button type="button" data-view="front" aria-pressed="false">Фронт</button>
+        <button type="button" data-view="back" aria-pressed="false">Ззаду</button>
+        <button type="button" data-view="right" aria-pressed="false">Справа</button>
         <button type="button" data-view="top" aria-pressed="false">Зверху</button>
         <button type="button" data-view="bottom" aria-pressed="false">Знизу</button>
       </div>
@@ -151,10 +159,10 @@ dd { margin: 0; font-family: var(--font-mono); font-size: 12px; font-variant-num
     <section aria-labelledby="l-show">
       <span class="label" id="l-show">Показати</span>
       <label class="toggle"><span>Стіки всередині<small>59 шт., розкладка з фізичної симуляції</small></span><input type="checkbox" id="tSticks" checked></label>
-      <label class="toggle"><span>Девайс ILUMA ONE<small>Довідково, 121.6 × 30.6 × 16.4</small></span><input type="checkbox" id="tDevice" checked></label>
+      <label class="toggle"><span>Девайс ILUMA ONE<small>Довідково, 121.6 × 30.6 × 16.4; кнопка і світлова смужка — у прорізі на фронті</small></span><input type="checkbox" id="tDevice" checked></label>
       <label class="toggle"><span>Повстяна підкладка кишені<small>М'яка, 2 мм, на клеї — під девайсом</small></span><input type="checkbox" id="tLiner" checked></label>
       <label class="toggle"><span>Кришечка полегшення<small>Закриває отвір на дні, шнур-губка Ø3</small></span><input type="checkbox" id="tRlid" checked></label>
-      <label class="toggle"><span>Фарба логотипа<small>STICK і стік-i — темно-сірий, BOX і хвиля — бірюзовий</small></span><input type="checkbox" id="tLogo" checked></label>
+      <label class="toggle"><span>Заливка логотипа фарбою<small>Знак і напис — заглиблення 1.0 мм під вашу фарбу. Прев'ю: STICK і стік-i — темно-сірий, BOX і хвиля — бірюзовий</small></span><input type="checkbox" id="tLogo"></label>
       <label class="toggle"><span>Ущільнювач кришки<small>Шнур із силіконової губки Ø4</small></span><input type="checkbox" id="tSeal" checked></label>
       <label class="toggle"><span>Розібрати на деталі</span><input type="checkbox" id="tExplode"></label>
     </section>
@@ -300,6 +308,8 @@ vec2 speck(vec3 p, float s){ vec3 q=p/s; vec3 i=floor(q); float b=9.0; float id=
     logo_stick: new THREE.MeshStandardMaterial({ color: new THREE.Color('#383e42').convertSRGBToLinear(), roughness: 0.8 }),
     logo_box: new THREE.MeshStandardMaterial({ color: new THREE.Color('#058b8c').convertSRGBToLinear(), roughness: 0.8 }),
     device: flatCut(new THREE.MeshPhysicalMaterial({ color: '#9a7050', metalness: 0.85, roughness: 0.32, clearcoat: 0.3 }), '#5c4330'),
+    ctrl_led: new THREE.MeshStandardMaterial({ color: '#e9eef1', roughness: 0.35, emissive: new THREE.Color('#cfe6ff'), emissiveIntensity: 0.35 }),
+    ctrl_btn: new THREE.MeshStandardMaterial({ color: new THREE.Color('#2b2d30').convertSRGBToLinear(), roughness: 0.5 }),
     stick: new THREE.MeshStandardMaterial({ color: '#f3f1ec', roughness: 0.6 }),
     band: new THREE.MeshStandardMaterial({ color: '#c9b48c', roughness: 0.5 }),
   };
@@ -342,11 +352,11 @@ vec2 speck(vec3 p, float s){ vec3 q=p/s; vec3 i=floor(q); float b=9.0; float id=
       o.castShadow = true; o.receiveShadow = true;
       parts[name] = o;
     });
-    ['body', 'felt', 'rlid', 'rseal', 'logo_stick', 'logo_box', 'device'].forEach((n) => parts[n] && bodyG.add(parts[n]));
+    ['body', 'felt', 'rlid', 'rseal', 'logo_stick', 'logo_box', 'device', 'ctrl_led', 'ctrl_btn'].forEach((n) => parts[n] && bodyG.add(parts[n]));
     ['lid', 'oring'].forEach((n) => parts[n] && lidG.add(parts[n]));
     Object.keys(parts).forEach((n) => parts[n].userData.base = parts[n].position.clone());
     $('loading').hidden = true;
-    applyCut(); update();
+    applyLogo(); applyCut(); update();
   }
   function fail() { $('loading').firstElementChild.textContent = 'Не вдалося завантажити модель. Оновіть сторінку.'; }
   // модель (GLB) лежить поруч зі сторінкою як base64-текст: читаємо з прогресом, декодуємо, передаємо в GLTFLoader
@@ -366,12 +376,12 @@ vec2 speck(vec3 p, float s){ vec3 q=p/s; vec3 i=floor(q); float b=9.0; float id=
 
   // ---------- state ----------
   const camAnim = { t: 1, from: null, to: null };
-  const S = { lid: 0, lidTarget: 0, explode: 0, explodeTarget: 0 };
+  const S = { lid: 0, lidTarget: 0, explode: 0, explodeTarget: 0, rl: 0, rlTarget: 0 };
   const smooth = (a, b, x) => { const t = Math.min(1, Math.max(0, (x - a) / (b - a))); return t * t * (3 - 2 * t); };
 
   function update() {
     const t = S.lid;
-    const lift = smooth(0, 0.3, t) * 45;          // підняти виріб
+    const lift = smooth(0, 0.3, Math.max(t, S.rl)) * 45;   // підняти виріб (для будь-якої кришки)
     const out = smooth(0.3, 0.6, t) * 26;         // витягти кришку з ущільнення
     const away = smooth(0.6, 1, t);               // відкласти кришку вперед на стіл
     // камера плавно стежить за підйомом виробу, щоб він лишався в кадрі
@@ -381,17 +391,20 @@ vec2 speck(vec3 p, float s){ vec3 q=p/s; vec3 i=floor(q); float b=9.0; float id=
     lidG.position.set(-128 * away, -out - 19.5 * away, 22 * away);   // кришка лягає на стіл ліворуч від виробу
     lidG.rotation.x = 0;
     const e = S.explode;
-    const off = { lid: -62 * e, oring: -38 * e, rlid: -50 * e, rseal: -32 * e, felt: 100 * e, device: 140 * e, body: 0 };
+    const off = { lid: -62 * e, oring: -38 * e, rlid: -50 * e, rseal: -32 * e, felt: 100 * e, device: 140 * e, ctrl_led: 140 * e, ctrl_btn: 140 * e, body: 0 };
+    const rlDown = smooth(0.3, 0.65, S.rl) * 20, rlAway = smooth(0.65, 1, S.rl);   // кришечка: вниз з ущільнення, потім убік
     Object.keys(parts).forEach((n) => {
       const b = parts[n].userData.base; if (!b) return;
-      parts[n].position.set(b.x, b.y + (off[n] || 0), b.z);
+      const isRl = n === 'rlid' || n === 'rseal';
+      parts[n].position.set(b.x + (isRl ? 70 * rlAway : 0), b.y + (off[n] || 0) - (isRl ? rlDown + 25 * rlAway : 0), b.z);
     });
+    $('rlBtn').textContent = S.rlTarget > 0.5 ? 'Встановити малу кришечку' : 'Зняти малу кришечку (виїмка справа)';
     stickWrap.visible = $('tSticks').checked && t < 0.42 && e < 0.05;
     const pct = Math.round(t * 100);
     $('lidOut').value = pct + '%';
     if (document.activeElement !== $('lidSlider')) $('lidSlider').value = pct;
     $('lidPhase').textContent = t < 0.01 ? 'Кришка встановлена врівень з низом корпусу.'
-      : t < 0.3 ? 'Виріб піднято над столом, палець у виїмці на фронті.'
+      : t < 0.3 ? 'Виріб піднято над столом, палець у виїмці на задній грані.'
       : t < 0.6 ? 'Кришка виходить з губчастого ущільнювача.'
       : t < 0.99 ? 'Кришку відкладено; стіки висипаються.' : 'Кришку знято — порожнина відкрита знизу.';
     $('lidBtn').textContent = S.lidTarget > 0.5 ? 'Встановити кришку' : 'Зняти кришку';
@@ -411,22 +424,27 @@ vec2 speck(vec3 p, float s){ vec3 q=p/s; vec3 i=floor(q); float b=9.0; float id=
     if ($('tExplode').checked) { $('tExplode').checked = false; S.explode = S.explodeTarget = 0; }
     S.lid = S.lidTarget = e.target.value / 100; update();
   });
-  $('tExplode').addEventListener('change', (e) => { if (e.target.checked) animateTo('lid', 0); animateTo('explode', e.target.checked ? 1 : 0); });
+  $('tExplode').addEventListener('change', (e) => { if (e.target.checked) { animateTo('lid', 0); animateTo('rl', 0); } animateTo('explode', e.target.checked ? 1 : 0); });
+  $('rlBtn').addEventListener('click', () => {
+    if ($('tExplode').checked) { $('tExplode').checked = false; animateTo('explode', 0); }
+    const on = S.rlTarget < 0.5;
+    animateTo('rl', on ? 1 : 0);
+    if (on) setView('right');
+  });
   $('tSticks').addEventListener('change', update);
-  $('tDevice').addEventListener('change', (e) => { if (parts.device) parts.device.visible = e.target.checked; });
+  $('tDevice').addEventListener('change', (e) => { ['device', 'ctrl_led', 'ctrl_btn'].forEach((n) => parts[n] && (parts[n].visible = e.target.checked)); });
   $('tLiner').addEventListener('change', (e) => { if (parts.felt) parts.felt.visible = e.target.checked; });
   $('tRlid').addEventListener('change', (e) => { ['rlid', 'rseal'].forEach((n) => parts[n] && (parts[n].visible = e.target.checked)); });
-  $('tLogo').addEventListener('change', (e) => {
-    if (parts.logo_stick) parts.logo_stick.material = e.target.checked ? M.logo_stick : logoBare;
-    if (parts.logo_box) parts.logo_box.material = e.target.checked ? M.logo_box : logoBare;
-  });
+  // v2.7: без заливки видно самі заглиблення (тіла фарби приховано), із заливкою — прев'ю кольорів
+  function applyLogo() { ['logo_stick', 'logo_box'].forEach((n) => parts[n] && (parts[n].visible = $('tLogo').checked)); }
+  $('tLogo').addEventListener('change', applyLogo);
   $('tSeal').addEventListener('change', (e) => { if (parts.oring) parts.oring.visible = e.target.checked; });
   $('autoRot').addEventListener('change', (e) => { controls.autoRotate = e.target.checked; });
 
   function applyCut() {
     const on = $('cutToggle').checked;
     clipPlane.constant = parseFloat($('cutSlider').value);
-    ['body', 'lid', 'oring', 'felt', 'device', 'logo_stick', 'logo_box'].forEach((n) => { M[n].clippingPlanes = on ? [clipPlane] : []; M[n].needsUpdate = true; });
+    ['body', 'lid', 'oring', 'felt', 'device', 'logo_stick', 'logo_box', 'ctrl_led', 'ctrl_btn'].forEach((n) => { M[n].clippingPlanes = on ? [clipPlane] : []; M[n].needsUpdate = true; });
     logoBare.clippingPlanes = on ? [clipPlane] : []; logoBare.needsUpdate = true;
     const v = -parseFloat($('cutSlider').value);
     $('cutOut').value = 'y = ' + (v === 0 ? '0' : v.toFixed(1));
@@ -447,6 +465,8 @@ vec2 speck(vec3 p, float s){ vec3 q=p/s; vec3 i=floor(q); float b=9.0; float id=
   const VIEWS = {
     iso: { pos: [-235, 205, 300], tgt: [0, 52, 0] },
     front: { pos: [0, 60, 430], tgt: [0, 55, 0] },
+    back: { pos: [-60, 45, -420], tgt: [-10, 45, 0] },
+    right: { pos: [430, 30, -40], tgt: [0, 40, 0] },
     top: { pos: [0, 470, 0.5], tgt: [0, 40, 0] },
     bottom: { pos: [0, -360, 0.5], tgt: [0, 40, 0] },
   };
@@ -462,7 +482,7 @@ vec2 speck(vec3 p, float s){ vec3 q=p/s; vec3 i=floor(q); float b=9.0; float id=
   camera.position.set(...VIEWS.iso.pos); controls.target.set(...VIEWS.iso.tgt);
   $('resetBtn').addEventListener('click', () => {
     $('cutToggle').checked = false; $('cutSlider').value = 0; applyCut();
-    $('tExplode').checked = false; animateTo('explode', 0); animateTo('lid', 0);
+    $('tExplode').checked = false; animateTo('explode', 0); animateTo('lid', 0); animateTo('rl', 0);
     $('autoRot').checked = false; controls.autoRotate = false;
     setView('iso');
   });
@@ -479,9 +499,9 @@ vec2 speck(vec3 p, float s){ vec3 q=p/s; vec3 i=floor(q); float b=9.0; float id=
   function tick(now) {
     const dt = Math.min(0.05, (now - last) / 1000); last = now;
     let changed = false;
-    ['lid', 'explode'].forEach((k) => {
+    ['lid', 'explode', 'rl'].forEach((k) => {
       const d = S[k + 'Target'] - S[k];
-      if (Math.abs(d) > 1e-4) { S[k] += Math.sign(d) * Math.min(Math.abs(d), dt * (k === 'lid' ? 0.55 : 1.4)); changed = true; }
+      if (Math.abs(d) > 1e-4) { S[k] += Math.sign(d) * Math.min(Math.abs(d), dt * (k === 'explode' ? 1.4 : 0.55)); changed = true; }
     });
     if (changed) update();
     if (camAnim.t < 1) {

@@ -362,27 +362,27 @@
  },
  {
   "glb": "assy.glb",
-  "out": "12_detail_finger_recess.png",
+  "out": "12_detail_finger_recess_back.png",
   "w": 1400,
   "h": 1050,
   "cam": {
    "pos": [
-    -38,
-    16,
-    135
+    -48,
+    20,
+    -150
    ],
    "target": [
-    0,
+    -15,
     7,
-    40
+    -45
    ],
    "fov": 30
   },
   "concrete": "#c2ad92",
   "keyPos": [
-   -120,
-   260,
-   320
+   -150,
+   250,
+   -300
   ],
   "envIntensity": 0.75,
   "exposure": 0.88,
@@ -679,5 +679,97 @@
    420,
    -300
   ]
+ },
+ {
+  "glb": "assy.glb",
+  "w": 1400,
+  "h": 1050,
+  "concrete": "#c2ad92",
+  "envIntensity": 0.75,
+  "exposure": 0.88,
+  "bg": "#eadfd1",
+  "out": "16_detail_relief_recess_right.png",
+  "cam": {
+   "pos": [
+    175,
+    20,
+    -45
+   ],
+   "target": [
+    60,
+    6,
+    -20
+   ],
+   "fov": 30
+  },
+  "keyPos": [
+   300,
+   250,
+   -100
+  ]
+ },
+ {
+  "glb": "assy.glb",
+  "w": 1400,
+  "h": 1050,
+  "concrete": "#c2ad92",
+  "envIntensity": 0.75,
+  "exposure": 0.88,
+  "bg": "#eadfd1",
+  "out": "17_slot_device_controls.png",
+  "cam": {
+   "pos": [
+    95,
+    70,
+    210
+   ],
+   "target": [
+    40,
+    45,
+    40
+   ],
+   "fov": 30
+  },
+  "keyPos": [
+   200,
+   300,
+   300
+  ]
+ },
+ {
+  "glb": "assy.glb",
+  "w": 1400,
+  "h": 1050,
+  "concrete": "#c2ad92",
+  "envIntensity": 0.75,
+  "exposure": 0.88,
+  "bg": "#eadfd1",
+  "out": "14a_logo_recess_unpainted.png",
+  "cam": {
+   "pos": [
+    -28,
+    58,
+    196
+   ],
+   "target": [
+    0,
+    46,
+    45
+   ],
+   "fov": 30
+  },
+  "keyPos": [
+   -220,
+   280,
+   220
+  ],
+  "nodes": {
+   "logo_stick": {
+    "visible": false
+   },
+   "logo_box": {
+    "visible": false
+   }
+  }
  }
 ]

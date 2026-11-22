@@ -33,7 +33,8 @@ GENERAL = [
 body = P.body()
 lid = P.lid()
 oring = P.oring()
-liner = P.liner()
+liner = P.felt_pad()   # v2.7: вставку прибрано у v2.5 — у збірці повстяна підкладка
+_led, _btn = P.device_controls()
 dev = P.device()
 xc, cx, cy = d["cav_xc"], d["pocket_cx"], d["pocket_cy"]
 H = v(p.H)
@@ -52,8 +53,19 @@ V.dim((-60, -45, H), (xc, -45, H), "h", off=9)
 V.center_v((xc, -45, 88), 12)
 V.dim((cx - 4, -45, H), (cx + 4, -45, H), "h", off=6)
 V.dim((cx + 4, -45, H), (cx + 4, -45, H - v(p.SLOT_DEPTH)), "v", off=10)
-V.dim((-15, -45, 0), (15, -45, 0), "h", off=-7)
-V.dim((15, -45, 0), (15, -45, d["recess_top"]), "v", off=24, txt=f"{d['recess_top']:.1f}")
+V.dim((cx + 4, -45, 0), (cx + 4, -45, d["slot_tip_z"]), "v", off=10, txt=f"{d['slot_tip_z']:.0f}")
+V.leader((cx + 2, -45, d["ctrl_z0"] + 4), 6, 30, f"кнопка+смужка z {d['ctrl_z0']:.0f}–{d['ctrl_z1']:.0f}", size=2.6)
+# v2.7: вигляди ззаду та справа (1:2) — пальцеві виїмки основної кришки та кришечки полегшення
+VB = S.view(body, "back", (226, 225.5), 0.5, hidden=False)
+S.text((226, 174.5), "ВИГЛЯД ЗЗАДУ (1:2)", 3.6, weight="bold")
+rx = d["recess_x"]
+VB.dim((rx - v(p.RECESS_W) / 2, 45, 0), (rx + v(p.RECESS_W) / 2, 45, 0), "h", off=-5, txt=f"{v(p.RECESS_W):.0f}")
+VB.leader((rx, 45, d["recess_top"]), 14, -16, f"виїмка кришки {v(p.RECESS_W):.0f}×{d['recess_top']:.1f}")
+rcy_ = (d["rel_y0"] + d["rel_y1"]) / 2
+VR = S.view(body, "right", (322, 225.5), 0.5, hidden=False)
+S.text((322, 174.5), "ВИГЛЯД СПРАВА (1:2)", 3.6, weight="bold")
+VR.dim((60, rcy_ - v(p.RL_RECESS_W) / 2, 0), (60, rcy_ + v(p.RL_RECESS_W) / 2, 0), "h", off=-5, txt=f"{v(p.RL_RECESS_W):.0f}")
+VR.leader((60, rcy_, d["rl_recess_top"]), 14, -16, f"виїмка кришечки {v(p.RL_RECESS_W):.0f}×{d['rl_recess_top']:.1f}")
 VT = S.view(body, "top", (100, 222), 1.0, label="ВИД ЗВЕРХУ", label_dy=18)
 VT.dim((60, -45, H), (60, 45, H), "v", off=16)
 VT.dim((52, -45, H), (52, cy, H), "v", off=8, txt=f"{cy + 45:.1f}")
@@ -200,8 +212,8 @@ FP = P.felt_pad().translate(Vector(-cx, -cy, -d["pocket_floor"]))
 fx, fy = P.felt_pad_dims()
 S = DR.Sheet("Підкладка, кришечка", "Деталі 04 (підкладка кишені) і 05 (кришечка полегшення)",
              "04: повсть на клейовій основі; 05: бетон", "2:1", 4, NS,
-             notes=[f"04: підкладка-стадіон {fx:.1f} × {fy:.1f} × {v(p.LINER_FLOOR):.1f} мм, вирубка; клеїти на чисте загерметизоване дно кишені (клейова основа акрилова або 3M 467/468MP-клас).",
-                    f"05: кришечка в експлуатації не знімається; ущільнювач — шнур-губка Ø{v(p.RL_CS):.0f}, відріз {d['rl_seal_cut_len']:.0f} мм, стиснення ≈27%.",
+             notes=[f"04: підкладка (заокруглений прямокутник) {fx:.1f} × {fy:.1f} × {v(p.LINER_FLOOR):.1f} мм, вирубка; клеїти на чисте загерметизоване дно кишені (клейова основа акрилова або 3M 467/468MP-клас).",
+                    f"05: кришечка знімається пальцем через виїмку на правій грані корпусу ({v(p.RL_RECESS_W):.0f} × {d['rl_recess_top']:.1f}); фаска верху пробки {v(p.RL_CHAMF_R)}×{v(p.RL_CHAMF_H)}, бортик −{v(p.RL_LIP_RELIEF)} (без заклинювання до 8°); ущільнювач — шнур-губка Ø{v(p.RL_CS):.0f}, відріз {d['rl_seal_cut_len']:.0f} мм, стиснення ≈27%.",
                     "05: видима грань — відкрита грань лиття, шліфування разом із низом корпусу; заглиблення 0.5 від площини опори."])
 VFt = S.view(FP, "top", (70, 110), 2.0, label="04 — ВИД ЗВЕРХУ (2:1)", label_dy=16)
 VFt.dim((-fx / 2, 0, 2), (fx / 2, 0, 2), "h", off=-34, txt=f"{fx:.1f}")
@@ -227,8 +239,9 @@ print("sheet 4")
 # ======================================================================
 S = DR.Sheet("Збірка", "Складальне креслення, специфікація (BOM)", "див. специфікацію", "1:1", 5, NS,
              notes=["Девайс IQOS ILUMA ONE (121.6×30.6×16.4, 68.5 г) — не входить до комплекту, показано довідково.",
-                    "Кришка ставиться в будь-якому з 4 положень (квадратна пробка). Знімається пальцем через виїмку."])
-asm_full = cq.Compound.makeCompound([body, lid, oring, liner, dev])
+                    "Кришка ставиться в будь-якому з 4 положень (квадратна пробка). Знімається пальцем через виїмку на задній грані; кришечка — через виїмку справа.",
+                    f"Проріз-вітрина відкриває світлову смужку і кнопку девайса (z {d['ctrl_z0']:.0f}–{d['ctrl_z1']:.0f} від низу; положення — за фото замовника, перевірити на прототипі)."])
+asm_full = cq.Compound.makeCompound([body, lid, oring, liner, dev, _led, _btn])
 VA5 = S.view(asm_full, "front", (88, 150), 1.0, hidden=False, label="ЗБІРКА — ФРОНТАЛЬНИЙ ВИГЛЯД")
 VA5.dim((cx + 8.2, -45, H), (cx + 8.2, -45, H + v(p.DEV_PROTRUDE)), "v", off=14, txt=f"{v(p.DEV_PROTRUDE):.0f} (виступ девайса)")
 VA5.dim((-60, -45, 0), (-60, -45, H + v(p.DEV_PROTRUDE)), "v", off=-10, txt=f"{H + v(p.DEV_PROTRUDE):.0f}")
@@ -277,7 +290,7 @@ tool_asm = cq.Compound.makeCompound([flip(keep(s, "y", 0, -1)) for s in
                                      (T["body_sleeve"], sil, T["core_silicone"], T["core_spine_bridge"], T["finger_stiffener"], casting)])
 S = DR.Sheet("Оснащення", "Схема лиття корпусу «догори дном» — розріз по осі воронки", "див. перелік оснащення", "1:1", 6, NS,
              notes=["Базування: майстер T01 → плита T03 (штифти) → гільза T02 → міст T05; міст стягується 4 шпильками M5 крізь вушка гільзи (сердечник не спливає).",
-                    "Отвір Ø8 — телескопічний стик: шпилька форми заходить у гніздо сердечника на 3 мм. Вкладка виїмки — натяг 1.0 мм у стінку форми.",
+                    "Отвір Ø8 — телескопічний стик: шпилька форми заходить у гніздо сердечника на 3 мм. Вкладки виїмок (задня — кришки, права — кришечки) — натяг 1.0 мм у стінку форми.",
                     "Масштаб формотворчої геометрії ×1.002 (усадка); калібрувати за пробними виливками."])
 VT6 = S.view(tool_asm, "front", (122, 72), 1.0, hidden=False, label="РОЗРІЗ ОСНАЩЕННЯ (положення лиття, 1:1)",
              section=(tool_asm, (0, 0, 0), (0, 1, 0)), label_dy=14)
@@ -336,9 +349,8 @@ _fill(mk["swoosh"], TEAL, mx, mz); _fill(mk["stem"], GREY, mx, mz); _fill(mk["ca
 wm = BR.wordmark_polygons()
 for i, (ch, g) in enumerate(wm):
     _fill(g, GREY if i < 5 else TEAL, 0, v(p.LOGO_Z))
-# контекст: низ грані та пальцева виїмка
+# контекст: низ грані (пальцева виїмка з v2.7 — на задній грані)
 S.line(V.P((-46, Y0, 0)), V.P((46, Y0, 0)), "v")
-S.poly([V.P((-15, Y0, 0)), V.P((-15, Y0, d["recess_top"])), V.P((15, Y0, d["recess_top"])), V.P((15, Y0, 0))], "h")
 V.center_v((mx, Y0, mz), 46); V.center_h((mx, Y0, mz), 22); V.center_h((0, Y0, v(p.LOGO_Z)), 34)
 mall = _aff.translate(_uu(list(mk.values())), mx, mz)
 mb = mall.bounds

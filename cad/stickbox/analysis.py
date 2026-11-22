@@ -260,6 +260,10 @@ def run(write_to=None):
                                m_dev, min(base_half_min, v(p.W) / 2 - abs(R["assembly"]["com_with_device"][0])))
     R["lid_hook"] = lid_hook_check()
     R["lid_tilt"] = lid_tilt_check()
+    R["relief_lid_tilt"] = rl_tilt_check()
+    R["relief_lid_hook"] = rl_hook_check()
+    R["device_fit"] = device_fit_check()
+    R["slot_controls"] = slot_controls_check()
     R["seal_force"] = seal_force_estimate()
     R["derived"] = d
     if write_to:
@@ -279,13 +283,58 @@ def lid_tilt_check(angles=(1, 3, 5, 7, 8, 10, 12)):
     передня кромка йде вниз. Повертає об'єм перетину жорсткої кришки з корпусом (без О-кільця)."""
     from cadquery import Vector
     body, lid = P.body(), P.lid()
-    xc, yb, zp = d["cav_xc"], d["flange"] / 2, d["z_reb"]
+    s_ = 1 if v(p.RECESS_SIDE) > 0 else -1          # v2.7: тягнуть за задній край, упор — передня кромка
+    xc, yb, zp = d["cav_xc"], -s_ * d["flange"] / 2, d["z_reb"]
     out = []
     for a in angles:
-        l = lid.rotate(Vector(xc - 50, yb, zp), Vector(xc + 50, yb, zp), a)
+        l = lid.rotate(Vector(xc - 50, yb, zp), Vector(xc + 50, yb, zp), -s_ * a)
         out.append(dict(angle_deg=a, interference_mm3=l.intersect(body).Volume(),
-                        front_drop_mm=v(p.LID_RECESS) - l.BoundingBox().zmin))
+                        pull_edge_drop_mm=v(p.LID_RECESS) - l.BoundingBox().zmin))
     return out
+
+
+def rl_tilt_check(angles=(2, 5, 8, 12, 16)):
+    """v2.7: кришечку полегшення тягнуть за правий край через виїмку; упор — ліва верхня кромка фланця."""
+    from cadquery import Vector
+    body, rl = P.body(), P.relief_lid()
+    cx, cy = (d["rel_x0"] + d["rel_x1"]) / 2, (d["rel_y0"] + d["rel_y1"]) / 2
+    xp, zp = cx - d["rl_flange_w"] / 2, d["rl_z_reb"]
+    out = []
+    for a in angles:
+        l = rl.rotate(Vector(xp, cy - 50, zp), Vector(xp, cy + 50, zp), a)   # +a: правий край (виїмка) іде вниз
+        out.append(dict(angle_deg=a, interference_mm3=l.intersect(body).Volume()))
+    return out
+
+
+def rl_hook_check(F=15.0):
+    """Уступ фланця кришечки під пальцем у виїмці правої грані (консоль)."""
+    b = v(p.RL_RECESS_W) - 2 * 1.5
+    t = v(p.RL_FLANGE_T)
+    arm = (v(p.RL_SHOULDER) - v(p.RL_GAP) + v(p.RL_PLUG_GAP)) / 2
+    return dict(F_N=F, contact_width_mm=b, ledge_mm=v(p.RL_SHOULDER) - v(p.RL_GAP) + v(p.RL_PLUG_GAP),
+                sigma_MPa=6 * F * arm / (b * t * t), groove_above_recess_mm=d["rl_groove_z0"] - d["rl_recess_top"])
+
+
+def device_fit_check(radii=(3.0, 3.5, 5.0, 6.5, 8.2)):
+    """v2.7: посадка девайса для різних кутових радіусів перерізу (реальний — не опублікований).
+    Для кожного: перетин з корпусом і мінімальний зазор до бетону (кишеня R4, ухил 0.5°)."""
+    body = P.body()
+    out = []
+    for r in radii:
+        dv = P.device(corner_r=r)
+        out.append(dict(corner_r_mm=r, interference_mm3=common_volume(body, dv), min_clearance_mm=min_distance(body, dv)))
+    return out
+
+
+def slot_controls_check():
+    """v2.7: чи відкриває проріз-вітрина світлову смужку й кнопку девайса (координати від торця USB-C — фото замовника)."""
+    tol = 2.5   # невизначеність положення органів за фото, мм
+    return dict(ctrl_z=[d["ctrl_z0"], d["ctrl_z1"]], led_z=[d["ctrl_z0"], d["btn_z0"]], button_z=[d["btn_z0"], d["ctrl_z1"]],
+                slot_straight_z=[d["slot_straight_z0"], v(p.H)], slot_tip_z=d["slot_tip_z"],
+                margin_below_mm=d["ctrl_z0"] - d["slot_straight_z0"], covered=bool(d["ctrl_z0"] - tol >= d["slot_straight_z0"] - 1e-6),
+                slot_w_mm=v(p.SLOT_W), ctrl_w_mm=v(p.DEV_CTRL_W), side_margin_mm=(v(p.SLOT_W) - v(p.DEV_CTRL_W)) / 2,
+                ctrl_depth_from_face_mm=v(p.T_FRONT_POCKET) + v(p.DEV_CLEAR),
+                stick_fits_slot=bool(v(p.HEETS_D) < v(p.SLOT_W)))
 
 
 def seal_force_estimate(cld_kpa=(30.0, 60.0), mu=(0.3, 0.7), contact_w=3.0):

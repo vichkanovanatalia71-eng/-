@@ -162,8 +162,9 @@ def _pocket_tool():
     wy0 = d["pocket_y"] - 2 * inset
     zf = d["pocket_floor"]
     extra = 2.0
-    pk = stadium_prism(wx0, wy0, d["pocket_cx"], d["pocket_cy"], zf, H + extra,
-                       taper=-v(p.DRAFT_POCKET))
+    # v2.7: заокруглений прямокутник R4 (вгорі) — приймає девайс із будь-яким кутовим радіусом ≥2.8
+    pk = prism_rrect(wx0, wy0, v(p.POCKET_R) - inset, zf, H + extra, cx=d["pocket_cx"], cy=d["pocket_cy"],
+                     taper=-v(p.DRAFT_POCKET))
     bot = min(pk.Faces(), key=lambda f: f.Center().z)
     pk = pk.fillet(v(p.POCKET_FLOOR_R), bot.Edges())
     return pk
@@ -182,13 +183,14 @@ def _slot_tool():
 
 
 def _recess_tool():
-    """Пальцева виїмка у нерухомому корпусі (фронт, по центру, біля краю кришки)."""
+    """Пальцева виїмка основної кришки у нерухомому корпусі (v2.7: задня грань, на осі кришки)."""
     w, r = v(p.RECESS_W), v(p.RECESS_R)
     top = d["recess_top"]
-    y0 = -v(p.D) / 2 - 2
+    s_ = 1 if v(p.RECESS_SIDE) > 0 else -1
+    y0 = s_ * (v(p.D) / 2 + 2)
     # наскрізь до лицьової поверхні пробки, включно із зоною кутового радіуса порожнини
-    y1 = d["cav_y0"] + v(p.R_CAV)
-    prof = (cq.Workplane("XZ", origin=(0, y0, 0))
+    y1 = (d["cav_y1"] - v(p.R_CAV)) if s_ > 0 else (d["cav_y0"] + v(p.R_CAV))
+    prof = (cq.Workplane("XZ", origin=(d["recess_x"], y0, 0))
             .moveTo(-w / 2, -1).lineTo(w / 2, -1).lineTo(w / 2, top - r)
             .radiusArc((w / 2 - r, top), -r)
             .lineTo(-w / 2 + r, top)
@@ -261,9 +263,11 @@ def body(product=True, with_slot=None, with_logo=None, with_cavity=True,
         s = fillet_edges(s, outer, 0.3)     # внутрішній кут ребейту (не зменшує опору фланця)
         if with_recess:
             s = s.cut(_recess_tool())
+            s_ = 1 if v(p.RECESS_SIDE) > 0 else -1
+            rx = d["recess_x"]
             def on_recess(e, pts):
-                return (all(abs(q.x) <= v(p.RECESS_W) / 2 + 0.05 for q in pts)
-                        and all(abs(q.y + v(p.D) / 2) < 0.02 for q in pts)
+                return (all(abs(q.x - rx) <= v(p.RECESS_W) / 2 + 0.05 for q in pts)
+                        and all(abs(q.y - s_ * v(p.D) / 2) < 0.02 for q in pts)
                         and all(-height_extra + 0.05 < q.z < 10 for q in pts))
             try:
                 s = fillet_edges(s, edges_where(s, on_recess), 1.5)
@@ -273,8 +277,8 @@ def body(product=True, with_slot=None, with_logo=None, with_cavity=True,
             rt = d["recess_top"]
             def ceil_back(e, pts):
                 return (all(abs(q.z - rt) < 0.02 for q in pts)
-                        and all(abs(q.x) <= v(p.RECESS_W) / 2 + 0.05 for q in pts)
-                        and all(q.y > -v(p.D) / 2 + 2.0 for q in pts))
+                        and all(abs(q.x - rx) <= v(p.RECESS_W) / 2 + 0.05 for q in pts)
+                        and all(s_ * q.y < v(p.D) / 2 - 2.0 for q in pts))
             try:
                 s = fillet_edges(s, edges_where(s, ceil_back), 1.5)
             except Exception as ex:  # pragma: no cover
@@ -302,6 +306,20 @@ def body(product=True, with_slot=None, with_logo=None, with_cavity=True,
                     s = fillet_edges(s, es, r)
                 except Exception as ex:  # pragma: no cover
                     print("WARN relief rebate fillet:", ex)
+            if with_recess and v(p.RL_RECESS_ON):
+                s = s.cut(_rl_recess_tool())
+                xr, wr, rtop = v(p.W) / 2, v(p.RL_RECESS_W), d["rl_recess_top"]
+                on_face = lambda e, pts: (all(abs(q.x - xr) < 0.02 for q in pts)
+                                          and all(abs(q.y - rcy) <= wr / 2 + 0.05 for q in pts)
+                                          and all(-height_extra + 0.05 < q.z < rtop + 0.1 for q in pts))
+                ceil_in = lambda e, pts: (all(abs(q.z - rtop) < 0.02 for q in pts)
+                                          and all(abs(q.y - rcy) <= wr / 2 + 0.05 for q in pts)
+                                          and all(q.x < xr - 2.0 for q in pts))
+                for sel, r in ((on_face, 1.5), (ceil_in, 1.5)):
+                    try:
+                        s = fillet_edges(s, edges_where(s, sel), r)
+                    except Exception as ex:  # pragma: no cover
+                        print("WARN rl recess fillet:", ex)
 
     if with_logo:
         s = s.cut(_logo_tool())
@@ -309,6 +327,21 @@ def body(product=True, with_slot=None, with_logo=None, with_cavity=True,
             from . import brand
             s = s.cut(brand.mark_tool())
     return s.clean()
+
+
+def _rl_recess_tool():
+    """v2.7: пальцева виїмка кришечки полегшення — права грань, по центру кришечки; наскрізь у порожнину."""
+    cx, cy, rw, rh = _relief_xy()
+    w, r, top = v(p.RL_RECESS_W), v(p.RL_RECESS_R), d["rl_recess_top"]
+    x0 = v(p.W) / 2 + 2
+    x1 = d["rel_x1"] - 2.0
+    prof = (cq.Workplane("YZ", origin=(x0, cy, 0))
+            .moveTo(-w / 2, -1).lineTo(w / 2, -1).lineTo(w / 2, top - r)
+            .radiusArc((w / 2 - r, top), -r)
+            .lineTo(-w / 2 + r, top)
+            .radiusArc((-w / 2, top - r), -r)
+            .close())
+    return prof.extrude(-(x0 - x1)).val()
 
 
 def _relief_xy():
@@ -481,7 +514,8 @@ def felt_pad():
     fx = d["pocket_x"] - 2 * inset - 2 * v(p.POCKET_FLOOR_R) - 2 * v(p.FELT_INSET)
     fy = d["pocket_y"] - 2 * inset - 2 * v(p.POCKET_FLOOR_R) - 2 * v(p.FELT_INSET)
     z0 = d["pocket_floor"]
-    pad = stadium_prism(fx, fy, d["pocket_cx"], d["pocket_cy"], z0, z0 + v(p.LINER_FLOOR))
+    rf = max(1.0, v(p.POCKET_R) - inset - v(p.POCKET_FLOOR_R) - v(p.FELT_INSET))
+    pad = prism_rrect(fx, fy, rf, z0, z0 + v(p.LINER_FLOOR), cx=d["pocket_cx"], cy=d["pocket_cy"])
     top = max(pad.Faces(), key=lambda f: f.Center().z)
     return pad.fillet(0.6, top.Edges())
 
@@ -500,11 +534,23 @@ def relief_lid(product=True, grind_allow=0.0):
     ft = v(p.RL_FLANGE_T)
     fl = prism_rrect(d["rl_flange_w"], d["rl_flange_h"], d["rl_r_reb"] - v(p.RL_GAP), z0 - grind_allow, z0 + ft, cx=cx, cy=cy)
     zt = z0 + d["rl_t"]
-    plug = prism_rrect(d["rl_plug_w"], d["rl_plug_h"], d["rl_r_plug"], z0 + ft - EPS, zt, cx=cx, cy=cy, taper=v(p.DRAFT_CAV))
-    s = fl.fuse(plug).clean()
-    top = max(s.Faces(), key=lambda f: f.Center().z)
-    s = s.chamfer(0.8, None, top.Edges())
+    zc = zt - v(p.RL_CHAMF_H)
+    plug = prism_rrect(d["rl_plug_w"], d["rl_plug_h"], d["rl_r_plug"], z0 + ft - EPS, zc + EPS, cx=cx, cy=cy, taper=v(p.DRAFT_CAV))
+    # v2.7: верх пробки — фаска R×H (антизаклинювання при знятті за правий край через виїмку)
+    inset = (zc - (z0 + ft)) * TAN_C
+    ang = math.degrees(math.atan2(v(p.RL_CHAMF_R), v(p.RL_CHAMF_H)))
+    lr = v(p.RL_LIP_RELIEF)
+    cap = prism_rrect(d["rl_plug_w"] - 2 * inset - 2 * lr, d["rl_plug_h"] - 2 * inset - 2 * lr, d["rl_r_plug"] - inset - lr,
+                      zc, zt, cx=cx, cy=cy, taper=ang)
     zf = z0 + ft
+    # бортик над канавкою — уступ RL_LIP_RELIEF всередину (від верху канавки до фаски)
+    g1_ = zf + v(p.RL_LAND) + v(p.RL_GROOVE_W)
+    ins_g = (g1_ - zf) * TAN_C
+    lip_out = prism_rrect(d["rl_plug_w"] + 6, d["rl_plug_h"] + 6, d["rl_r_plug"] + 3, g1_, zc + 1, cx=cx, cy=cy)
+    lip_in = prism_rrect(d["rl_plug_w"] - 2 * ins_g - 2 * lr, d["rl_plug_h"] - 2 * ins_g - 2 * lr, d["rl_r_plug"] - ins_g - lr,
+                         g1_ - 0.01, zc + 1.01, cx=cx, cy=cy, taper=v(p.DRAFT_CAV))
+    plug = plug.cut(lip_out.cut(lip_in))
+    s = fl.fuse(plug).fuse(cap).clean()
     corner = edges_where(s, lambda e, pts: all(abs(q.z - zf) < 0.02 for q in pts)
                          and all(abs(q.x - cx) < d["rl_plug_w"] / 2 + 0.05 and abs(q.y - cy) < d["rl_plug_h"] / 2 + 0.05 for q in pts))
     s = fillet_edges(s, corner, 0.4)
@@ -569,13 +615,36 @@ def logo_fill(which="STICK"):
     return cq.Compound.makeCompound([s for _, ss in group for s in ss])
 
 
-def device():
+def device(corner_r=None):
+    """Габаритна модель ILUMA ONE: заокруглений прямокутник 16.4 × 30.6, кутовий радіус DEV_R (припущення)."""
     cx, cy = d["pocket_cx"], d["pocket_cy"]
     z0 = d["dev_z0"]
-    s = stadium_prism(v(p.DEV_T), v(p.DEV_W), cx, cy, z0, z0 + v(p.DEV_L))
+    r = v(p.DEV_R) if corner_r is None else corner_r
+    if r >= v(p.DEV_T) / 2 - 1e-6:
+        s = stadium_prism(v(p.DEV_T), v(p.DEV_W), cx, cy, z0, z0 + v(p.DEV_L))
+    else:
+        s = prism_rrect(v(p.DEV_T), v(p.DEV_W), r, z0, z0 + v(p.DEV_L), cx=cx, cy=cy)
     ends = [f for f in s.Faces() if abs(f.Center().z - z0) < 0.01 or abs(f.Center().z - (z0 + v(p.DEV_L))) < 0.01]
-    s = s.fillet(6.0, [e for f in ends for e in f.Edges()])
+    for fr in (5.0, 4.0, 3.0):
+        try:
+            return s.fillet(fr, [e for f in ends for e in f.Edges()])
+        except Exception:
+            continue
     return s
+
+
+def device_controls():
+    """Світлова смужка та кнопка на вузькій грані девайса, зверненій до фронту (довідково, за фото замовника)."""
+    cx = d["pocket_cx"]
+    yf = d["pocket_cy"] - v(p.DEV_W) / 2
+    w = v(p.DEV_CTRL_W)
+    def pad(z0, z1, width):
+        L = z1 - z0
+        return (cq.Workplane("XZ", origin=(cx, yf - 0.15, 0)).center(0, (z0 + z1) / 2)
+                .slot2D(L, width, angle=90).extrude(-0.65).val())
+    led = pad(d["ctrl_z0"], d["btn_z0"] - 0.8, w)
+    btn = pad(d["btn_z0"], d["ctrl_z1"], w - 0.3)
+    return led, btn
 
 
 def stick():

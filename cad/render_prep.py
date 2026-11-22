@@ -68,9 +68,9 @@ body = P.body(); lid = P.lid(); oring = P.oring()
 cutf = M.box(-big, big, 0, big, -big, big)
 X.export_glb([("body_sec", body.cut(cutf), "body"), ("lid_sec", lid.cut(cutf), "lid"), ("oring_sec", oring.cut(cutf), "oring"),
               ("felt", P.felt_pad(), "liner"), ("rlid", P.relief_lid(), "lid"), ("rseal", P.relief_seal(), "oring"),
-              ("logo_stick", P.logo_fill("GREY"), "liner"), ("logo_box", P.logo_fill("TEAL"), "oring"), ("device", P.device(), "device"),
+              ("logo_stick", P.logo_fill("GREY"), "liner"), ("logo_box", P.logo_fill("TEAL"), "oring"), ("device", P.device(), "device"), ("ctrl_led", P.device_controls()[0], "liner"), ("ctrl_btn", P.device_controls()[1], "liner"),
               ("stick_pile", comp, "stick")], f"{OUT}/section_sticks.glb")
 X.export_glb([("body", body, "body"), ("lid", lid, "lid"), ("oring", oring, "oring"), ("felt", P.felt_pad(), "liner"),
               ("rlid", P.relief_lid(), "lid"), ("rseal", P.relief_seal(), "oring"), ("logo_stick", P.logo_fill("GREY"), "liner"),
-              ("logo_box", P.logo_fill("TEAL"), "oring"), ("device", P.device(), "device")], f"{OUT}/assy.glb")
+              ("logo_box", P.logo_fill("TEAL"), "oring"), ("device", P.device(), "device"), ("ctrl_led", P.device_controls()[0], "liner"), ("ctrl_btn", P.device_controls()[1], "liner")], f"{OUT}/assy.glb")
 print("ok", len(sticks), "sticks")
