@@ -1,0 +1,483 @@
+<title>STICKBOX 01 Monolith</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Sora:wght@500;600&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap">
+<style>
+/* Layout: one-screen tool — 3D stage fills the left, a quiet control column on the right; stacks on phones. */
+:root {
+  --bg: #efe9e0;
+  --stage: #e6ddd0;
+  --panel: #f8f4ee;
+  --ink: #24211d;
+  --muted: #6e665b;
+  --line: #ddd3c5;
+  --accent: #1d8a75;
+  --accent-ink: #ffffff;
+  --chip: #ebe3d7;
+  --font-display: "Sora", "Inter", system-ui, sans-serif;
+  --font-body: "Inter", system-ui, -apple-system, "Segoe UI", sans-serif;
+  --font-mono: "JetBrains Mono", ui-monospace, "SFMono-Regular", Menlo, monospace;
+  --radius: 10px;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #1b1a18; --stage: #23211e; --panel: #201f1c; --ink: #ece6dc; --muted: #a59c8f;
+    --line: #38342f; --accent: #40b59d; --accent-ink: #0f1513; --chip: #2c2925; color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #1b1a18; --stage: #23211e; --panel: #201f1c; --ink: #ece6dc; --muted: #a59c8f;
+  --line: #38342f; --accent: #40b59d; --accent-ink: #0f1513; --chip: #2c2925; color-scheme: dark;
+}
+html, body { height: 100%; }
+body { background: var(--bg); color: var(--ink); font-family: var(--font-body); font-size: 14px; }
+.app { display: grid; grid-template-columns: minmax(0, 1fr) 340px; height: 100%; }
+.stage { position: relative; background: var(--stage); min-height: 0; overflow: hidden; }
+.stage canvas { display: block; width: 100%; height: 100%; touch-action: none; }
+.hint {
+  position: absolute; left: max(16px, env(safe-area-inset-left, 0px)); bottom: 14px;
+  font-size: 12px; color: var(--muted); background: color-mix(in srgb, var(--panel) 78%, transparent);
+  padding: 6px 10px; border-radius: 999px; backdrop-filter: blur(6px); pointer-events: none;
+}
+.badge {
+  position: absolute; top: 14px; left: max(16px, env(safe-area-inset-left, 0px));
+  font-family: var(--font-mono); font-size: 11.5px; letter-spacing: .04em; color: var(--muted);
+}
+.loading {
+  position: absolute; inset: 0; display: grid; place-items: center; color: var(--muted);
+  font-size: 13px; background: var(--stage);
+}
+.loading[hidden] { display: none !important; }
+.bar { width: 180px; height: 3px; background: var(--line); border-radius: 3px; overflow: hidden; margin-top: 10px; }
+.bar i { display: block; height: 100%; width: 0; background: var(--accent); transition: width .2s; }
+
+.panel {
+  background: var(--panel); border-left: 1px solid var(--line); overflow-y: auto; min-width: 0;
+  padding-block: 20px 28px; padding-left: max(18px, env(safe-area-inset-left, 0px)); padding-right: max(18px, env(safe-area-inset-right, 0px));
+  display: flex; flex-direction: column; gap: 20px;
+}
+header h1 { font-family: var(--font-display); font-weight: 600; font-size: 20px; margin: 0; letter-spacing: -.01em; text-wrap: balance; }
+header p { margin: 4px 0 0; color: var(--muted); font-size: 12.5px; }
+section { display: flex; flex-direction: column; gap: 10px; }
+.label { font-size: 11px; font-weight: 600; letter-spacing: .09em; text-transform: uppercase; color: var(--muted); }
+.primary {
+  appearance: none; border: 0; border-radius: var(--radius); background: var(--accent); color: var(--accent-ink);
+  font: 600 14px var(--font-body); padding: 12px 14px; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 8px;
+}
+.primary:hover { filter: brightness(1.06); }
+.primary:disabled { opacity: .45; cursor: not-allowed; }
+button:focus-visible, input:focus-visible, label:focus-within { outline: 2px solid var(--accent); outline-offset: 2px; }
+.row { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }
+.seg { display: grid; grid-template-columns: repeat(4, 1fr); gap: 4px; background: var(--chip); padding: 4px; border-radius: var(--radius); }
+.seg button {
+  appearance: none; border: 0; background: transparent; color: var(--ink); font: 500 12.5px var(--font-body);
+  padding: 7px 4px; border-radius: 7px; cursor: pointer;
+}
+.seg button[aria-pressed="true"] { background: var(--panel); box-shadow: 0 1px 2px rgba(0,0,0,.12); }
+.range { display: grid; grid-template-columns: 1fr auto; gap: 4px 10px; align-items: center; }
+.range input { width: 100%; accent-color: var(--accent); }
+.range output { font-family: var(--font-mono); font-size: 12px; color: var(--muted); font-variant-numeric: tabular-nums; min-width: 5.5ch; text-align: right; }
+.range small { grid-column: 1 / -1; color: var(--muted); font-size: 12px; }
+.toggle { display: flex; align-items: center; justify-content: space-between; gap: 10px; padding: 6px 0; cursor: pointer; border-radius: 6px; }
+.toggle span small { display: block; color: var(--muted); font-size: 11.5px; }
+.toggle input { width: 18px; height: 18px; accent-color: var(--accent); flex: none; }
+.swatches { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; }
+.sw {
+  appearance: none; border: 1px solid var(--line); background: var(--panel); border-radius: var(--radius); padding: 6px;
+  cursor: pointer; display: flex; flex-direction: column; align-items: center; gap: 5px; font: 500 11px var(--font-body); color: var(--ink);
+}
+.sw i { width: 100%; aspect-ratio: 1.6; border-radius: 6px; display: block; position: relative; }
+.sw i b { position: absolute; right: 4px; bottom: 4px; width: 9px; height: 9px; border-radius: 50%; }
+.sw[aria-pressed="true"] { border-color: var(--accent); box-shadow: 0 0 0 1px var(--accent); }
+dl { display: grid; grid-template-columns: auto 1fr; gap: 6px 14px; margin: 0; font-size: 12.5px; }
+dt { color: var(--muted); }
+dd { margin: 0; font-family: var(--font-mono); font-size: 12px; font-variant-numeric: tabular-nums; text-align: right; }
+.note { color: var(--muted); font-size: 12px; line-height: 1.5; }
+.ghost { appearance: none; background: transparent; border: 1px solid var(--line); color: var(--ink); border-radius: var(--radius); padding: 8px 10px; font: 500 12.5px var(--font-body); cursor: pointer; }
+
+@media (max-width: 860px) {
+  html, body { height: auto; }
+  .app { grid-template-columns: 1fr; height: auto; }
+  .stage { height: 62vh; min-height: 340px; }
+  .panel { border-left: 0; border-top: 1px solid var(--line); overflow: visible; }
+}
+@media (prefers-reduced-motion: reduce) { .bar i { transition: none; } }
+</style>
+
+<div class="app">
+  <div class="stage" id="stage">
+    <div class="badge">ревізія v2.4 · розміри в мм · модель з CAD</div>
+    <div class="loading" id="loading"><div>Завантаження моделі…<div class="bar"><i id="bar"></i></div></div></div>
+    <div class="hint" id="hint">Перетягніть — обертати · колесо або два пальці — масштаб · права кнопка — зсув</div>
+  </div>
+
+  <aside class="panel">
+    <header>
+      <h1>STICKBOX 01 Monolith</h1>
+      <p>Контейнер для використаних стіків TEREA/HEETS із тримачем IQOS ILUMA ONE. Декоративний бетон.</p>
+    </header>
+
+    <section aria-labelledby="l-lid">
+      <span class="label" id="l-lid">Кришка</span>
+      <button class="primary" id="lidBtn" type="button">Зняти кришку</button>
+      <div class="range">
+        <input type="range" id="lidSlider" min="0" max="100" value="0" step="1" aria-label="Положення кришки">
+        <output id="lidOut" for="lidSlider">0%</output>
+        <small id="lidPhase">Кришка встановлена врівень з низом корпусу.</small>
+      </div>
+    </section>
+
+    <section aria-labelledby="l-view">
+      <span class="label" id="l-view">Ракурс</span>
+      <div class="seg" role="group" aria-labelledby="l-view">
+        <button type="button" data-view="iso" aria-pressed="true">3/4</button>
+        <button type="button" data-view="front" aria-pressed="false">Фронт</button>
+        <button type="button" data-view="top" aria-pressed="false">Зверху</button>
+        <button type="button" data-view="bottom" aria-pressed="false">Знизу</button>
+      </div>
+      <label class="toggle"><span>Автообертання</span><input type="checkbox" id="autoRot"></label>
+    </section>
+
+    <section aria-labelledby="l-cut">
+      <span class="label" id="l-cut">Розріз</span>
+      <label class="toggle"><span>Показати переріз<small>Передня частина прибирається площиною</small></span><input type="checkbox" id="cutToggle"></label>
+      <div class="range">
+        <input type="range" id="cutSlider" min="-40" max="40" value="0" step="0.5" aria-label="Положення площини розрізу">
+        <output id="cutOut" for="cutSlider">y = 0</output>
+        <small>0 — вісь воронки; −19 — вісь тримача девайса.</small>
+      </div>
+    </section>
+
+    <section aria-labelledby="l-show">
+      <span class="label" id="l-show">Показати</span>
+      <label class="toggle"><span>Стіки всередині<small>59 шт., розкладка з фізичної симуляції</small></span><input type="checkbox" id="tSticks" checked></label>
+      <label class="toggle"><span>Девайс ILUMA ONE<small>Довідково, 121.6 × 30.6 × 16.4</small></span><input type="checkbox" id="tDevice" checked></label>
+      <label class="toggle"><span>Силіконова вставка тримача</span><input type="checkbox" id="tLiner" checked></label>
+      <label class="toggle"><span>Ущільнювач кришки<small>Шнур із силіконової губки Ø4</small></span><input type="checkbox" id="tSeal" checked></label>
+      <label class="toggle"><span>Розібрати на деталі</span><input type="checkbox" id="tExplode"></label>
+    </section>
+
+    <section aria-labelledby="l-cmf">
+      <span class="label" id="l-cmf">Колір і матеріал</span>
+      <div class="swatches" role="group" aria-labelledby="l-cmf">
+        <button type="button" class="sw" data-cmf="0" aria-pressed="true"><i style="background:#c2ad92"><b style="background:#1f9a83"></b></i>Sand</button>
+        <button type="button" class="sw" data-cmf="1" aria-pressed="false"><i style="background:#5d5d5b"><b style="background:#c99a5b"></b></i>Graphite</button>
+        <button type="button" class="sw" data-cmf="2" aria-pressed="false"><i style="background:#ddd6c9"><b style="background:#3f4a44"></b></i>Bone</button>
+        <button type="button" class="sw" data-cmf="3" aria-pressed="false"><i style="background:#b3755a"><b style="background:#e3c9a8"></b></i>Terracotta</button>
+      </div>
+    </section>
+
+    <section aria-labelledby="l-spec">
+      <span class="label" id="l-spec">Характеристики</span>
+      <dl>
+        <dt>Габарити</dt><dd>120 × 90 × 95</dd>
+        <dt>З девайсом</dt><dd>висота 133</dd>
+        <dt>Отвір / воронка</dt><dd>Ø8 / Ø22</dd>
+        <dt>Порожнина</dt><dd>336 мл</dd>
+        <dt>Місткість (симуляція)</dt><dd>≈52 / ≈58 стіків</dd>
+        <dt>Бетон на комплект</dt><dd>489 мл</dd>
+        <dt>Маса при ρ 1800</dt><dd>≈0.90 кг</dd>
+        <dt>Ущільнювач</dt><dd>губка Ø4, 27.5%</dd>
+      </dl>
+      <p class="note">Місткість: без струшування / зі струшуванням. Маса залежить від густини суміші; при ρ 2000 — ≈1.00 кг.</p>
+      <button class="ghost" id="resetBtn" type="button">Скинути вигляд</button>
+    </section>
+  </aside>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/three@0.147.0/build/three.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/three@0.147.0/examples/js/controls/OrbitControls.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/three@0.147.0/examples/js/loaders/GLTFLoader.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/three@0.147.0/examples/js/environments/RoomEnvironment.js"></script>
+<script>
+(function () {
+  const STICKS = [[-41.49,5.71,8.62,-0.6,0.6,0.374,0.3743],[-20.89,-26.48,8.62,-0.6457,-0.2883,-0.6459,-0.2876],[-6.67,-20.61,12.71,-0.1123,-0.7282,0.2792,0.6158],[-19.58,-17.54,17.64,0.1755,-0.0152,-0.8593,-0.4802],[-37.02,16.81,17.45,-0.1741,0.1966,-0.4773,-0.8386],[-15.04,26.47,8.63,-0.5524,-0.4415,0.5523,0.4415],[2.61,-15.65,17.51,-0.8183,-0.0236,-0.5131,0.2579],[11.47,7.34,8.63,0.5584,0.5584,0.4338,-0.4338],[-39.43,5.76,18.51,0.1261,-0.0416,0.8303,-0.5413],[-16.05,-6.15,14.55,0.3611,0.4255,-0.4027,0.7256],[-28.57,1.33,14.67,0.7064,0.6205,0.1963,-0.2782],[-4.27,22.65,15.83,0.8312,-0.1442,0.5367,0.0139],[-17.64,12.65,14.85,-0.5398,0.5738,-0.0793,-0.6109],[-11.34,-2.93,19.07,-0.6473,-0.1865,0.4841,0.5584],[11.14,8.23,22.98,-0.4083,-0.5999,-0.5708,0.3843],[-12.19,33.23,24.13,-0.2776,-0.6503,0.2776,0.6503],[18.26,5.16,24.94,-0.5998,0.5743,-0.3856,-0.4021],[-33.33,-6.8,25.8,-0.0656,-0.4211,0.6165,-0.662],[0.85,-6.49,20.69,0.4767,-0.7892,-0.1832,-0.341],[-38.62,-11.8,23.98,-0.6369,0.4231,0.5629,0.3139],[5.17,-15.41,33.81,-0.1411,0.3481,0.5781,0.7243],[-8.51,12.05,15.95,0.2017,-0.4651,0.2999,0.8082],[4.33,-15.24,26.63,0.4814,0.6575,0.3402,-0.4693],[11.89,-15.5,30.61,-0.4486,0.5715,0.3662,0.5815],[-32.78,21.53,27.94,0.3263,0.3404,-0.4854,-0.7362],[-11.44,22.76,25.68,-0.0556,0.5949,-0.6355,0.4891],[-19.4,20.86,32.92,-0.4336,-0.2059,0.7119,0.5126],[-14.52,-18.81,27.66,0.836,0.3682,0.3443,-0.2167],[-33.15,12.86,26.43,0.4895,-0.5251,-0.0725,0.6923],[-41.41,-14.92,30.04,-0.6744,0.5165,0.3314,0.4107],[-31.68,-14.65,32.31,0.4113,-0.2831,-0.6129,-0.6124],[4.6,11.24,29.27,0.886,-0.2348,0.3984,-0.033],[2.01,14.36,36.9,-0.1814,0.6745,-0.4852,-0.526],[-48.24,-14.57,27.72,-0.4335,-0.5254,0.5646,-0.4661],[6.29,25.93,39.78,-0.8433,0.2256,0.0062,0.4878],[-28.48,11.08,32.69,-0.7545,0.1977,0.5746,-0.2478],[-34.53,-2.05,40.64,-0.7374,0.6676,-0.0463,-0.0917],[-17.64,-25.68,38.59,0.6412,0.0137,-0.7199,0.2655],[-41.22,-14.94,37.48,-0.6048,-0.7834,0.0993,-0.1027],[1.53,20.63,41.8,0.253,-0.4321,0.4492,-0.7399],[-15.27,19.14,42.49,0.8105,-0.0336,0.5673,-0.1417],[-29.38,33.24,42.16,-0.3668,0.6201,0.403,-0.5643],[-27.33,26.02,42.79,0.5086,-0.4588,-0.6235,0.3769],[-48.1,-14.68,35.02,0.4157,0.4991,0.588,-0.482],[-5.27,-27.52,41.86,0.1452,-0.7687,-0.0614,-0.6199],[18.23,-15.05,35.74,-0.1767,-0.2335,0.7625,-0.5769],[-17.19,-14.37,33.9,-0.6233,-0.4835,0.0366,0.6134],[-1.63,-4.52,35.54,0.6198,-0.0542,0.4434,-0.6452],[-27.08,0.4,43.28,-0.5887,0.1377,-0.1137,-0.7884],[-3.25,-11.23,43.06,0.719,0.1243,0.4836,-0.4834],[-14.02,-16.4,40.62,0.6515,0.4264,-0.1285,-0.6142],[-48.23,-6.82,43.9,0.2112,0.256,-0.7276,0.6004],[-41.13,12.29,48.95,-0.2419,0.2245,-0.6875,-0.6469],[-12.79,8.93,41.49,0.2266,0.4473,-0.4257,-0.7533],[-27.52,-14.78,42.97,0.2323,-0.2082,-0.3572,0.8804],[-18.8,18.21,49.57,0.6986,-0.2567,-0.6359,-0.2041],[-30.09,9.76,47.39,0.8909,-0.0673,-0.3046,-0.3301],[-30.04,-4.7,50.37,0.6256,0.2379,-0.4082,-0.6208],[-0.99,-2.51,45.35,0.4377,-0.3966,0.4893,-0.6417]];
+  const reduceMotion = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  const stage = document.getElementById('stage');
+  const $ = (id) => document.getElementById(id);
+
+  // ---------- renderer / scene ----------
+  const renderer = new THREE.WebGLRenderer({ antialias: true });
+  renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
+  renderer.outputEncoding = THREE.sRGBEncoding;
+  renderer.toneMapping = THREE.ACESFilmicToneMapping;
+  renderer.toneMappingExposure = 0.85;
+  renderer.shadowMap.enabled = true;
+  renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+  renderer.localClippingEnabled = true;
+  stage.prepend(renderer.domElement);
+
+  const scene = new THREE.Scene();
+  const pmrem = new THREE.PMREMGenerator(renderer);
+  scene.environment = pmrem.fromScene(new THREE.RoomEnvironment(), 0.04).texture;
+
+  const camera = new THREE.PerspectiveCamera(30, 1, 5, 6000);
+  const controls = new THREE.OrbitControls(camera, renderer.domElement);
+  controls.enableDamping = !reduceMotion;
+  controls.dampingFactor = 0.08;
+  controls.minDistance = 120;
+  controls.maxDistance = 900;
+  controls.autoRotateSpeed = 1.2;
+
+  const key = new THREE.DirectionalLight(0xfff3e4, 1.15);
+  key.position.set(-220, 420, 260);
+  key.castShadow = true;
+  key.shadow.mapSize.set(2048, 2048);
+  Object.assign(key.shadow.camera, { left: -260, right: 260, top: 260, bottom: -260, near: 10, far: 1500 });
+  key.shadow.radius = 5; key.shadow.bias = -0.0004; key.shadow.normalBias = 0.6;
+  scene.add(key);
+  const fill = new THREE.DirectionalLight(0xe6efff, 0.3);
+  fill.position.set(300, 160, -220);
+  scene.add(fill);
+
+  const ground = new THREE.Mesh(new THREE.PlaneGeometry(4000, 4000), new THREE.ShadowMaterial({ opacity: 0.2 }));
+  ground.rotation.x = -Math.PI / 2; ground.receiveShadow = true;
+  scene.add(ground);
+
+  function cssVar(name) { return getComputedStyle(document.documentElement).getPropertyValue(name).trim(); }
+  function applyTheme() { scene.background = new THREE.Color(cssVar('--stage') || '#e6ddd0'); }
+  applyTheme();
+  new MutationObserver(applyTheme).observe(document.documentElement, { attributes: true, attributeFilter: ['data-theme', 'class', 'style'] });
+  if (window.matchMedia) window.matchMedia('(prefers-color-scheme: dark)').addEventListener?.('change', applyTheme);
+
+  // ---------- materials ----------
+  const clipPlane = new THREE.Plane(new THREE.Vector3(0, 0, -1), 0);
+  function concrete(hex) {
+    const m = new THREE.MeshStandardMaterial({ color: new THREE.Color(hex), roughness: 0.86, metalness: 0, side: THREE.DoubleSide });
+    m.userData.cut = { value: new THREE.Color(hex).multiplyScalar(0.78) };
+    m.onBeforeCompile = (sh) => {
+      sh.uniforms.uCut = m.userData.cut;
+      sh.vertexShader = sh.vertexShader
+        .replace('#include <common>', '#include <common>\nvarying vec3 vObj;')
+        .replace('#include <begin_vertex>', '#include <begin_vertex>\nvObj = position;');
+      sh.fragmentShader = sh.fragmentShader
+        .replace('#include <common>', `#include <common>
+varying vec3 vObj; uniform vec3 uCut;
+float h31(vec3 p){ p = fract(p*0.1031); p += dot(p, p.yzx+33.33); return fract((p.x+p.y)*p.z); }
+vec3 h33(vec3 p){ p = vec3(dot(p,vec3(127.1,311.7,74.7)), dot(p,vec3(269.5,183.3,246.1)), dot(p,vec3(113.5,271.9,124.6))); return fract(sin(p)*43758.5453123); }
+float vnoise(vec3 p){ vec3 i=floor(p), f=fract(p); f=f*f*(3.0-2.0*f);
+  return mix(mix(mix(h31(i),h31(i+vec3(1,0,0)),f.x),mix(h31(i+vec3(0,1,0)),h31(i+vec3(1,1,0)),f.x),f.y),
+             mix(mix(h31(i+vec3(0,0,1)),h31(i+vec3(1,0,1)),f.x),mix(h31(i+vec3(0,1,1)),h31(i+vec3(1,1,1)),f.x),f.y),f.z); }
+vec2 speck(vec3 p, float s){ vec3 q=p/s; vec3 i=floor(q); float b=9.0; float id=0.0;
+  for(int x=-1;x<=1;x++) for(int y=-1;y<=1;y++) for(int z=-1;z<=1;z++){ vec3 c=i+vec3(x,y,z); vec3 o=h33(c);
+    float d=length(q-(c+o)); if(d<b){b=d; id=h31(c+17.0);} } return vec2(b,id); }`)
+        .replace('#include <color_fragment>', `#include <color_fragment>
+  { vec3 P = vObj; float mott = vnoise(P*0.08)*0.6 + vnoise(P*0.35)*0.4; diffuseColor.rgb *= 0.94 + 0.10*mott;
+    vec2 s1 = speck(P, 0.55); float r1 = 0.12 + 0.10*fract(s1.y*7.3);
+    if (s1.x < r1 && s1.y < 0.42) diffuseColor.rgb = mix(diffuseColor.rgb, vec3(0.30,0.25,0.21), 0.85);
+    else if (s1.x < r1*0.8 && s1.y > 0.88) diffuseColor.rgb = mix(diffuseColor.rgb, vec3(0.98,0.97,0.94), 0.8); }`)
+        .replace('#include <dithering_fragment>', '#include <dithering_fragment>\n if (!gl_FrontFacing) gl_FragColor = vec4(uCut, 1.0);');
+    };
+    return m;
+  }
+  function flatCut(mat, cutHex) {
+    mat.side = THREE.DoubleSide;
+    mat.userData.cut = { value: new THREE.Color(cutHex) };
+    mat.onBeforeCompile = (sh) => {
+      sh.uniforms.uCut = mat.userData.cut;
+      sh.fragmentShader = sh.fragmentShader.replace('#include <common>', '#include <common>\nuniform vec3 uCut;')
+        .replace('#include <dithering_fragment>', '#include <dithering_fragment>\n if (!gl_FrontFacing) gl_FragColor = vec4(uCut, 1.0);');
+    };
+    return mat;
+  }
+  const CMF = [
+    { concrete: '#c2ad92', liner: '#2e3134', seal: '#1f9a83' },
+    { concrete: '#5d5d5b', liner: '#1d1f21', seal: '#c99a5b' },
+    { concrete: '#ddd6c9', liner: '#8f8a80', seal: '#3f4a44' },
+    { concrete: '#b3755a', liner: '#3a2a24', seal: '#e3c9a8' },
+  ];
+  const M = {
+    body: concrete(CMF[0].concrete),
+    lid: concrete(CMF[0].concrete),
+    oring: flatCut(new THREE.MeshPhysicalMaterial({ color: CMF[0].seal, roughness: 0.55 }), '#167a68'),
+    liner: flatCut(new THREE.MeshStandardMaterial({ color: CMF[0].liner, roughness: 0.75 }), '#1c1e20'),
+    device: flatCut(new THREE.MeshPhysicalMaterial({ color: '#9a7050', metalness: 0.85, roughness: 0.32, clearcoat: 0.3 }), '#5c4330'),
+    stick: new THREE.MeshStandardMaterial({ color: '#f3f1ec', roughness: 0.6 }),
+    band: new THREE.MeshStandardMaterial({ color: '#c9b48c', roughness: 0.5 }),
+  };
+  Object.values(M).forEach((m) => { m.envMapIntensity = 0.45; });
+  M.device.envMapIntensity = 1.0;
+
+  // ---------- scene graph ----------
+  const product = new THREE.Group();   // піднімається при знятті кришки
+  const bodyG = new THREE.Group();
+  const lidG = new THREE.Group();
+  product.add(bodyG, lidG);
+  scene.add(product);
+  const parts = {};
+
+  // стіки з симуляції (координати моделі, Z-вгору → обгортка повертає у Y-вгору)
+  const stickWrap = new THREE.Group(); stickWrap.rotation.x = -Math.PI / 2; bodyG.add(stickWrap);
+  const stickGeo = new THREE.CylinderGeometry(3.6, 3.6, 45, 18, 1); stickGeo.rotateX(Math.PI / 2);
+  const filterGeo = new THREE.CylinderGeometry(3.62, 3.62, 12, 18, 1); filterGeo.rotateX(Math.PI / 2); filterGeo.translate(0, 0, 16.5);
+  STICKS.forEach((s) => {
+    const g = new THREE.Group();
+    g.position.set(s[0], s[1], s[2]);
+    g.quaternion.set(s[4], s[5], s[6], s[3]);
+    const a = new THREE.Mesh(stickGeo, M.stick); a.castShadow = true;
+    const b = new THREE.Mesh(filterGeo, M.band);
+    g.add(a, b); stickWrap.add(g);
+  });
+
+  // ---------- load model ----------
+  const loader = new THREE.GLTFLoader();
+  function onModel(gltf) {
+    gltf.scene.traverse((o) => {
+      if (!o.isMesh) return;
+      o.geometry.computeVertexNormals();
+      const name = o.name.replace(/_\d+$/, '');
+      if (!M[name]) return;
+      o.material = M[name];
+      o.castShadow = true; o.receiveShadow = true;
+      parts[name] = o;
+    });
+    ['body', 'liner', 'device'].forEach((n) => parts[n] && bodyG.add(parts[n]));
+    ['lid', 'oring'].forEach((n) => parts[n] && lidG.add(parts[n]));
+    Object.keys(parts).forEach((n) => parts[n].userData.base = parts[n].position.clone());
+    $('loading').hidden = true;
+    applyCut(); update();
+  }
+  function fail() { $('loading').firstElementChild.textContent = 'Не вдалося завантажити модель. Оновіть сторінку.'; }
+  // модель (GLB) лежить поруч зі сторінкою як base64-текст: читаємо з прогресом, декодуємо, передаємо в GLTFLoader
+  (async () => {
+    try {
+      const res = await fetch('stickbox.glb.b64.txt');
+      if (!res.ok) throw new Error(res.status);
+      const total = +res.headers.get('Content-Length') || 1860000;
+      const reader = res.body.getReader(); const chunks = []; let got = 0;
+      for (;;) { const { done, value } = await reader.read(); if (done) break; chunks.push(value); got += value.length; $('bar').style.width = Math.min(100, 100 * got / total).toFixed(0) + '%'; }
+      const text = new TextDecoder().decode(chunks.length === 1 ? chunks[0] : await new Blob(chunks).arrayBuffer());
+      const bin = atob(text.trim()); const buf = new Uint8Array(bin.length);
+      for (let i = 0; i < bin.length; i++) buf[i] = bin.charCodeAt(i);
+      loader.parse(buf.buffer, '', onModel, fail);
+    } catch (e) { fail(); }
+  })();
+
+  // ---------- state ----------
+  const camAnim = { t: 1, from: null, to: null };
+  const S = { lid: 0, lidTarget: 0, explode: 0, explodeTarget: 0 };
+  const smooth = (a, b, x) => { const t = Math.min(1, Math.max(0, (x - a) / (b - a))); return t * t * (3 - 2 * t); };
+
+  function update() {
+    const t = S.lid;
+    const lift = smooth(0, 0.3, t) * 45;          // підняти виріб
+    const out = smooth(0.3, 0.6, t) * 26;         // витягти кришку з ущільнення
+    const away = smooth(0.6, 1, t);               // відкласти кришку вперед на стіл
+    // камера плавно стежить за підйомом виробу, щоб він лишався в кадрі
+    const dl = lift - (S.prevLift || 0); S.prevLift = lift;
+    if (dl) { camera.position.y += dl * 0.8; controls.target.y += dl * 0.8; if (camAnim.to) { camAnim.to.pos.y += dl * 0.8; camAnim.to.tgt.y += dl * 0.8; } }
+    product.position.y = lift;
+    lidG.position.set(-128 * away, -out - 19.5 * away, 22 * away);   // кришка лягає на стіл ліворуч від виробу
+    lidG.rotation.x = 0;
+    const e = S.explode;
+    const off = { lid: -62 * e, oring: -38 * e, liner: 55 * e, device: 125 * e, body: 0 };
+    Object.keys(parts).forEach((n) => {
+      const b = parts[n].userData.base; if (!b) return;
+      parts[n].position.set(b.x, b.y + (off[n] || 0), b.z);
+    });
+    stickWrap.visible = $('tSticks').checked && t < 0.42 && e < 0.05;
+    const pct = Math.round(t * 100);
+    $('lidOut').value = pct + '%';
+    if (document.activeElement !== $('lidSlider')) $('lidSlider').value = pct;
+    $('lidPhase').textContent = t < 0.01 ? 'Кришка встановлена врівень з низом корпусу.'
+      : t < 0.3 ? 'Виріб піднято над столом, палець у виїмці на фронті.'
+      : t < 0.6 ? 'Кришка виходить з губчастого ущільнювача.'
+      : t < 0.99 ? 'Кришку відкладено; стіки висипаються.' : 'Кришку знято — порожнина відкрита знизу.';
+    $('lidBtn').textContent = S.lidTarget > 0.5 ? 'Встановити кришку' : 'Зняти кришку';
+  }
+
+  function animateTo(key, target) {
+    S[key + 'Target'] = target;
+    if (reduceMotion) { S[key] = target; update(); }
+  }
+
+  // ---------- controls ----------
+  $('lidBtn').addEventListener('click', () => {
+    if ($('tExplode').checked) { $('tExplode').checked = false; animateTo('explode', 0); }
+    animateTo('lid', S.lidTarget > 0.5 ? 0 : 1);
+  });
+  $('lidSlider').addEventListener('input', (e) => {
+    if ($('tExplode').checked) { $('tExplode').checked = false; S.explode = S.explodeTarget = 0; }
+    S.lid = S.lidTarget = e.target.value / 100; update();
+  });
+  $('tExplode').addEventListener('change', (e) => { if (e.target.checked) animateTo('lid', 0); animateTo('explode', e.target.checked ? 1 : 0); });
+  $('tSticks').addEventListener('change', update);
+  $('tDevice').addEventListener('change', (e) => { if (parts.device) parts.device.visible = e.target.checked; });
+  $('tLiner').addEventListener('change', (e) => { if (parts.liner) parts.liner.visible = e.target.checked; });
+  $('tSeal').addEventListener('change', (e) => { if (parts.oring) parts.oring.visible = e.target.checked; });
+  $('autoRot').addEventListener('change', (e) => { controls.autoRotate = e.target.checked; });
+
+  function applyCut() {
+    const on = $('cutToggle').checked;
+    clipPlane.constant = parseFloat($('cutSlider').value);
+    ['body', 'lid', 'oring', 'liner', 'device'].forEach((n) => { M[n].clippingPlanes = on ? [clipPlane] : []; M[n].needsUpdate = true; });
+    const v = -parseFloat($('cutSlider').value);
+    $('cutOut').value = 'y = ' + (v === 0 ? '0' : v.toFixed(1));
+    $('cutSlider').disabled = !on;
+  }
+  $('cutToggle').addEventListener('change', applyCut);
+  $('cutSlider').addEventListener('input', applyCut);
+
+  document.querySelectorAll('.sw').forEach((b) => b.addEventListener('click', () => {
+    const c = CMF[+b.dataset.cmf];
+    M.body.color.set(c.concrete); M.lid.color.set(c.concrete);
+    M.body.userData.cut.value.set(c.concrete).multiplyScalar(0.78); M.lid.userData.cut.value.copy(M.body.userData.cut.value);
+    M.liner.color.set(c.liner); M.oring.color.set(c.seal);
+    document.querySelectorAll('.sw').forEach((x) => x.setAttribute('aria-pressed', String(x === b)));
+  }));
+
+  // ---------- views ----------
+  const VIEWS = {
+    iso: { pos: [-235, 205, 300], tgt: [0, 52, 0] },
+    front: { pos: [0, 60, 430], tgt: [0, 55, 0] },
+    top: { pos: [0, 470, 0.5], tgt: [0, 40, 0] },
+    bottom: { pos: [0, -360, 0.5], tgt: [0, 40, 0] },
+  };
+  function setView(name) {
+    const v = VIEWS[name];
+    camAnim.from = { pos: camera.position.clone(), tgt: controls.target.clone() };
+    camAnim.to = { pos: new THREE.Vector3(...v.pos), tgt: new THREE.Vector3(...v.tgt) };
+    camAnim.t = reduceMotion ? 1 : 0;
+    if (reduceMotion) { camera.position.copy(camAnim.to.pos); controls.target.copy(camAnim.to.tgt); }
+    document.querySelectorAll('.seg button').forEach((x) => x.setAttribute('aria-pressed', String(x.dataset.view === name)));
+  }
+  document.querySelectorAll('.seg button').forEach((b) => b.addEventListener('click', () => setView(b.dataset.view)));
+  camera.position.set(...VIEWS.iso.pos); controls.target.set(...VIEWS.iso.tgt);
+  $('resetBtn').addEventListener('click', () => {
+    $('cutToggle').checked = false; $('cutSlider').value = 0; applyCut();
+    $('tExplode').checked = false; animateTo('explode', 0); animateTo('lid', 0);
+    $('autoRot').checked = false; controls.autoRotate = false;
+    setView('iso');
+  });
+
+  // ---------- resize / loop ----------
+  function resize() {
+    const w = stage.clientWidth, h = stage.clientHeight;
+    renderer.setSize(w, h, false);
+    camera.aspect = w / Math.max(1, h); camera.updateProjectionMatrix();
+  }
+  new ResizeObserver(resize).observe(stage); resize();
+
+  let last = performance.now();
+  function tick(now) {
+    const dt = Math.min(0.05, (now - last) / 1000); last = now;
+    let changed = false;
+    ['lid', 'explode'].forEach((k) => {
+      const d = S[k + 'Target'] - S[k];
+      if (Math.abs(d) > 1e-4) { S[k] += Math.sign(d) * Math.min(Math.abs(d), dt * (k === 'lid' ? 0.55 : 1.4)); changed = true; }
+    });
+    if (changed) update();
+    if (camAnim.t < 1) {
+      camAnim.t = Math.min(1, camAnim.t + dt / 0.7);
+      const e = 1 - Math.pow(1 - camAnim.t, 3);
+      camera.position.lerpVectors(camAnim.from.pos, camAnim.to.pos, e);
+      controls.target.lerpVectors(camAnim.from.tgt, camAnim.to.tgt, e);
+    }
+    ground.visible = camera.position.y > 1;
+    controls.update();
+    renderer.render(scene, camera);
+    requestAnimationFrame(tick);
+  }
+  requestAnimationFrame(tick);
+})();
+</script>
