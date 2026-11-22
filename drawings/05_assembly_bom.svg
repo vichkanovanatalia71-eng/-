@@ -814,7 +814,7 @@
 <text class="t" x="335.200" y="99.100" font-size="2.6" text-anchor="start" font-weight="normal">336 мл</text>
 <line class="thin" x1="282.000" y1="100.600" x2="411.000" y2="100.600"/>
 <text class="t" x="283.200" y="104.300" font-size="2.6" text-anchor="start" font-weight="normal">Місткість (симуляція, див. звіт)</text>
-<text class="t" x="335.200" y="104.300" font-size="2.6" text-anchor="start" font-weight="normal">див. reports/capacity_sim.json</text>
+<text class="t" x="335.200" y="104.300" font-size="2.6" text-anchor="start" font-weight="normal">≈52 без струшування / ≈58 зі струшуванням</text>
 <line class="thin" x1="282.000" y1="105.800" x2="411.000" y2="105.800"/>
 <text class="t" x="283.200" y="109.500" font-size="2.6" text-anchor="start" font-weight="normal">Маса комплекту без девайса</text>
 <text class="t" x="335.200" y="109.500" font-size="2.6" text-anchor="start" font-weight="normal">1.00 кг (ρ 2000); 0.87 кг (ρ 1800)</text>
@@ -839,7 +839,7 @@
 <text class="t" x="353.000" y="244.000" font-size="3.2" text-anchor="start" font-weight="normal">Масштаб 1:1</text>
 <text class="t" x="353.000" y="254.000" font-size="3.2" text-anchor="start" font-weight="normal">Аркуш 5 / 6</text>
 <text class="t" x="353.000" y="264.000" font-size="3.2" text-anchor="start" font-weight="normal">Формат A3</text>
-<text class="t" x="233.000" y="283.000" font-size="2.8" text-anchor="start" font-weight="normal">Ревізія v2.3 (інженерне опрацювання v2.2) · проєкція: 1-й кут (ISO E)</text>
+<text class="t" x="233.000" y="283.000" font-size="2.8" text-anchor="start" font-weight="normal">Ревізія v2.4 (полегшення + виправлення незалежного аудиту) · проєкція: 1-й кут (ISO E)</text>
 <text class="t" x="233.000" y="289.000" font-size="2.6" text-anchor="start" font-weight="normal">Згенеровано з параметричної CAD-моделі; перед виробництвом — перевірка прототипу</text>
 <text class="t" x="25.000" y="12.000" font-size="2.9" text-anchor="start" font-weight="normal">Девайс IQOS ILUMA ONE (121.6×30.6×16.4, 68.5 г) — не входить до комплекту, показано довідково.</text>
 <text class="t" x="25.000" y="16.600" font-size="2.9" text-anchor="start" font-weight="normal">Кришка ставиться в будь-якому з 4 положень (квадратна пробка). Знімається пальцем через виїмку.</text></svg>

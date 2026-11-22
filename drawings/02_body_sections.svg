@@ -961,9 +961,9 @@
 <text class="t" x="353.000" y="244.000" font-size="3.2" text-anchor="start" font-weight="normal">Масштаб 1:1; 4:1; 5:1</text>
 <text class="t" x="353.000" y="254.000" font-size="3.2" text-anchor="start" font-weight="normal">Аркуш 2 / 6</text>
 <text class="t" x="353.000" y="264.000" font-size="3.2" text-anchor="start" font-weight="normal">Формат A3</text>
-<text class="t" x="233.000" y="283.000" font-size="2.8" text-anchor="start" font-weight="normal">Ревізія v2.3 (інженерне опрацювання v2.2) · проєкція: 1-й кут (ISO E)</text>
+<text class="t" x="233.000" y="283.000" font-size="2.8" text-anchor="start" font-weight="normal">Ревізія v2.4 (полегшення + виправлення незалежного аудиту) · проєкція: 1-й кут (ISO E)</text>
 <text class="t" x="233.000" y="289.000" font-size="2.6" text-anchor="start" font-weight="normal">Згенеровано з параметричної CAD-моделі; перед виробництвом — перевірка прототипу</text>
-<text class="t" x="25.000" y="12.000" font-size="2.9" text-anchor="start" font-weight="normal">Розріз A-A — по осі воронки (y = 0). Розріз C-C — по осі воронки (x = −15.6).</text>
+<text class="t" x="25.000" y="12.000" font-size="2.9" text-anchor="start" font-weight="normal">Розріз A-A — по осі воронки (y = 0). Розріз C-C — по осі воронки (x = -15.0).</text>
 <text class="t" x="25.000" y="16.600" font-size="2.9" text-anchor="start" font-weight="normal">Порожнина: ухил стінок 0.75° (вихід сердечника), купол стелі — стріла 1.5 мм (відведення повітря).</text>
 <text class="t" x="25.000" y="21.200" font-size="2.9" text-anchor="start" font-weight="normal">Заходна фаска ущільнювача 30° × 2.2; кромка стелі виїмки R1.5 (по ній проходить ущільнювач).</text>
 <text class="t" x="25.000" y="25.800" font-size="2.9" text-anchor="start" font-weight="normal">Полегшувальна порожнина правої колонки (відкрита знизу) — див. вид знизу на аркуші 5 і розріз D-D.</text></svg>
