@@ -45,12 +45,40 @@ def build_xml(n_sticks, stick_d=None, stick_l=None):
     plate = 0.002                           # пряма ділянка отвору Ø8 (2 мм)
     xh = (d["cav_xc"] - d["cav_xc"]) / 1000  # отвір на осі порожнини
     R_h = v(p.HOLE_D) / 2000
-    walls = f"""
+    ARM = bool(v(p.ARM_ON))
+    if not ARM:
+        walls = f"""
     <geom name="floor" type="box" size="{hs+t} {hs+t} {4*t}" pos="0 0 {z_tray - 4*t}"/>
     <geom type="box" size="{t} {hs+t} {hz + 0.01}" pos="{hs + t} 0 {zc}"/>
     <geom type="box" size="{t} {hs+t} {hz + 0.01}" pos="{-hs - t} 0 {zc}"/>
     <geom type="box" size="{hs+t} {t} {hz + 0.01}" pos="0 {hs + t} {zc}"/>
     <geom type="box" size="{hs+t} {t} {hz + 0.01}" pos="0 {-hs - t} {zc}"/>
+    """
+    else:
+        # v3.0: Г-резервуар — права стінка лише для y < arm_y0; плече x ∈ [hs, x1], y ∈ [y0, hs]: рампа θ від порогу, торець,
+        # перегородка до кишені, стеля; задня стінка продовжена до торця плеча
+        y0 = d["arm_y0"] / 1000
+        x1 = (d["arm_x1"] - d["cav_xc"]) / 1000
+        sill = d["arm_sill_z"] / 1000
+        th = math.radians(v(p.ARM_RAMP_DEG))
+        xs = (d["cav_x1"] - d["cav_xc"] - (d["arm_sill_z"] - d["z_reb"]) * tan_c) / 1000
+        wy = (y0 + hs + t) / 2
+        za_c = (z_ceil + sill) / 2
+        za_h = (z_ceil - sill) / 2
+        Lr = (x1 - xs) / math.cos(th) + 0.004
+        xm = (xs + x1) / 2
+        zm = sill + (xm - xs) * math.tan(th)
+        tp = 0.003
+        walls = f"""
+    <geom name="floor" type="box" size="{hs+t} {hs+t} {4*t}" pos="0 0 {z_tray - 4*t}"/>
+    <geom type="box" size="{t} {wy} {hz + 0.01}" pos="{hs + t} {(-hs - t + y0) / 2} {zc}"/>
+    <geom type="box" size="{t} {hs+t} {hz + 0.01}" pos="{-hs - t} 0 {zc}"/>
+    <geom type="box" size="{(x1 + hs) / 2 + t} {t} {hz + 0.01}" pos="{(x1 - hs) / 2} {hs + t} {zc}"/>
+    <geom type="box" size="{hs+t} {t} {hz + 0.01}" pos="0 {-hs - t} {zc}"/>
+    <geom name="ramp" type="box" size="{Lr / 2} {(hs - y0) / 2 + t} {tp}" pos="{xm + tp * math.sin(th)} {(y0 + hs) / 2} {zm - tp * math.cos(th)}" euler="0 {-math.degrees(th)} 0"/>
+    <geom type="box" size="{(x1 - hs) / 2 + t} {t} {za_h + 0.01}" pos="{(hs + x1) / 2} {y0 - t} {za_c}"/>
+    <geom type="box" size="{t} {(hs - y0) / 2 + t} {za_h + 0.01}" pos="{x1 + t} {(y0 + hs) / 2} {za_c}"/>
+    <geom type="box" size="{(x1 - hs) / 2 + t} {(hs - y0) / 2 + t} {t}" pos="{(hs + x1) / 2} {(y0 + hs) / 2} {z_ceil + t}"/>
     """
     if v(p.LID_TRAY):  # борт лотка кришки по периметру (6 мм) до верху пробки
         sk = (side - d["tray"] / 1000) / 2
@@ -86,6 +114,8 @@ def build_xml(n_sticks, stick_d=None, stick_l=None):
     off = (hs - a / 2) * 1.0
     for sx in (-1, 1):
         for sy in (-1, 1):
+            if v(p.ARM_ON) and sx > 0 and sy > 0:
+                continue          # v3.0: кут (+,+) відкритий у плече вище порогу
             cx, cy = sx * hs, sy * hs
             # центр коробки зміщений від кута вздовж діагоналі назовні так, щоб грань проходила через фаску
             dist = a / math.sqrt(2) / 2  # відстань від кута до лінії фаски вздовж діагоналі = a/√2/... (рівнобедр.)
@@ -126,7 +156,7 @@ def quat_from_tilt(theta, phi):
     return q
 
 
-def run_once(seed=0, n_max=140, shake=True, stick_d=None, max_tilt_deg=8.0, verbose=False, return_poses=False):
+def run_once(seed=0, n_max=140, shake=True, stick_d=None, max_tilt_deg=8.0, verbose=False, return_poses=False, tilt_x_deg=0.0):
     xml, G = build_xml(n_max, stick_d)
     m = mujoco.MjModel.from_xml_string(xml)
     data = mujoco.MjData(m)
@@ -185,12 +215,15 @@ def run_once(seed=0, n_max=140, shake=True, stick_d=None, max_tilt_deg=8.0, verb
         return top_z(i) < G["z_ceil"] + 0.0005  # верхній торець пройшов стелю
 
     def do_shake():
+        """Струшування ±20°; tilt_x_deg > 0 — користувач додатково нахиляє виріб правим боком донизу (до плеча Г-резервуара)."""
         g0 = np.array([0, 0, -9.81])
         T = 1.5
         steps = int(T / m.opt.timestep)
+        bias = math.radians(tilt_x_deg)
         for k in range(steps):
             tt = k * m.opt.timestep
-            a = math.radians(20) * math.sin(2 * math.pi * 2.0 * tt)
+            ramp_in = min(1.0, tt / 0.3)
+            a = bias * ramp_in + math.radians(20 if not tilt_x_deg else 12) * math.sin(2 * math.pi * 2.0 * tt)
             b = math.radians(20) * math.sin(2 * math.pi * 1.3 * tt + 1.0)
             m.opt.gravity[:] = [9.81 * math.sin(a), 9.81 * math.sin(b), -9.81 * math.cos(a) * math.cos(b)]
             mujoco.mj_step(m, data)
@@ -239,8 +272,18 @@ def run_once(seed=0, n_max=140, shake=True, stick_d=None, max_tilt_deg=8.0, verb
     return out
 
 
-def run(seeds=(0, 1, 2, 3, 4), stick_d=None):
-    res = [run_once(s, stick_d=stick_d) for s in seeds]
+def _one(args):
+    s, sd, tx = args
+    return run_once(s, stick_d=sd, tilt_x_deg=tx)
+
+
+def run(seeds=(0, 1, 2, 3, 4), stick_d=None, procs=1, tilt_x_deg=0.0):
+    if procs > 1:
+        from multiprocessing import Pool
+        with Pool(procs) as pool:
+            res = pool.map(_one, [(s, stick_d, tilt_x_deg) for s in seeds])
+    else:
+        res = [run_once(s, stick_d=stick_d, tilt_x_deg=tilt_x_deg) for s in seeds]
     a = np.array([r["no_shake"] for r in res])
     b = np.array([r["inside"] for r in res])   # консервативно: лише стіки, що лишились у порожнині
     return dict(runs=res, no_shake_mean=float(a.mean()), no_shake_min=int(a.min()), no_shake_max=int(a.max()),
@@ -250,7 +293,7 @@ def run(seeds=(0, 1, 2, 3, 4), stick_d=None):
 if __name__ == "__main__":
     import sys, time
     t = time.time()
-    r = run()
+    r = run(seeds=tuple(range(8)), procs=4)
     r["stick_d"] = v(p.STICK_D)
     r["elapsed_s"] = time.time() - t
     print(json.dumps(r, indent=1))

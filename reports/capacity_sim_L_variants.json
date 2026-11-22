@@ -1,0 +1,57 @@
+{
+ "note": "MuJoCo, 8 seeds each. no_shake — до першого блокування воронки; with_shake — після струшувань (≤3 поспіль), лише стіки всередині. tilt_x_deg — під час струшування виріб нахилено правим боком (до плеча) донизу.",
+ "v2.9_no_arm": {
+  "no_shake_mean": 52.0,
+  "no_shake_min": 31,
+  "no_shake_max": 62,
+  "with_shake_mean": 57.75,
+  "with_shake_min": 44,
+  "with_shake_max": 70,
+  "runs": 8
+ },
+ "v3.0_ramp30": {
+  "no_shake_mean": 50.625,
+  "no_shake_min": 42,
+  "no_shake_max": 61,
+  "with_shake_mean": 59.0,
+  "with_shake_min": 44,
+  "with_shake_max": 72,
+  "runs": 8
+ },
+ "v3.0_ramp10": {
+  "no_shake_mean": 47.0,
+  "no_shake_min": 36,
+  "no_shake_max": 62,
+  "with_shake_mean": 55.25,
+  "with_shake_min": 48,
+  "with_shake_max": 67,
+  "runs": 8
+ },
+ "v3.0_flat": {
+  "no_shake_mean": 50.75,
+  "no_shake_min": 39,
+  "no_shake_max": 64,
+  "with_shake_mean": 57.75,
+  "with_shake_min": 50,
+  "with_shake_max": 64,
+  "runs": 8
+ },
+ "v3.0_ramp30_tilt40": {
+  "no_shake_mean": 50.625,
+  "no_shake_min": 42,
+  "no_shake_max": 61,
+  "with_shake_mean": 64.125,
+  "with_shake_min": 55,
+  "with_shake_max": 77,
+  "runs": 8
+ },
+ "v3.0_flat_tilt40": {
+  "no_shake_mean": 50.75,
+  "no_shake_min": 39,
+  "no_shake_max": 64,
+  "with_shake_mean": 61.375,
+  "with_shake_min": 51,
+  "with_shake_max": 78,
+  "runs": 8
+ }
+}

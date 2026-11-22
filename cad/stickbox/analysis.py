@@ -85,6 +85,23 @@ def classify_regions(pts, nrm):
     reg[fn] = "funnel"
     fl = (np.hypot(pts[:, 0] - xc, pts[:, 1]) < v(p.FLARE_D) / 2 + 1.0) & (pts[:, 2] > d["z_ceil_c"] - 0.3) & (pts[:, 2] <= d["z_ceil_c"] + v(p.FLARE_H) + 0.01)
     reg[fl] = "cavity"   # розтруб формує сердечник
+    if v(p.ARM_ON):      # v3.0: плече Г-резервуара — сердечник виходить уздовж рампи (2 етапи)
+        arm = ((pts[:, 0] > d["cav_x1"] - 1.5) & (pts[:, 0] < d["arm_x1"] + 1.0) & (pts[:, 1] > d["arm_y0"] - 1.0) & (pts[:, 1] < d["arm_y1"] + 1.0)
+               & (pts[:, 2] > d["arm_sill_z"] - 1.0) & (pts[:, 2] < d["z_ceil_c"] + 0.5))
+        # + заокруглений кут колонки (y до arm_y0 − R) і пласка ділянка порогу в куті R16 (виходять разом із плечем)
+        corner = ((pts[:, 0] > d["cav_x1"] - 1.5) & (pts[:, 0] < d["cav_x1"] + v(p.ARM_CORNER_R) + 1.0)
+                  & (pts[:, 1] > d["arm_y0"] - v(p.ARM_CORNER_R) - 1.0) & (pts[:, 2] > d["arm_sill_z"] - 1.0) & (pts[:, 2] < d["z_ceil_c"]))
+        shelf = ((np.abs(pts[:, 2] - d["arm_sill_z"]) < 0.6) & (pts[:, 1] > d["cav_y1"] - v(p.R_CAV) - 0.5) & (pts[:, 0] > d["cav_x1"] - v(p.R_CAV) - 0.5))
+        # стовп над «серпиком» порогу: зовні дуги R16 основної порожнини, вище порогу (квадратний кут плеча)
+        tn_ = math.tan(math.radians(v(p.DRAFT_CAV)))
+        ccx, ccy = d["cav_x1"] - v(p.R_CAV), d["cav_y1"] - v(p.R_CAV)
+        rc = v(p.R_CAV) - (d["arm_sill_z"] - d["z_reb"]) * tn_
+        cres = ((pts[:, 0] > ccx) & (pts[:, 0] < d["arm_x1"] + 1.0) & (pts[:, 1] > ccy) & (pts[:, 1] < d["arm_y1"] + 1.0)
+                & (np.hypot(pts[:, 0] - ccx, pts[:, 1] - ccy) > rc - 0.4)
+                & (pts[:, 2] > d["arm_sill_z"] - v(p.ARM_SILL_R) - 0.6) & (pts[:, 2] < d["z_ceil_c"]))
+        sillz = ((pts[:, 2] > d["arm_sill_z"] - v(p.ARM_SILL_R) - 0.6) & (pts[:, 2] < d["arm_sill_z"] + 0.6)
+                 & (pts[:, 0] > d["cav_x1"] - v(p.R_CAV) - 0.5) & (pts[:, 1] > d["arm_y0"] - 1.0))
+        reg[(arm | corner | shelf | cres | sillz) & (reg != "pocket")] = "arm"
     logo = (pts[:, 1] < -v(p.D) / 2 + v(p.LOGO_DEPTH) + 0.05) & (np.abs(pts[:, 2] - v(p.LOGO_Z)) < 6) & (np.abs(pts[:, 0]) < 30)
     reg[logo] = "logo"
     if v(p.MARK_ON):
@@ -104,7 +121,7 @@ def draft_analysis(body_shape):
     # сердечник виходить униз (-Z відносно корпусу): поверхні порожнини мають «дивитися» вниз
     # палець форми і воронка виходять угору (+Z): поверхні кишені/воронки «дивляться» вгору
     for name, pull in (("cavity", np.array([0, 0, -1.0])), ("pocket", np.array([0, 0, 1.0])),
-                       ("funnel", np.array([0, 0, 1.0])), ("slot", np.array([0, -1.0, 0]))):
+                       ("funnel", np.array([0, 0, 1.0])), ("slot", np.array([0, -1.0, 0])), ("arm", arm_dir())):
         msk = reg == name
         if not msk.any():
             continue
@@ -138,7 +155,44 @@ def undercut_rays(body_shape):
         hit = m.ray.intersects_any(orig, dirs)
         res[name] = dict(faces=int(len(msk)), blocked_faces=int(hit.sum()),
                          blocked_area_mm2=float(m.area_faces[msk][hit].sum()))
+    if v(p.ARM_ON):
+        # етап 1: плече сердечника ковзає вздовж рампи, доки кожна точка не опиниться над основною частиною (x < cav_x1 − 1);
+        # етап 2 — униз (−Z) через отвір, як основна частина. Піднутрення = перетин променя раніше, ніж точка вийде з плеча.
+        msk = np.where(reg == "arm")[0]
+        dvec = arm_dir()
+        orig = c[msk] + n[msk] * 0.02
+        # етап 1 — до лінії початку рампи (далі низ плеча ковзає горизонтально по порогу, потім униз)
+        xs_eff = d["cav_x1"] - (d["arm_sill_z"] - d["z_reb"]) * math.tan(math.radians(v(p.DRAFT_CAV))) + 0.3
+        need = np.maximum(0.0, (orig[:, 0] - xs_eff) / -dvec[0])
+        loc, iray, _ = m.ray.intersects_location(orig, np.tile(dvec, (len(msk), 1)), multiple_hits=False)
+        dist = np.full(len(msk), np.inf)
+        dist[iray] = np.linalg.norm(loc - orig[iray], axis=1)
+        hit = dist < need - 0.05
+        res["arm"] = dict(faces=int(len(msk)), blocked_faces=int(hit.sum()), blocked_area_mm2=float(m.area_faces[msk][hit].sum()),
+                          path="уздовж рампи до її початку → горизонтально по порогу → −Z", stage1_max_travel_mm=float(need.max()) if len(need) else 0.0)
     return res
+
+
+def arm_dir():
+    """Напрямок виходу плеча сердечника (у координатах виробу): уздовж рампи до отвору."""
+    t = math.radians(v(p.ARM_RAMP_DEG))
+    return np.array([-math.cos(t), 0.0, -math.sin(t)])
+
+
+def seal_wall_check():
+    """v3.0: стінка під губчастим ущільнювачем має бути суцільною по периметру пробки (плече відкривається лише вище порогу).
+    Переріз корпусу на висотах смуги ущільнення: контур порожнини не виходить за x = cav_x1."""
+    import cadquery as cq
+    body = P.body()
+    out = []
+    z0 = v(p.LID_RECESS)
+    for z in (z0 + d["groove_z0"], z0 + (d["groove_z0"] + d["groove_z1"]) / 2, z0 + d["groove_z1"], d["arm_sill_z"] - 0.3):
+        s = body.intersect(cq.Solid.makeBox(400, 400, 0.02, pnt=cq.Vector(-200, -200, z - 0.01)))
+        loops = [w for f in s.Faces() if abs(f.normalAt().z) > 0.99 and f.Center().z > z for w in f.innerWires()]
+        cav = [w for w in loops if w.BoundingBox().xmin < d["cav_xc"]]
+        xmax = max(w.BoundingBox().xmax for w in cav) if cav else float("nan")
+        out.append(dict(z=z, cavity_loop_xmax=xmax, closed=bool(cav) and xmax <= d["cav_x1"] + 0.6))
+    return out
 
 
 # --------------------------------------------------------------------------
@@ -200,20 +254,22 @@ def run(write_to=None):
     lid = P.lid()
     oring = P.oring()
     felt = P.felt_pad()
-    rlid = P.relief_lid()
-    rseal = P.relief_seal()
+    RL = P.has_relief_lid()
+    rlid = P.relief_lid() if RL else None
+    rseal = P.relief_seal() if RL else None
     dev = P.device()
     R = {}
     R["mass"] = {
         "body": mass_props(body, rho_c),
         "lid": mass_props(lid, rho_c),
         "oring": mass_props(oring, rho_s),
-        "relief_lid": mass_props(rlid, rho_c),
-        "relief_seal": mass_props(rseal, rho_s),
         "felt": mass_props(felt, 400.0),
         "device_dummy_volume_ml": dev.Volume() / 1000,
     }
-    parts_m = [(R["mass"][k]["mass_kg"], np.array(R["mass"][k]["com"])) for k in ("body", "lid", "oring", "relief_lid", "relief_seal", "felt")]
+    if RL:
+        R["mass"]["relief_lid"] = mass_props(rlid, rho_c)
+        R["mass"]["relief_seal"] = mass_props(rseal, rho_s)
+    parts_m = [(R["mass"][k]["mass_kg"], np.array(R["mass"][k]["com"])) for k in ("body", "lid", "oring", "relief_lid", "relief_seal", "felt") if k in R["mass"]]
     m_tot = sum(m for m, _ in parts_m)
     com = sum(m * c for m, c in parts_m) / m_tot
     dev_c = np.array(mass_props(dev, 1)["com"])
@@ -222,12 +278,12 @@ def run(write_to=None):
     R["assembly"] = dict(mass_kg=m_tot, com=com.tolist(), mass_with_device_kg=m_tot + m_dev,
                          com_with_device=com_dev.tolist())
     R["validity"] = {k: s.isValid() for k, s in (("body", body), ("lid", lid), ("oring", oring), ("felt", felt),
-                                                     ("relief_lid", rlid), ("relief_seal", rseal))}
+                                                     ("relief_lid", rlid), ("relief_seal", rseal)) if s is not None}
 
     shapes = dict(body=body, lid=lid, oring=oring, felt=felt, relief_lid=rlid, relief_seal=rseal, device=dev)
     pairs = [("body", "lid"), ("body", "oring"), ("lid", "oring"), ("body", "felt"), ("felt", "device"),
-             ("body", "device"), ("body", "relief_lid"), ("body", "relief_seal"), ("relief_lid", "relief_seal"),
-             ("lid", "relief_lid")]
+             ("body", "device")] + ([("body", "relief_lid"), ("body", "relief_seal"), ("relief_lid", "relief_seal"),
+             ("lid", "relief_lid")] if RL else [])
     R["interference_mm3"] = {f"{a}-{b}": common_volume(shapes[a], shapes[b]) for a, b in pairs}
     R["min_clearance_mm"] = {f"{a}-{b}": min_distance(shapes[a], shapes[b]) for a, b in pairs}
 
@@ -239,7 +295,14 @@ def run(write_to=None):
     # залишити лише частину всередині порожнини (обрізати шматки ззовні)
     sols = sorted(air.Solids(), key=lambda s: -s.Volume())
     cav_air = sols[0]
-    R["cavity"] = dict(net_volume_ml=cav_air.Volume() / 1000,
+    arm_ml = 0.0
+    if v(p.ARM_ON):   # повітря плеча поза контуром основної обвідної призми
+        xe = xc + (v(p.CAV) + 8) / 2
+        abox = P.prism_rrect(d["arm_x1"] + 2 - xe, d["arm_y1"] + 2 - (d["arm_y0"] - 1), 0.5, d["arm_sill_z"] - 1, d["z_ceil_c"] + 1,
+                             cx=(xe + d["arm_x1"] + 2) / 2, cy=(d["arm_y0"] - 1 + d["arm_y1"] + 2) / 2)
+        arm_air = abox.cut(body)
+        arm_ml = max((s_.Volume() for s_ in arm_air.Solids()), default=0.0) / 1000
+    R["cavity"] = dict(net_volume_ml=cav_air.Volume() / 1000 + arm_ml, arm_ml=arm_ml, main_ml=cav_air.Volume() / 1000,
                        stick_volume_ml=math.pi * (v(p.STICK_D) / 2) ** 2 * v(p.STICK_L) / 1000)
     R["cavity"]["sticks_at_packing"] = {str(phi): R["cavity"]["net_volume_ml"] * phi / R["cavity"]["stick_volume_ml"]
                                         for phi in (0.40, 0.50, 0.60)}
@@ -249,7 +312,7 @@ def run(write_to=None):
     reg = classify_regions(pts, nrm)
     ok = ~np.isnan(th)
     wt = {}
-    for name in ("outer", "cavity", "pocket", "funnel", "slot", "logo"):
+    for name in ("outer", "cavity", "arm", "pocket", "funnel", "slot", "logo"):
         msk = ok & (reg == name)
         if msk.any():
             wt[name] = dict(min=float(np.nanmin(th[msk])), p01=float(np.percentile(th[msk], 1)),
@@ -266,8 +329,11 @@ def run(write_to=None):
                                m_dev, min(base_half_min, v(p.W) / 2 - abs(R["assembly"]["com_with_device"][0])))
     R["lid_hook"] = lid_hook_check()
     R["lid_tilt"] = lid_tilt_check()
-    R["relief_lid_tilt"] = rl_tilt_check()
-    R["relief_lid_hook"] = rl_hook_check()
+    if RL:
+        R["relief_lid_tilt"] = rl_tilt_check()
+        R["relief_lid_hook"] = rl_hook_check()
+    if v(p.ARM_ON):
+        R["seal_wall"] = seal_wall_check()
     R["device_fit"] = device_fit_check()
     R["slot_controls"] = slot_controls_check()
     R["seal_force"] = seal_force_estimate()

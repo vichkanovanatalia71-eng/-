@@ -96,7 +96,92 @@ def _cavity_tool():
     rad = L * math.tan(math.radians(v(p.LEADIN_ANGLE)))
     lead = prism_rrect(v(p.CAV) + 2 * rad, v(p.CAV) + 2 * rad, v(p.R_CAV) + rad, zr - 0.01, zr + L, cx=xc,
                        taper=v(p.LEADIN_ANGLE))
-    return cav.fuse(reb).fuse(lead).clean()
+    tool = cav.fuse(reb).fuse(lead).clean()
+    if v(p.ARM_ON):
+        tool = _with_arm(tool)
+    return tool
+
+
+def has_relief_lid():
+    return bool(v(p.RELIEF_ON) and v(p.RL_ON))
+
+
+def _arm_tool():
+    """v3.0: плече Г-подібного резервуара за кишенею девайса.
+    Знизу — поріг (стінка під ущільнювачем суцільна) і рампа ARM_RAMP_DEG до порогу.
+    Стеля пласка на висоті краю купола, заокруглення R_CEIL робиться на простій призмі (стабільна геометрія OCC)."""
+    R = v(p.ARM_R)
+    x0 = d["cav_x1"] - v(p.R_CAV) - R - 2.0          # заходить у пряму ділянку задньої стінки основної порожнини
+    x1, y0, y1 = d["arm_x1"], d["arm_y0"], d["arm_y1"]
+    A = prism_rrect(x1 - x0, y1 - y0, R, d["z_reb"], d["z_ceil_edge"], cx=(x0 + x1) / 2, cy=(y0 + y1) / 2,
+                    taper=v(p.DRAFT_CAV))
+    top = max(A.Faces(), key=lambda f: f.Center().z)
+    try:
+        A = A.fillet(v(p.R_CEIL), top.Edges())
+    except Exception as ex:  # pragma: no cover
+        print("WARN arm ceiling fillet:", ex)
+    return A.intersect(_arm_keep(x0 - 5, x1 + 5, top=d["z_ceil_edge"] + 5.0))
+
+
+def _arm_keep(xa, xb, top=None):
+    """Призма «над рампою/порогом і під стелею плеча» (переріз XZ, витягнута по Y).
+    Рампа починається точно на верхній кромці стінки основної порожнини з ухилом (без пласкої смужки)."""
+    sill = d["arm_sill_z"]
+    xs = d["cav_x1"] - (sill - d["z_reb"]) * math.tan(math.radians(v(p.DRAFT_CAV)))
+    ce = d["z_ceil_edge"] if top is None else top
+    t = math.tan(math.radians(v(p.ARM_RAMP_DEG)))
+    f = math.tan(math.radians(v(p.ARM_CEIL_SLOPE))) if top is None else 0.0
+    pts = [(xa, sill), (xs, sill), (xb, sill + (xb - xs) * t), (xb, ce - (xb - xs) * f), (xs, ce), (xa, ce)]
+    return cq.Workplane("XZ", origin=(0, 60, 0)).polyline(pts).close().extrude(120).val()
+
+
+def _with_arm(tool):
+    arm = _arm_tool()
+    u = tool.fuse(arm).clean()
+    xs, y0, sill = d["cav_x1"], d["arm_y0"], d["arm_sill_z"]
+    # кут колонки тримача, що виступає в резервуар → R ARM_CORNER_R (лофт чверть-кола вздовж ребра з ухилами обох стінок;
+    # починається над рампою, щоб не підрізати її)
+    R = v(p.ARM_CORNER_R)
+    tn = math.tan(math.radians(v(p.DRAFT_CAV)))
+    zr = d["z_reb"]
+    za = sill - 0.5
+    zb = d["z_ceil_edge"] - v(p.R_CEIL) - 1.0   # нижче зони заокруглення стелі (без дотичних граней)
+    def prof(z):
+        cx, cy = xs - (z - zr) * tn, y0 + (z - zr) * tn
+        m = (cx + R - R / math.sqrt(2), cy - R + R / math.sqrt(2))
+        return (cq.Workplane("XY", origin=(0, 0, z)).moveTo(cx - 0.3, cy + 0.3).lineTo(cx + R, cy + 0.3).lineTo(cx + R, cy)
+                .threePointArc(m, (cx, cy - R)).lineTo(cx - 0.3, cy - R).close().wires().val())
+    try:
+        cutter = cq.Solid.makeLoft([prof(za), prof(zb)], True)
+        cutter = cutter.intersect(_arm_keep(xs - 10, xs + 3 * R, top=zb + 1))   # низ різця — площина рампи (без уступу)
+        u = u.fuse(cutter).clean()
+    except Exception as ex:  # pragma: no cover
+        print("WARN arm column corner:", ex)
+    # кромка порогу (стінка основної порожнини → рампа / пласка ділянка в куті R16) → R ARM_SILL_R
+    tn_ = math.tan(math.radians(v(p.DRAFT_CAV)))
+    xw = xs - (sill - d["z_reb"]) * tn_
+    rc = v(p.R_CAV) - (sill - d["z_reb"]) * tn_
+    ccx, ccy = xs - v(p.R_CAV), d["cav_y1"] - v(p.R_CAV)
+    def on_line(e, pts):
+        return all(abs(q.z - sill) < 0.05 and abs(q.x - xw) < 0.3 and y0 - v(p.ARM_CORNER_R) - 1 < q.y <= ccy + 0.3 for q in pts)
+    def on_arc(e, pts):
+        return all(abs(q.z - sill) < 0.05 and q.y > ccy - 0.3 and abs(math.hypot(q.x - ccx, q.y - ccy) - rc) < 0.3 for q in pts)
+    # кромка порогу — фаски (пряма ділянка 1.5, дуга R16 1.2): аналітичні грані; заокруглення OCC на ланцюжку лінія→дуга
+    # будує B-сплайн, що заходить у смугу ущільнювача (перевірено) — тому фаски
+    # фаска прямої ділянки порогу (стінка → рампа) — явна трикутна призма вздовж кромки (площини, стабільний допуск)
+    c = v(p.ARM_SILL_R) * 0.75
+    th = math.radians(v(p.ARM_RAMP_DEG))
+    tri = [(xw - 0.05, sill - c), (xw - 0.05, sill + 0.05), (xw + c * math.cos(th), sill + c * math.sin(th) + 0.05)]
+    ya, yb = y0 - v(p.ARM_CORNER_R) - 0.5, ccy
+    try:
+        wedge = cq.Workplane("XZ", origin=(0, yb, 0)).polyline(tri).close().extrude(yb - ya).val()
+        u = u.fuse(wedge).clean()
+        d["arm_sill_r_applied"] = c
+    except Exception as ex:  # pragma: no cover
+        print("WARN arm sill chamfer:", ex)
+    # дуга R16 (стінка → пласкі «серпик», 90°): фаску OCC будує з допуском вершин ≈5.7 мм (неприйнятно для STEP/друку
+    # майстрів) — кромку не моделюємо, притупити вручну шліфувальною губкою (доступна через отвір кришки)
+    return u
 
 
 def _funnel_tool(with_flare=True, pin_extra=0.0):

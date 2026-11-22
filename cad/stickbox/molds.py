@@ -455,9 +455,7 @@ def all_tooling():
         "lid_master": lid_master(),
         "lid_sleeve": lid_sleeve(),
         "lid_base_plate": lid_base_plate(),
-        "rlid_master": lid_master("relief"),
-        "rlid_sleeve": lid_sleeve("relief"),
-        "rlid_base_plate": lid_base_plate("relief"),
         "gauge_hole_go_7p90": go,
         "gauge_stick_heets": stick_g,
-    }
+    } | ({"rlid_master": lid_master("relief"), "rlid_sleeve": lid_sleeve("relief"),
+          "rlid_base_plate": lid_base_plate("relief")} if P.has_relief_lid() else {})

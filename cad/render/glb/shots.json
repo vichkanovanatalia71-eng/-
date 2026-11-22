@@ -591,38 +591,53 @@
   "bg": "#eadfd1"
  },
  {
-  "glb": "tooling_rlid_section.glb",
-  "out": "23_tooling_relief_lid_section.png",
-  "w": 1400,
-  "h": 1050,
+  "glb": "tooling_arm_section.glb",
+  "out": "23_tooling_arm_section.png",
+  "w": 1800,
+  "h": 1350,
+  "groundY": -121,
   "cam": {
    "pos": [
-    -40,
-    60,
-    150
+    -170,
+    40,
+    330
    ],
    "target": [
-    42,
-    -8,
-    22
+    0,
+    -50,
+    0
    ],
    "fov": 30
   },
+  "concrete": "#c2ad92",
+  "keyPos": [
+   -200,
+   400,
+   300
+  ],
   "nodes": {
-   "t_rl_concrete": {
+   "t_concrete": {
     "material": "concrete"
    },
-   "t_rl_sil": {
+   "t_silicone": {
     "material": "silicone"
    },
-   "t_rl_sleeve": {
+   "t_core": {
+    "material": "silicone_pink"
+   },
+   "t_bridge": {
+    "material": "print"
+   },
+   "t_stiff": {
+    "material": "print_grey"
+   },
+   "t_sleeve": {
     "material": "print"
    }
   },
   "exposure": 0.88,
   "envIntensity": 0.75,
-  "bg": "#eadfd1",
-  "groundY": -21
+  "bg": "#eadfd1"
  },
  {
   "glb": "assy.glb",
@@ -688,34 +703,6 @@
   "envIntensity": 0.75,
   "exposure": 0.88,
   "bg": "#eadfd1",
-  "out": "16_detail_relief_recess_right.png",
-  "cam": {
-   "pos": [
-    175,
-    20,
-    -45
-   ],
-   "target": [
-    60,
-    6,
-    -20
-   ],
-   "fov": 30
-  },
-  "keyPos": [
-   300,
-   250,
-   -100
-  ]
- },
- {
-  "glb": "assy.glb",
-  "w": 1400,
-  "h": 1050,
-  "concrete": "#c2ad92",
-  "envIntensity": 0.75,
-  "exposure": 0.88,
-  "bg": "#eadfd1",
   "out": "17_device_controls_above_slot.png",
   "cam": {
    "pos": [
@@ -768,6 +755,70 @@
     "visible": false
    },
    "logo_box": {
+    "visible": false
+   }
+  }
+ },
+ {
+  "w": 1600,
+  "h": 1100,
+  "concrete": "#c2ad92",
+  "exposure": 0.88,
+  "envIntensity": 0.75,
+  "bg": "#eadfd1",
+  "glb": "section_arm_sticks.glb",
+  "out": "18_section_L_reservoir.png",
+  "cam": {
+   "pos": [
+    12,
+    58,
+    150
+   ],
+   "target": [
+    6,
+    44,
+    -20
+   ],
+   "fov": 40
+  },
+  "keyPos": [
+   -120,
+   320,
+   300
+  ]
+ },
+ {
+  "w": 1600,
+  "h": 1100,
+  "concrete": "#c2ad92",
+  "exposure": 0.88,
+  "envIntensity": 0.75,
+  "bg": "#eadfd1",
+  "glb": "assy.glb",
+  "out": "19_bottom_open_L_reservoir.png",
+  "cam": {
+   "pos": [
+    -75,
+    -105,
+    45
+   ],
+   "target": [
+    22,
+    42,
+    -20
+   ],
+   "fov": 38
+  },
+  "keyPos": [
+   -150,
+   -250,
+   200
+  ],
+  "nodes": {
+   "lid": {
+    "visible": false
+   },
+   "oring": {
     "visible": false
    }
   }

@@ -1,5 +1,5 @@
 """Комплект креслень STICKBOX 01 Monolith (SVG A3 + зведений PDF)."""
-import os, sys, json
+import os, sys, json, math
 import numpy as np
 import cadquery as cq
 from cadquery import Vector
@@ -63,8 +63,9 @@ VB.leader((rx, 45, d["recess_top"]), 14, -16, f"виїмка кришки {v(p.R
 rcy_ = (d["rel_y0"] + d["rel_y1"]) / 2
 VR = S.view(body, "right", (322, 225.5), 0.5, hidden=False)
 S.text((322, 174.5), "ВИГЛЯД СПРАВА (1:2)", 3.6, weight="bold")
-VR.dim((60, rcy_ - v(p.RL_RECESS_W) / 2, 0), (60, rcy_ + v(p.RL_RECESS_W) / 2, 0), "h", off=-5, txt=f"{v(p.RL_RECESS_W):.0f}")
-VR.leader((60, rcy_, d["rl_recess_top"]), 14, -16, f"виїмка кришечки {v(p.RL_RECESS_W):.0f}×{d['rl_recess_top']:.1f}")
+if P.has_relief_lid():
+    VR.dim((60, rcy_ - v(p.RL_RECESS_W) / 2, 0), (60, rcy_ + v(p.RL_RECESS_W) / 2, 0), "h", off=-5, txt=f"{v(p.RL_RECESS_W):.0f}")
+    VR.leader((60, rcy_, d["rl_recess_top"]), 14, -16, f"виїмка кришечки {v(p.RL_RECESS_W):.0f}×{d['rl_recess_top']:.1f}")
 VT = S.view(body, "top", (100, 222), 1.0, label="ВИД ЗВЕРХУ", label_dy=18)
 VT.dim((60, -45, H), (60, 45, H), "v", off=16)
 VT.dim((52, -45, H), (52, cy, H), "v", off=8, txt=f"{cy + 45:.1f}")
@@ -98,7 +99,7 @@ S = DR.Sheet("Корпус", "Деталь 01 — Розрізи A-A, C-C; ви�
              "1:1; 4:1; 5:1", 2, NS, notes=[f"Розріз A-A — по осі воронки (y = 0). Розріз C-C — по осі воронки (x = {xc:.1f}).",
                                             f"Порожнина: ухил стінок {v(p.DRAFT_CAV)}° (вихід сердечника), купол стелі — стріла {v(p.DOME_SAG)} мм (відведення повітря).",
                                             f"Заходна фаска ущільнювача {v(p.LEADIN_ANGLE):.0f}° × {v(p.LEADIN_LEN)}; кромка стелі виїмки R1.5 (по ній проходить ущільнювач).",
-                                            "Полегшувальна порожнина правої колонки (відкрита знизу) — див. вид знизу на аркуші 5 і розріз D-D."])
+                                            ("Г-резервуар: плече за кишенею девайса з'єднане з основною частиною над порогом z = " + f"{d['arm_sill_z']:.1f}" + " (стінка під ущільнювачем суцільна) — розрізи на аркуші 4. " if v(p.ARM_ON) else "") + "Полегшувальна порожнина правої колонки (відкрита знизу) — див. вид знизу на аркуші 5 і розріз D-D."])
 cutA = keep(body, "y", 0, +1)
 VA = S.view(cutA, "front", (95, 150), 1.0, label="РОЗРІЗ A-A", section=(cutA, (0, 0, 0), (0, 1, 0)))
 VA.dim((d["cav_x0"], 0, 5), (d["cav_x1"], 0, 5), "h", off=-24, txt=f"{v(p.CAV):.1f} ⊕ (низ)")
@@ -203,31 +204,59 @@ open(f"{OUT}/03_lid.svg", "w").write(S.svg())
 print("sheet 3")
 
 # ======================================================================
-# Аркуш 4 — повстяна підкладка + кришечка полегшувальної порожнини (v2.5)
+# Аркуш 4 — повстяна підкладка + Г-подібний резервуар (v3.0) / кришечка полегшення (до v3.0)
 # ======================================================================
-rcx, rcy, rw, rh = P._relief_xy()
-RL = P.relief_lid().translate(Vector(-rcx, -rcy, -v(p.LID_RECESS)))
 FP = P.felt_pad().translate(Vector(-cx, -cy, -d["pocket_floor"]))
 fx, fy = P.felt_pad_dims()
-S = DR.Sheet("Підкладка, кришечка", "Деталі 04 (підкладка кишені) і 05 (кришечка полегшення)",
-             "04: повсть на клейовій основі; 05: бетон", "2:1", 4, NS,
-             notes=[f"04: підкладка (заокруглений прямокутник) {fx:.1f} × {fy:.1f} × {v(p.LINER_FLOOR):.1f} мм, вирубка; клеїти на чисте загерметизоване дно кишені (клейова основа акрилова або 3M 467/468MP-клас).",
-                    f"05: кришечка знімається пальцем через виїмку на правій грані корпусу ({v(p.RL_RECESS_W):.0f} × {d['rl_recess_top']:.1f}); фаска верху пробки {v(p.RL_CHAMF_R)}×{v(p.RL_CHAMF_H)}, бортик −{v(p.RL_LIP_RELIEF)} (без заклинювання до 8°); ущільнювач — шнур-губка Ø{v(p.RL_CS):.0f}, відріз {d['rl_seal_cut_len']:.0f} мм, стиснення ≈27%.",
-                    "05: видима грань — відкрита грань лиття, шліфування разом із низом корпусу; заглиблення 0.5 від площини опори."])
-VFt = S.view(FP, "top", (70, 110), 2.0, label="04 — ВИД ЗВЕРХУ (2:1)", label_dy=16)
-VFt.dim((-fx / 2, 0, 2), (fx / 2, 0, 2), "h", off=-34, txt=f"{fx:.1f}")
-VFt.dim((0, -fy / 2, 2), (0, fy / 2, 2), "v", off=-22, txt=f"{fy:.1f}")
-VFt.leader((fx / 2 - 1, fy / 4, 2), 16, -10, f"t = {v(p.LINER_FLOOR):.1f}, кромка R0.6")
-VRt = S.view(RL, "top", (185, 110), 2.0, label="05 — ВИД ЗВЕРХУ (2:1)", label_dy=12)
-VRt.dim((-d["rl_flange_w"] / 2, d["rl_flange_h"] / 2, 0), (d["rl_flange_w"] / 2, d["rl_flange_h"] / 2, 0), "h", off=8, txt=f"{d['rl_flange_w']:.1f}")
-VRt.dim((d["rl_flange_w"] / 2, -d["rl_flange_h"] / 2, 0), (d["rl_flange_w"] / 2, d["rl_flange_h"] / 2, 0), "v", off=8, txt=f"{d['rl_flange_h']:.1f}")
-RLs = keep(RL, "y", 0, +1)
-VRs = S.view(RLs, "front", (320, 110), 2.0, label="05 — РОЗРІЗ (2:1)", section=(RLs, (0, 0, 0), (0, 1, 0)), label_dy=14)
-VRs.dim((-d["rl_plug_w"] / 2, 0, v(p.RL_FLANGE_T) + 0.1), (d["rl_plug_w"] / 2, 0, v(p.RL_FLANGE_T) + 0.1), "h", off=-18, txt=f"{d['rl_plug_w']:.1f} ⊕")
-VRs.dim((d["rl_flange_w"] / 2, 0, 0), (d["rl_flange_w"] / 2, 0, d["rl_t"]), "v", off=8, txt=f"{d['rl_t']:.1f}")
-VRs.dim((d["rl_flange_w"] / 2, 0, 0), (d["rl_flange_w"] / 2, 0, v(p.RL_FLANGE_T)), "v", off=2, txt=f"{v(p.RL_FLANGE_T)}")
-VRs.leader((d["rl_plug_w"] / 2 - 1.0, 0, v(p.RL_FLANGE_T) + v(p.RL_LAND) + v(p.RL_GROOVE_W) / 2), 18, 16, f"канавка {v(p.RL_GROOVE_W)}×{d['rl_groove_depth']:.1f}")
-open(f"{OUT}/04_felt_pad_relief_lid.svg", "w").write(S.svg())
+if not P.has_relief_lid():
+    zH = 50.0
+    ya = (d["arm_y0"] + d["arm_y1"]) / 2
+    S = DR.Sheet("Підкладка, Г-резервуар", "Деталь 04 — підкладка; корпус 01 — Г-резервуар",
+                 "04: повсть на клейовій основі; 01: бетон", "2:1; 1:1", 4, NS,
+                 notes=[f"04: підкладка (овал) {fx:.1f} × {fy:.1f} × {v(p.LINER_FLOOR):.1f} мм, вирубка; клеїти на чисте загерметизоване дно кишені.",
+                        f"Г-резервуар: плече за кишенею з'єднане з основною частиною над порогом z = {d['arm_sill_z']:.1f} — на {v(p.ARM_SILL_MARGIN)} мм вище "
+                        f"канавки ущільнювача, тож стінка під шнуром суцільна по всьому периметру квадратної кришки.",
+                        f"Дно плеча — рампа {v(p.ARM_RAMP_DEG):.0f}° до порогу (стіки зісковзують до отвору); кромка порогу — фаска 1.5; кут колонки тримача R{v(p.ARM_CORNER_R):.0f}; "
+                        f"дуга R16 порогу в задньому правому куті — притупити вручну.",
+                        "Сердечник: плече — суцільний силікон; виймання: хребет → основна чашка → плече вздовж рампи → по порогу → униз."])
+    VFt = S.view(FP, "top", (52, 125), 2.0, label="04 — ВИД ЗВЕРХУ (2:1)", label_dy=16)
+    VFt.dim((-fx / 2, 0, 2), (fx / 2, 0, 2), "h", off=-34, txt=f"{fx:.1f}")
+    VFt.dim((0, -fy / 2, 2), (0, fy / 2, 2), "v", off=-22, txt=f"{fy:.1f}")
+    cutH = keep(body, "z", zH, -1)
+    VH = S.view(cutH, "top", (190, 125), 1.0, hidden=False, label=f"РОЗРІЗ H-H (z = {zH:.0f}) — Г-РЕЗЕРВУАР", label_dy=14,
+                section=(cutH, (0, 0, zH), (0, 0, 1)))
+    xa_ = d["cav_x1"] - (zH - d["z_reb"]) * math.tan(math.radians(v(p.DRAFT_CAV)))
+    VH.dim((xa_, 30, zH), (d["arm_x1"] - (zH - d["z_reb"]) * math.tan(math.radians(v(p.DRAFT_CAV))), 30, zH), "h", off=-24, txt="плече")
+    VH.dim((d["arm_x1"], 20, zH), (60, 20, zH), "h", off=22, txt=f"{60 - d['arm_x1']:.0f}")
+    VH.dim((45, d["arm_y1"], zH), (45, 45, zH), "v", off=8, txt=f"{45 - d['arm_y1']:.1f}")
+    VH.leader((d["cav_x1"] + 1.5, d["arm_y0"] - 1.5, zH), -26, 20, f"кут колонки R{v(p.ARM_CORNER_R):.0f}")
+    VH.leader((cx, cy, zH), -34, 30, "кишеня девайса (колонка)")
+    asmA = cq.Compound.makeCompound([keep(s_, "y", ya, +1) for s_ in (body, lid, oring)])
+    VAa = S.view(asmA, "front", (330, 172), 1.0, hidden=False, label=f"РОЗРІЗ A-A (y = {ya:.1f}, через плече)", label_dy=14,
+                 section=(asmA, (0, ya, 0), (0, 1, 0)))
+    VAa.leader((d["cav_x1"] - 0.3, ya, d["arm_sill_z"]), 6, -46, f"поріг z = {d['arm_sill_z']:.1f}")
+    VAa.leader((d["cav_x1"] + 12, ya, d["arm_sill_z"] + 12 * math.tan(math.radians(v(p.ARM_RAMP_DEG)))), -6, -22, f"рампа {v(p.ARM_RAMP_DEG):.0f}°")
+    VAa.leader((d["cav_x1"] - 0.6, ya, v(p.LID_RECESS) + (d["groove_z0"] + d["groove_z1"]) / 2), -34, 22, "шнур Ø4 — суцільна стінка")
+    VAa.dim((d["arm_x1"], ya, 0), (d["arm_x1"], ya, d["z_ceil_edge"]), "v", off=12, txt=f"{d['z_ceil_edge']:.1f}")
+    # позначення площин розрізу на виді H-H
+    a_, b_ = VH.P((-64, ya, zH)), VH.P((64, ya, zH))
+    S.line(a_, b_, "c"); S.text((a_[0] - 3, a_[1] + 1), "A", 3.6, weight="bold"); S.text((b_[0] + 3, b_[1] + 1), "A", 3.6, weight="bold")
+    open(f"{OUT}/04_felt_pad_L_reservoir.svg", "w").write(S.svg())
+    for _f in (f"{OUT}/04_felt_pad_relief_lid.svg",):
+        if os.path.exists(_f):
+            os.remove(_f)
+else:
+    rcx, rcy, rw, rh = P._relief_xy()
+    RL = P.relief_lid().translate(Vector(-rcx, -rcy, -v(p.LID_RECESS)))
+    S = DR.Sheet("Підкладка, кришечка", "Деталі 04 (підкладка кишені) і 05 (кришечка полегшення)",
+                 "04: повсть на клейовій основі; 05: бетон", "2:1", 4, NS,
+                 notes=[f"04: підкладка {fx:.1f} × {fy:.1f} × {v(p.LINER_FLOOR):.1f} мм, вирубка; клеїти на чисте загерметизоване дно кишені.",
+                        f"05: кришечка знімається пальцем за язичок через виїмку на правій грані; ущільнювач — шнур-губка Ø{v(p.RL_CS):.0f}, відріз {d['rl_seal_cut_len']:.0f} мм."])
+    VFt = S.view(FP, "top", (70, 110), 2.0, label="04 — ВИД ЗВЕРХУ (2:1)", label_dy=16)
+    VRt = S.view(RL, "top", (185, 110), 2.0, label="05 — ВИД ЗВЕРХУ (2:1)", label_dy=12)
+    RLs = keep(RL, "y", 0, +1)
+    VRs = S.view(RLs, "front", (320, 110), 2.0, label="05 — РОЗРІЗ (2:1)", section=(RLs, (0, 0, 0), (0, 1, 0)), label_dy=14)
+    open(f"{OUT}/04_felt_pad_relief_lid.svg", "w").write(S.svg())
 import glob as _g
 for _f in _g.glob(f"{OUT}/04_liner.svg"):
     os.remove(_f)
@@ -238,23 +267,23 @@ print("sheet 4")
 # ======================================================================
 S = DR.Sheet("Збірка", "Складальне креслення, специфікація (BOM)", "див. специфікацію", "1:1", 5, NS,
              notes=["Девайс IQOS ILUMA ONE (121.6×30.6×16.4, 68.5 г) — не входить до комплекту, показано довідково.",
-                    "Кришка ставиться язичком до виїмки на задній грані (язичок — фіксатор положення); кришечка — язичком до виїмки справа. Знімаються пальцем за язичок.",
+                    "Кришка ставиться язичком до виїмки на задній грані (язичок — фіксатор положення); знімається пальцем за язичок." + ("" if not P.has_relief_lid() else " Кришечка — язичком до виїмки справа."),
                     f"Девайс — USB-C донизу, кнопкою до фронту: світлова смужка (z {d['btn_z1']:.0f}–{d['led_z1']:.0f}) і кнопка (z {d['btn_z0']:.0f}–{d['btn_z1']:.0f}) — над корпусом; під кнопкою — проріз-вітрина."])
 asm_full = cq.Compound.makeCompound([body, lid, oring, liner, dev, _led, _btn])
-VA5 = S.view(asm_full, "front", (88, 150), 1.0, hidden=False, label="ЗБІРКА — ФРОНТАЛЬНИЙ ВИГЛЯД")
+VA5 = S.view(asm_full, "front", (88, 176), 1.0, hidden=False, label="ЗБІРКА — ФРОНТАЛЬНИЙ ВИГЛЯД", label_dy=12)
 VA5.dim((cx + 8.2, -45, H), (cx + 8.2, -45, H + v(p.DEV_PROTRUDE)), "v", off=14, txt=f"{v(p.DEV_PROTRUDE):.0f} (виступ девайса)")
 VA5.dim((-60, -45, 0), (-60, -45, H + v(p.DEV_PROTRUDE)), "v", off=-10, txt=f"{H + v(p.DEV_PROTRUDE):.0f}")
-VBot = S.view(body, "bottom", (88, 238), 0.5, hidden=False, label="ВИД ЗНИЗУ (1:2) — кришку знято", label_dy=10)
+VBot = S.view(body, "bottom", (88, 250), 0.5, hidden=False, label="ВИД ЗНИЗУ (1:2) — кришку знято", label_dy=10)
 asmB = cq.Compound.makeCompound([keep(s_, "y", cy, +1) for s_ in (body, lid, oring, liner, dev)])
-VB5 = S.view(asmB, "front", (218, 150), 1.0, hidden=False, label="РОЗРІЗ B-B (вісь кишені)",
+VB5 = S.view(asmB, "front", (218, 176), 1.0, hidden=False, label="РОЗРІЗ B-B (вісь кишені)", label_dy=12,
              section=(asmB, (0, cy, 0), (0, 1, 0)))
 rows = [("1", "01", "Корпус монолітний", "декор. бетон / GFRC", "1", f"{mass_body:.2f} кг" if mass_body else ""),
         ("1a", "07/08", "Фарба логотипа STICK/BOX", "RAL 7016 / бірюзов.", "—", "після лиття"),
         ("2", "02", "Кришка нижня з пробкою", "декор. бетон / GFRC", "1", f"{mass_lid:.3f} кг" if mass_lid else ""),
         ("3", "03", f"Ущільнювач: шнур Ø4 × {d['seal_cut_len']:.0f}", "силіконова губка", "1", "покупне"),
         ("4", "04", "Підкладка кишені", f"повсть {fx:.0f}×{fy:.0f}×{v(p.LINER_FLOOR):.0f}", "1", "вирубка"),
-        ("5a", "05", "Кришечка полегшення", "декор. бетон / GFRC", "1", f"{AN.get('mass', {}).get('relief_lid', {}).get('mass_kg', 0):.3f} кг"),
-        ("5b", "06", f"Шнур Ø3 × {d['rl_seal_cut_len']:.0f} (кришечка)", "силіконова губка", "1", "покупне"),
+        *([("5a", "05", "Кришечка полегшення", "декор. бетон / GFRC", "1", f"{AN.get('mass', {}).get('relief_lid', {}).get('mass_kg', 0):.3f} кг"),
+           ("5b", "06", f"Шнур Ø3 × {d['rl_seal_cut_len']:.0f} (кришечка)", "силіконова губка", "1", "покупне")] if P.has_relief_lid() else []),
         ("5", "—", "Опори самоклеючі Ø8×1", "PU / повсть (опція)", "4", "покупне"),
         ("—", "90", "IQOS ILUMA ONE (довідково)", "—", "—", "68.5 г")]
 DR.table(S, 282, 40, ["Поз.", "Позн.", "Найменування", "Матеріал", "К-сть", "Прим."], rows,
@@ -267,9 +296,10 @@ if os.path.exists(_cp):
 else:
     CAPTXT = "див. reports/capacity_sim.json"
 st = AN.get("stability", {})
-rows2 = [("Габарити (Ш×Г×В)", "120 × 90 × 95 мм"), ("Чистий об'єм порожнини", f"{kc.get('net_volume_ml', 302):.0f} мл"),
+rows2 = [("Габарити (Ш×Г×В)", "120 × 90 × 95 мм"), ("Чистий об'єм порожнини", f"{kc.get('net_volume_ml', 302):.0f} мл" + (f" (Г-резервуар: {kc['main_ml']:.0f} + плече {kc['arm_ml']:.0f})" if kc.get('arm_ml') else "")),
          ("Місткість (симуляція, див. звіт)", CAPTXT),
-         ("Маса комплекту без девайса", f"{AN.get('assembly', {}).get('mass_kg', 0):.2f} кг (ρ 2000); 0.92 кг (ρ 1800)"),
+         ("Маса комплекту без девайса", (lambda vc_: f"{vc_ * 2.0e-3:.2f} кг (ρ 2000); {vc_ * 1.8e-3:.2f} (ρ 1800); {vc_ * 1.75e-3:.2f} (ρ 1750)")(
+             sum(AN.get('mass', {}).get(k_, {}).get('volume_ml', 0) for k_ in ('body', 'lid', 'relief_lid')))),
          ("Кут статичного перекидання", f"{st.get('tip_angle_deg', 0):.0f}°"),
          ("Отвір / воронка", "Ø8 ⊕ / Ø22, пряма ділянка 2 мм")]
 DR.table(S, 282, 102, ["Характеристика", "Значення"], rows2, [52, 77], size=2.6)
@@ -289,7 +319,7 @@ tool_asm = cq.Compound.makeCompound([flip(keep(s, "y", 0, -1)) for s in
                                      (T["body_sleeve"], sil, T["core_silicone"], T["core_spine_bridge"], T["finger_stiffener"], casting)])
 S = DR.Sheet("Оснащення", "Схема лиття корпусу «догори дном» — розріз по осі воронки", "див. перелік оснащення", "1:1", 6, NS,
              notes=["Базування: майстер T01 → плита T03 (штифти) → гільза T02 → міст T05; міст стягується 4 шпильками M5 крізь вушка гільзи (сердечник не спливає).",
-                    "Отвір Ø8 — телескопічний стик: шпилька форми заходить у гніздо сердечника на 3 мм. Вкладки виїмок (задня — кришки, права — кришечки) — натяг 1.0 мм у стінку форми.",
+                    "Отвір Ø8 — телескопічний стик: шпилька форми заходить у гніздо сердечника на 3 мм. Вкладка виїмки (задня грань) — натяг 1.0 мм у стінку форми; плече сердечника (Г-резервуар) — суцільний силікон, виймається вздовж рампи.",
                     "Масштаб формотворчої геометрії ×1.002 (усадка); калібрувати за пробними виливками."])
 VT6 = S.view(tool_asm, "front", (122, 72), 1.0, hidden=False, label="РОЗРІЗ ОСНАЩЕННЯ (положення лиття, 1:1)",
              section=(tool_asm, (0, 0, 0), (0, 1, 0)), label_dy=14)
@@ -308,7 +338,7 @@ rows3 = [("T01", "Майстер-модель зовн. форми", "друк �
          ("T06", "Форма для силіконової чашки", "друк PETG / смола"),
          ("T07", "Сердечник (силікон)", "платин. силікон ShA 25–30"),
          ("T08–T10", "Майстер, гільза, плита форми кришки", "друк"),
-         ("T18–T20", "Майстер, гільза, плита форми кришечки полегшення", "друк смола / FDM"),
+         *([("T18–T20", "Майстер, гільза, плита форми кришечки полегшення", "друк смола / FDM")] if P.has_relief_lid() else []),
          ("T13–T14", "Калібр отвору Ø7.90, імітатор HEETS Ø7.42", "друк смола"),
          ("T17", "Тримач ребра «пальця» (заливка силікону)", "друк PETG")]
 DR.table(S, 235, 40, ["Поз.", "Найменування", "Матеріал / процес"], rows3, [16, 70, 62], size=2.6)

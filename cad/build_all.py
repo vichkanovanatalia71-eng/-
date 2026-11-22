@@ -42,8 +42,10 @@ def main():
     oring = P.oring()
     oring_free = P.oring_free()
     felt = P.felt_pad()
-    rlid = P.relief_lid()
-    rseal = P.relief_seal()
+    RL = P.has_relief_lid()           # v3.0: кришечки немає (Г-резервуар) — деталі 05/06 не експортуються
+    rlid = P.relief_lid() if RL else None
+    rseal = P.relief_seal() if RL else None
+    nn = lambda L: [x for x in L if x[1] is not None]
     logo_s = P.logo_fill("GREY")   # STICK + стік-i знака → RAL 7016
     logo_b = P.logo_fill("TEAL")   # BOX + хвиля знака → бірюзовий
     dev = P.device()
@@ -52,6 +54,7 @@ def main():
             ("03_seal_silicone_sponge_cord_D4_installed", oring, "oring"), ("04_felt_pad_device_pocket", felt, "liner"),
             ("05_relief_lid_concrete", rlid, "lid"), ("06_relief_seal_sponge_cord_D3_installed", rseal, "oring"),
             ("07_paint_mask_GREY_RAL7016_STICK_and_mark_bar", logo_s, "liner"), ("08_paint_mask_TEAL_BOX_and_mark_swoosh", logo_b, "oring")]
+    prod = nn(prod)
     for name, sh, _ in prod:
         X.export_step(sh, f"{EXP}/step/{name}.step")
         X.export_stl(sh, f"{EXP}/stl/{name}.stl")
@@ -60,9 +63,9 @@ def main():
     X.export_step(dev, f"{EXP}/step/90_ref_IQOS_ILUMA_ONE_envelope.step")
     assy = prod + [("90_ref_ILUMA_ONE_envelope", dev, "device")]
     X.export_assembly_step(assy, f"{EXP}/step/00_STICKBOX_01_Monolith_assembly.step")
-    X.export_glb([("body", body, "body"), ("lid", lid, "lid"), ("oring", oring, "oring"), ("felt", felt, "liner"),
+    X.export_glb(nn([("body", body, "body"), ("lid", lid, "lid"), ("oring", oring, "oring"), ("felt", felt, "liner"),
                   ("rlid", rlid, "lid"), ("rseal", rseal, "oring"), ("logo_stick", logo_s, "liner"), ("logo_box", logo_b, "oring"),
-                  ("device", dev, "device"), ("ctrl_led", led, "liner"), ("ctrl_btn", btn, "liner")], f"{EXP}/glb/STICKBOX_01_Monolith_assembly.glb")
+                  ("device", dev, "device"), ("ctrl_led", led, "liner"), ("ctrl_btn", btn, "liner")]), f"{EXP}/glb/STICKBOX_01_Monolith_assembly.glb")
     print("product exported", round(time.time() - t0, 1))
 
     # ---------------- оснащення ----------------
@@ -100,20 +103,18 @@ def main():
     sil_lid = lid_in.cut(T["lid_master"])
     X.export_step(sil_body, f"{TOOL}/step/T15_ref_outer_silicone_mold_body.step")
     X.export_step(sil_lid, f"{TOOL}/step/T16_ref_silicone_mold_lid.step")
-    rx0, rx1, ry0, ry1, rz0, rz1 = M._lid_sleeve_dims("relief")
-    rl_in = M._rrp(((rx0 + rx1) / 2, (ry0 + ry1) / 2), rx1 - rx0, ry1 - ry0, 6, rz0, rz1 - rz0)
-    sil_rlid = rl_in.cut(T["rlid_master"])
     rho_s = v(p.RHO_SILICONE)
     silicone = {
         "outer_mold_body_ml": sil_body.Volume() / 1000,
         "core_cup_ml": T["core_silicone"].Volume() / 1000,
         "lid_mold_ml": sil_lid.Volume() / 1000,
-        "relief_lid_mold_ml": sil_rlid.Volume() / 1000,
     }
-    silicone["outer_mold_body_kg"] = silicone["outer_mold_body_ml"] * rho_s / 1e6
-    silicone["core_cup_kg"] = silicone["core_cup_ml"] * rho_s / 1e6
-    silicone["lid_mold_kg"] = silicone["lid_mold_ml"] * rho_s / 1e6
-    silicone["relief_lid_mold_kg"] = silicone["relief_lid_mold_ml"] * rho_s / 1e6
+    if RL:
+        rx0, rx1, ry0, ry1, rz0, rz1 = M._lid_sleeve_dims("relief")
+        rl_in = M._rrp(((rx0 + rx1) / 2, (ry0 + ry1) / 2), rx1 - rx0, ry1 - ry0, 6, rz0, rz1 - rz0)
+        silicone["relief_lid_mold_ml"] = rl_in.cut(T["rlid_master"]).Volume() / 1000
+    for k in list(silicone):
+        silicone[k.replace("_ml", "_kg")] = silicone[k] * rho_s / 1e6
     print("tooling exported", round(time.time() - t0, 1))
 
     # GLB для рендерів: оснащення в базуванні лиття
@@ -132,13 +133,13 @@ def main():
                  ("oring_sec", oring.cut(cut_y), "oring")]
     X.export_glb(sec_parts, f"{SCR}/section_y0.glb")
     cut_p = M.box(-big, big, P.d["pocket_cy"], big, -big, big)
-    X.export_glb([("body_secp", body.cut(cut_p), "body"), ("lid_secp", lid.cut(cut_p), "lid"),
+    X.export_glb(nn([("body_secp", body.cut(cut_p), "body"), ("lid_secp", lid.cut(cut_p), "lid"),
                   ("felt_secp", felt.cut(cut_p), "liner"), ("device_secp", dev.cut(cut_p), "device"), ("ctrl_led_secp", led, "liner"), ("ctrl_btn_secp", btn, "liner"),
-                  ("rlid_secp", rlid.cut(cut_p), "lid"), ("rseal_secp", rseal.cut(cut_p), "oring"),
-                  ("oring_secp", oring.cut(cut_p), "oring")], f"{SCR}/section_pocket.glb")
-    X.export_glb([("body", body, "body"), ("lid", lid, "lid"), ("oring", oring, "oring"), ("felt", felt, "liner"),
+                  ("rlid_secp", rlid.cut(cut_p) if RL else None, "lid"), ("rseal_secp", rseal.cut(cut_p) if RL else None, "oring"),
+                  ("oring_secp", oring.cut(cut_p), "oring")]), f"{SCR}/section_pocket.glb")
+    X.export_glb(nn([("body", body, "body"), ("lid", lid, "lid"), ("oring", oring, "oring"), ("felt", felt, "liner"),
                   ("rlid", rlid, "lid"), ("rseal", rseal, "oring"), ("logo_stick", logo_s, "liner"), ("logo_box", logo_b, "oring"),
-                  ("device", dev, "device"), ("ctrl_led", led, "liner"), ("ctrl_btn", btn, "liner")], f"{SCR}/assy.glb")
+                  ("device", dev, "device"), ("ctrl_led", led, "liner"), ("ctrl_btn", btn, "liner")]), f"{SCR}/assy.glb")
     # купа стіків у перерізі (з результатів симуляції, якщо є)
     print("glb exported", round(time.time() - t0, 1))
 

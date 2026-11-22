@@ -23,16 +23,17 @@ PRICES = {  # EUR, орієнтовно — ПЕРЕВІРИТИ У ПОСТАЧ
     "labour_eur_per_h": (5, 12),
     "packaging_eur": (1.0, 3.0),
 }
-LABOUR_MIN = 26          # хв на комплект: заміс, лиття 2 форм, розпалублення, шліфування, герметизація, збирання (припущення)
+RL = P.has_relief_lid()
+LABOUR_MIN = 26 if RL else 24   # хв на комплект; v3.0: без кришечки — на одну деталь менше лити, шліфувати, ущільнювати (припущення)
 PAINT_MIN = 8            # хв: фарбування напису і знака у 2 кольори з маскуванням (v2.6, припущення; трафарет скорочує до ~4)
 MOLD_LIFE = (30, 60)     # виливків на комплект форм (припущення до тесту Т12)
 LOSS = 1.10              # втрати суміші 10%
 
 m = R["mass"]
-concrete_kg = (m["body"]["mass_kg"] + m["lid"]["mass_kg"] + m["relief_lid"]["mass_kg"]) * LOSS * 1.01  # + припуск на шліфування
-area_m2 = (P.body().Area() + P.lid().Area() + P.relief_lid().Area()) / 1e6
+concrete_kg = (m["body"]["mass_kg"] + m["lid"]["mass_kg"] + (m["relief_lid"]["mass_kg"] if "relief_lid" in m else 0.0)) * LOSS * 1.01  # + припуск на шліфування
+area_m2 = (P.body().Area() + P.lid().Area() + (P.relief_lid().Area() if RL else 0.0)) / 1e6
 sil = R["silicone"]
-mold_sil_kg = (sil["outer_mold_body_kg"] + sil["core_cup_kg"] + sil["lid_mold_kg"]) * 1.1
+mold_sil_kg = (sil["outer_mold_body_kg"] + sil["core_cup_kg"] + sil["lid_mold_kg"] + sil.get("relief_lid_mold_kg", 0.0)) * 1.1
 tool = R["tooling"]
 fdm_keys = ["T02_body_sleeve", "T03_body_base_plate", "T04_finger_stiffener", "T05_core_spine_bridge", "T09_lid_sleeve", "T10_lid_base_plate", "T17_stiffener_holder", "T19_rlid_sleeve", "T20_rlid_base_plate"]
 resin_keys = ["T01_body_master", "T06_core_mold", "T08_lid_master", "T18_rlid_master", "T13_gauge_hole_go_7p90", "T14_gauge_stick_heets"]
@@ -46,7 +47,8 @@ def add(name, qty, unit, price_key, mult=1.0):
 
 add("Бетонна суміш (корпус + кришка, +10% втрат)", concrete_kg, "кг", "concrete_mix_eur_per_kg")
 add("Повстяна підкладка (вирубка, клейова основа)", 1, "шт", "felt_eur")
-add("Шнур-губка Ø3 кришечки (≈0.09 м) + клей", 1, "компл", "oring_eur", 0.5)
+if RL:
+    add("Шнур-губка Ø3 кришечки (≈0.09 м) + клей", 1, "компл", "oring_eur", 0.5)
 add("Фарба: напис + фірмовий знак (2 кольори), ≈1 мл", 1, "компл", "paint_eur")
 add("Ущільнювач: шнур-губка Ø4 (≈0.26 м) + клей", 1, "компл", "oring_eur")
 add("Герметизація (усі поверхні)", area_m2, "м²", "sealer_eur_per_m2")
