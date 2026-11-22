@@ -30,7 +30,8 @@ d = p.derived()
 
 def mass_props(shape, rho):
     g = GProp_GProps()
-    BRepGProp.VolumeProperties_s(shape.wrapped, g)
+    # v3.1: точне інтегрування (eps) — грані логотипа тепер B-сплайнові, стандартна квадратура дає похибку ~0.4 мл
+    BRepGProp.VolumeProperties_s(shape.wrapped, g, 1e-6)
     c = g.CentreOfMass()
     vol = g.Mass()  # мм³
     return dict(volume_mm3=vol, volume_ml=vol / 1000, mass_kg=vol * 1e-9 * rho,

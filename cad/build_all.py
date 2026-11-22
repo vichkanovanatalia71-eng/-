@@ -104,10 +104,15 @@ def main():
     X.export_step(sil_body, f"{TOOL}/step/T15_ref_outer_silicone_mold_body.step")
     X.export_step(sil_lid, f"{TOOL}/step/T16_ref_silicone_mold_lid.step")
     rho_s = v(p.RHO_SILICONE)
+    from OCP.GProp import GProp_GProps as _GP
+    from OCP.BRepGProp import BRepGProp as _BG
+
+    def _vol(sh):   # v3.1: точне інтегрування (B-сплайнові грані логотипа)
+        g = _GP(); _BG.VolumeProperties_s(sh.wrapped, g, 1e-6); return g.Mass()
     silicone = {
-        "outer_mold_body_ml": sil_body.Volume() / 1000,
-        "core_cup_ml": T["core_silicone"].Volume() / 1000,
-        "lid_mold_ml": sil_lid.Volume() / 1000,
+        "outer_mold_body_ml": _vol(sil_body) / 1000,
+        "core_cup_ml": _vol(T["core_silicone"]) / 1000,
+        "lid_mold_ml": _vol(sil_lid) / 1000,
     }
     if RL:
         rx0, rx1, ry0, ry1, rz0, rz1 = M._lid_sleeve_dims("relief")

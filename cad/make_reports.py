@@ -24,7 +24,7 @@ def f(x, n=2):
 # ------------------------------------------------------------------ протокол
 m = R["mass"]
 L = []
-L.append("# Протокол перевірки геометрії — STICKBOX 01 Monolith (ревізія v3.0)\n")
+L.append("# Протокол перевірки геометрії — STICKBOX 01 Monolith (ревізія v3.1)\n")
 L.append(f"Згенеровано автоматично з B-Rep моделі ({datetime.date.today().isoformat()}). Інструменти: CadQuery 2.8 / OpenCASCADE 7.8, trimesh, MuJoCo.\n")
 L.append("## 1. Валідність тіл\n")
 L.append("| Деталь | B-Rep валідне | Об'єм, мл | Маса, кг (ρ бетону 2000 / силікону 1100) | Центр мас, мм |\n|---|---|---|---|---|")
@@ -157,6 +157,28 @@ if "device_fit" in R:
              f"z {f(sc['button_z'][0],1)}–{f(sc['button_z'][1],1)} — над корпусом {f(sc['button_above_mm'],1)} з {f(sc['button_len_mm'],1)} мм, "
              f"нижні {f(sc['button_below_top_mm'],1)} мм — навпроти прорізу-вітрини (z {f(sc['slot_z'][0],0)}–{f(sc['slot_z'][1],0)}, "
              f"ширина {sc['slot_w_mm']} мм), тож під кнопкою є місце для пальця. Натискається пальцем.\n")
+# v3.1: плавність контурів логотипа (обчислюється з brand.py — ті самі функції, що будують геометрію)
+if v(p.MARK_ON):
+    from stickbox import brand as BR_
+    _mp = BR_.mark_polygons()
+    FI = dict(BR_.FAIR_INFO)
+    _sw = BR_.smooth_face(_mp["swoosh"], lambda q: (q[0], 0.0, q[1]))
+    _et = sorted({e.geomType() for e in _sw.Edges()})
+    _wl = [(ch, sorted({e.geomType() for pg in (g.geoms if g.geom_type == "MultiPolygon" else [g])
+                        for e in BR_.smooth_face(pg, lambda q: (q[0], 0.0, q[1])).Edges()})) for ch, g in BR_.wordmark_polygons()]
+    L.append("## 8b. Контури логотипа (v3.1)\n")
+    L.append("Хвиля знака — не ламана з растрового трасування, а плавні кубічні B-сплайни (штрафні найменші квадрати, "
+             f"крок контрольних точок {v(p.MARK_FAIR_PITCH):.0f} мм); у B-Rep контур хвилі — ребра типу {', '.join(_et)} "
+             f"({len(_sw.Edges())} шт., неперервність C2). Кінчики R{v(p.MARK_TIP_R)}, гачок R{v(p.MARK_HOOK_R)}, кути стіка й «крапки» "
+             f"R{v(p.MARK_BAR_R)} (точні дуги). Літери — криві шрифту Montserrat Bold (≈0.04 мм дискретизація) → B-сплайни між "
+             "справжніми кутами гліфа, прямі — відрізки.\n")
+    L.append("| Ділянка хвилі (між кутами трасування) | Довжина, мм | Контр. точок | Макс. відхилення від трасування, мм | Плавно відсунута від перемички |\n|---|---|---|---|---|")
+    for i, r_ in enumerate(FI["runs"]):
+        L.append(f"| {i + 1} | {r_['len_mm']} | {r_['ctrl']} | {r_['max_dev_from_trace_mm']} | {'так' if r_['pushed'] else '—'} |")
+    L.append(f"\nПеремичка хвиля ↔ стік / «крапка»: **{FI['web_min_mm']} мм** (вимога ≥{v(p.MARK_WEB)}). "
+             f"Відхилення від трасування на звичайних ділянках ≤{max([r_['max_dev_from_trace_mm'] for r_ in FI['runs'] if not r_['pushed']] or [0]):.2f} мм "
+             f"(шум растра ±0.2–0.3 мм); на ділянці біля «крапки» до {max([r_['max_dev_from_trace_mm'] for r_ in FI['runs'] if r_['pushed']] or [0]):.2f} мм — "
+             "крива плавно відведена, щоб зберегти перемичку без зламу. Типи ребер літер: " + "; ".join(f"{ch} — {'/'.join(t)}" for ch, t in _wl) + ".\n")
 L.append("## 9. Оснащення\n")
 L.append("| Позиція | B-Rep валідне | Об'єм, мл | Габарит друку, мм |\n|---|---|---|---|")
 for k, t in R["tooling"].items():

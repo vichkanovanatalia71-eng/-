@@ -42,13 +42,20 @@ def export_3mf(shape, path, tol=0.02, ang=0.1):
     cq.exporters.export(cq.Workplane().add(shape), path, exportType="3MF", tolerance=tol, angularTolerance=ang)
 
 
+FINE = {"body": (0.04, 0.12), "logo_stick": (0.03, 0.1), "logo_box": (0.03, 0.1)}
+
+
 def export_glb(named_shapes, path, tol=0.05, ang=0.15):
-    """named_shapes: list of (name, shape, material_key). Координати: мм, Z-up → glTF Y-up."""
+    """named_shapes: list of (name, shape, material_key[, (tol, ang)]). Координати: мм, Z-up → glTF Y-up."""
     os.makedirs(os.path.dirname(path), exist_ok=True)
     scene = trimesh.Scene()
     rot = trimesh.transformations.rotation_matrix(-np.pi / 2, [1, 0, 0])  # Z-up → Y-up
-    for name, shape, mk in named_shapes:
-        m = mesh_of(shape, tol, ang)
+    for item in named_shapes:
+        name, shape, mk = item[:3]
+        # v3.1: окрема точність; корпус (заглиблення логотипа) і маски фарби — дрібніша сітка, щоб криві лишались плавними
+        t_, a_ = item[3] if len(item) > 3 else FINE.get(name, (tol, ang))
+        t_, a_ = min(t_, tol), min(a_, ang)
+        m = mesh_of(shape, t_, a_)
         m.apply_transform(rot)
         rgb, metal, rough = MATERIALS.get(mk, MATERIALS["master"])
         m.visual = trimesh.visual.TextureVisuals(material=PBRMaterial(
