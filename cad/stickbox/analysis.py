@@ -327,14 +327,16 @@ def device_fit_check(radii=(3.0, 3.5, 5.0, 6.5, 8.2)):
 
 
 def slot_controls_check():
-    """v2.7: чи відкриває проріз-вітрина світлову смужку й кнопку девайса (координати від торця USB-C — фото замовника)."""
-    tol = 2.5   # невизначеність положення органів за фото, мм
-    return dict(ctrl_z=[d["ctrl_z0"], d["ctrl_z1"]], led_z=[d["ctrl_z0"], d["btn_z0"]], button_z=[d["btn_z0"], d["ctrl_z1"]],
-                slot_straight_z=[d["slot_straight_z0"], v(p.H)], slot_tip_z=d["slot_tip_z"],
-                margin_below_mm=d["ctrl_z0"] - d["slot_straight_z0"], covered=bool(d["ctrl_z0"] - tol >= d["slot_straight_z0"] - 1e-6),
-                slot_w_mm=v(p.SLOT_W), ctrl_w_mm=v(p.DEV_CTRL_W), side_margin_mm=(v(p.SLOT_W) - v(p.DEV_CTRL_W)) / 2,
-                ctrl_depth_from_face_mm=v(p.T_FRONT_POCKET) + v(p.DEV_CLEAR),
-                stick_fits_slot=bool(v(p.HEETS_D) < v(p.SLOT_W)))
+    """v2.8: де опиняються світлова смужка й кнопка девайса (USB-C донизу; відлік від торця зі стіком — 2 фото замовника).
+    Вимога: смужка повністю над корпусом; кнопка над корпусом або над прорізом (місце для пальця)."""
+    H = v(p.H)
+    btn_len = d["btn_z1"] - d["btn_z0"]
+    above = max(0.0, d["btn_z1"] - max(d["btn_z0"], H))
+    return dict(led_z=[d["btn_z1"], d["led_z1"]], button_z=[d["btn_z0"], d["btn_z1"]], body_top_z=H,
+                led_fully_above=bool(d["btn_z1"] >= H), button_above_mm=above, button_len_mm=btn_len,
+                button_below_top_mm=max(0.0, H - d["btn_z0"]),
+                slot_z=[d["slot_tip_z"], H], slot_under_button=bool(d["btn_z0"] >= d["slot_straight_z0"]),
+                slot_w_mm=v(p.SLOT_W), ctrl_w_mm=v(p.DEV_CTRL_W))
 
 
 def seal_force_estimate(cld_kpa=(30.0, 60.0), mu=(0.3, 0.7), contact_w=3.0):

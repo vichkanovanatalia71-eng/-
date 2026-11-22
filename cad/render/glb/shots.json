@@ -716,17 +716,17 @@
   "envIntensity": 0.75,
   "exposure": 0.88,
   "bg": "#eadfd1",
-  "out": "17_slot_device_controls.png",
+  "out": "17_device_controls_above_slot.png",
   "cam": {
    "pos": [
-    95,
-    70,
-    210
+    120,
+    125,
+    190
    ],
    "target": [
     40,
-    45,
-    40
+    100,
+    30
    ],
    "fov": 30
   },

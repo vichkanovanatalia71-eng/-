@@ -123,11 +123,11 @@ if "device_fit" in R:
     for t in R["device_fit"]:
         L.append(f"| {t['corner_r_mm']} | {f(t['interference_mm3'],3)} | {f(t['min_clearance_mm'],2)} |")
     sc = R["slot_controls"]
-    L.append(f"\nПроріз-вітрина: пряма ділянка від z = {f(sc['slot_straight_z'][0],1)} до верху, кінець z = {f(sc['slot_tip_z'],1)}. "
-             f"Світлова смужка z {f(sc['led_z'][0],1)}–{f(sc['led_z'][1],1)}, кнопка z {f(sc['button_z'][0],1)}–{f(sc['button_z'][1],1)} "
-             f"(за фото замовника, ±2.5). Запас нижче смужки **{f(sc['margin_below_mm'],1)} мм**; ширина органів {sc['ctrl_w_mm']} мм у прорізі "
-             f"{sc['slot_w_mm']} мм (по {f(sc['side_margin_mm'],2)} мм з боків). Органи на глибині {f(sc['ctrl_depth_from_face_mm'],1)} мм від грані: "
-             f"пальцем не дістати; стік Ø{v(p.HEETS_D)} проходить у проріз — ним можна натиснути кнопку.\n")
+    L.append(f"\nОргани керування девайса (v2.8, USB-C донизу; положення — за 2 фото замовника, розбіжність ≤1 мм): світлова смужка "
+             f"z {f(sc['led_z'][0],1)}–{f(sc['led_z'][1],1)} — **повністю над корпусом** (верх корпусу z = {sc['body_top_z']:.0f}); кнопка "
+             f"z {f(sc['button_z'][0],1)}–{f(sc['button_z'][1],1)} — над корпусом {f(sc['button_above_mm'],1)} з {f(sc['button_len_mm'],1)} мм, "
+             f"нижні {f(sc['button_below_top_mm'],1)} мм — навпроти прорізу-вітрини (z {f(sc['slot_z'][0],0)}–{f(sc['slot_z'][1],0)}, "
+             f"ширина {sc['slot_w_mm']} мм), тож під кнопкою є місце для пальця. Натискається пальцем.\n")
 L.append("## 9. Оснащення\n")
 L.append("| Позиція | B-Rep валідне | Об'єм, мл | Габарит друку, мм |\n|---|---|---|---|")
 for k, t in R["tooling"].items():

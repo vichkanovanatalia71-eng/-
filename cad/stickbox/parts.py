@@ -642,8 +642,8 @@ def device_controls():
         L = z1 - z0
         return (cq.Workplane("XZ", origin=(cx, yf - 0.15, 0)).center(0, (z0 + z1) / 2)
                 .slot2D(L, width, angle=90).extrude(-0.65).val())
-    led = pad(d["ctrl_z0"], d["btn_z0"] - 0.8, w)
-    btn = pad(d["btn_z0"], d["ctrl_z1"], w - 0.3)
+    led = pad(d["btn_z1"] + 0.8, d["led_z1"], w)      # v2.8: смужка ближче до торця зі стіком
+    btn = pad(d["btn_z0"], d["btn_z1"], w - 0.3)
     return led, btn
 
 
