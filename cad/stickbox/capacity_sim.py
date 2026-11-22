@@ -32,6 +32,7 @@ def build_xml(n_sticks, stick_d=None, stick_l=None):
     half_cyl = (sl - sd) / 2
     tan_c = math.tan(math.radians(v(p.DRAFT_CAV)))
     z_floor = d["z_plug_top"] / 1000
+    z_tray = (v(p.LID_RECESS) + v(p.LID_FLOOR)) / 1000 if v(p.LID_TRAY) else z_floor
     z_ceil = d["z_ceil_edge"] / 1000
     mid = (d["z_plug_top"] + d["z_ceil_edge"]) / 2
     side = (v(p.CAV) - 2 * (mid - d["z_reb"]) * tan_c) / 1000  # середній переріз з ухилом
@@ -45,11 +46,21 @@ def build_xml(n_sticks, stick_d=None, stick_l=None):
     xh = (d["cav_xc"] - d["cav_xc"]) / 1000  # отвір на осі порожнини
     R_h = v(p.HOLE_D) / 2000
     walls = f"""
-    <geom name="floor" type="box" size="{hs+t} {hs+t} {4*t}" pos="0 0 {z_floor - 4*t}"/>
+    <geom name="floor" type="box" size="{hs+t} {hs+t} {4*t}" pos="0 0 {z_tray - 4*t}"/>
     <geom type="box" size="{t} {hs+t} {hz + 0.01}" pos="{hs + t} 0 {zc}"/>
     <geom type="box" size="{t} {hs+t} {hz + 0.01}" pos="{-hs - t} 0 {zc}"/>
     <geom type="box" size="{hs+t} {t} {hz + 0.01}" pos="0 {hs + t} {zc}"/>
     <geom type="box" size="{hs+t} {t} {hz + 0.01}" pos="0 {-hs - t} {zc}"/>
+    """
+    if v(p.LID_TRAY):  # борт лотка кришки по периметру (6 мм) до верху пробки
+        sk = (side - d["tray"] / 1000) / 2
+        hzs = (z_floor - z_tray) / 2
+        zs = (z_floor + z_tray) / 2
+        walls += f"""
+    <geom type="box" size="{hs} {sk/2} {hzs}" pos="0 {hs - sk/2} {zs}"/>
+    <geom type="box" size="{hs} {sk/2} {hzs}" pos="0 {-hs + sk/2} {zs}"/>
+    <geom type="box" size="{sk/2} {hs} {hzs}" pos="{hs - sk/2} 0 {zs}"/>
+    <geom type="box" size="{sk/2} {hs} {hzs}" pos="{-hs + sk/2} 0 {zs}"/>
     """
     # стеля: 4 плити навколо центрального квадрата 24×24 мм + 12-кутне кільце (вписаний радіус = R отвору)
     q = 0.012
@@ -104,7 +115,7 @@ def build_xml(n_sticks, stick_d=None, stick_l=None):
     {sticks}
   </worldbody>
 </mujoco>"""
-    return xml, dict(z_floor=z_floor, z_ceil=z_ceil, z_hole_top=d["z_ceil_c"] / 1000 + 0.002, side=side, r=r, half=half_cyl, sl=sl)
+    return xml, dict(z_floor=z_tray, z_ceil=z_ceil, z_hole_top=d["z_ceil_c"] / 1000 + 0.002, side=side, r=r, half=half_cyl, sl=sl)
 
 
 def quat_from_tilt(theta, phi):

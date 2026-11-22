@@ -99,7 +99,7 @@ def _cavity_tool():
     return cav.fuse(reb).fuse(lead).clean()
 
 
-def _funnel_tool(with_flare=True):
+def _funnel_tool(with_flare=True, pin_extra=0.0):
     """Воронка (S-крива, дотична до верху та до отвору) + отвір Ø8 + розтруб на виході."""
     H = v(p.H)
     r_h = v(p.HOOK_H) * 0 + v(p.HOLE_D) / 2
@@ -113,8 +113,8 @@ def _funnel_tool(with_flare=True):
     k1, k2 = 0.55 * (r_f - r_h), 0.45 * fd
     a = math.radians(30.0)  # вхід у горло під 30° до вертикалі
     prof = (cq.Workplane("XZ")
-            .moveTo(0, z_step)
-            .lineTo(r_h, z_step)
+            .moveTo(0, z_step - pin_extra)
+            .lineTo(r_h, z_step - pin_extra)
             .lineTo(r_h, z_t)
             .bezier([(r_h, z_t), (r_h + k2 * math.sin(a), z_t + k2 * math.cos(a)), (r_f - k1, H), (r_f, H)],
                     includeCurrent=False)
@@ -142,8 +142,17 @@ def flare_boss(preload=0.3):
     z_low = z_c - 2.0
     r_low = r_fl + slope * 2.0
     prof = (cq.Workplane("XZ").moveTo(0, z_low).lineTo(r_low, z_low).lineTo(r_step, z_step)
-            .lineTo(r_step, z_step + preload).lineTo(0, z_step + preload).close())
-    return prof.revolve(360, (0, 0, 0), (0, 1, 0)).val().translate(Vector(d["cav_xc"], 0, 0))
+            .lineTo(0, z_step).close())
+    boss = prof.revolve(360, (0, 0, 0), (0, 1, 0)).val()
+    # гніздо телескопічного стику: шпилька форми Ø8 заходить на SOCKET_DEPTH (аудит C3)
+    rs = v(p.HOLE_D) / 2 - 0.05
+    sock = (cq.Workplane("XZ").moveTo(0, z_step - SOCKET_DEPTH).lineTo(rs, z_step - SOCKET_DEPTH)
+            .lineTo(rs, z_step - 0.6).lineTo(rs + 0.6, z_step + 0.01).lineTo(0, z_step + 0.01).close()
+            .revolve(360, (0, 0, 0), (0, 1, 0)).val())
+    return boss.cut(sock).translate(Vector(d["cav_xc"], 0, 0))
+
+
+SOCKET_DEPTH = 3.0
 
 
 def _pocket_tool():
@@ -196,7 +205,7 @@ def _logo_tool(depth_sign=-1):
 
 
 def body(product=True, with_slot=None, with_logo=None, with_cavity=True,
-         with_recess=True, height_extra=0.0, funnel_flare=None):
+         with_recess=True, height_extra=0.0, funnel_flare=None, pin_extra=0.0):
     """
     product=True  — геометрія готового виробу (з притупленнями після шліфування).
     product=False — геометрія для майстер-моделі (без притуплень відкритої грані).
@@ -232,7 +241,7 @@ def body(product=True, with_slot=None, with_logo=None, with_cavity=True,
             print("WARN slot fillet:", ex)
 
     # верхня воронка + отвір + розтруб
-    s = s.cut(_funnel_tool(with_flare=with_cavity if funnel_flare is None else funnel_flare))
+    s = s.cut(_funnel_tool(with_flare=with_cavity if funnel_flare is None else funnel_flare, pin_extra=pin_extra))
     z_t = H - v(p.FUNNEL_DEPTH)
     throat = edges_where(s, lambda e, pts: all(abs(q.z - z_t) < 0.02 for q in pts)
                          and all(math.hypot(q.x - d["cav_xc"], q.y) < v(p.HOLE_D) / 2 + 0.05 for q in pts))
@@ -249,7 +258,7 @@ def body(product=True, with_slot=None, with_logo=None, with_cavity=True,
         s = fillet_edges(s, inner, 0.4)     # притуплення кромки фаски (не ріже О-кільце)
         outer = edges_where(s, lambda e, pts: all(abs(q.z - zr) < 0.02 for q in pts)
                             and all(max(abs(q.x - xc), abs(q.y)) > half_cav + 1.0 for q in pts))
-        s = fillet_edges(s, outer, 0.5)     # внутрішній кут ребейту
+        s = fillet_edges(s, outer, 0.3)     # внутрішній кут ребейту (не зменшує опору фланця)
         if with_recess:
             s = s.cut(_recess_tool())
             def on_recess(e, pts):
@@ -260,10 +269,43 @@ def body(product=True, with_slot=None, with_logo=None, with_cavity=True,
                 s = fillet_edges(s, edges_where(s, on_recess), 1.5)
             except Exception as ex:  # pragma: no cover
                 print("WARN recess fillet:", ex)
+            # кромка «стеля виїмки / стінка порожнини»: по ній проходить ущільнювач (аудит C2) → R1.5
+            rt = d["recess_top"]
+            def ceil_back(e, pts):
+                return (all(abs(q.z - rt) < 0.02 for q in pts)
+                        and all(abs(q.x) <= v(p.RECESS_W) / 2 + 0.05 for q in pts)
+                        and all(q.y > -v(p.D) / 2 + 2.0 for q in pts))
+            try:
+                s = fillet_edges(s, edges_where(s, ceil_back), 1.5)
+            except Exception as ex:  # pragma: no cover
+                print("WARN recess ceiling fillet:", ex)
+
+    if with_cavity and v(p.RELIEF_ON):
+        s = s.cut(_relief_tool(height_extra))
+        rt = d["rel_top"]
+        top_e = edges_where(s, lambda e, pts: all(abs(q.z - rt) < 0.02 for q in pts)
+                            and all(q.x > d["rel_x0"] - 0.5 and q.y > d["rel_y0"] - 0.5 for q in pts))
+        try:
+            s = fillet_edges(s, top_e, 4.0)
+        except Exception as ex:  # pragma: no cover
+            print("WARN relief fillet:", ex)
 
     if with_logo:
         s = s.cut(_logo_tool())
     return s.clean()
+
+
+def _relief_tool(height_extra=0.0):
+    """Полегшувальна порожнина правої колонки: відкрита знизу, ухил 1° (вихід сердечника)."""
+    w = d["rel_x1"] - d["rel_x0"]
+    h = d["rel_y1"] - d["rel_y0"]
+    cx = (d["rel_x0"] + d["rel_x1"]) / 2
+    cy = (d["rel_y0"] + d["rel_y1"]) / 2
+    z0 = -height_extra - 1.0
+    # профіль задано на z = 0; продовжуємо вниз без зміни (низ — відкрита грань)
+    below = prism_rrect(w, h, v(p.RELIEF_R), z0, 0.01, cx=cx, cy=cy)
+    up = prism_rrect(w, h, v(p.RELIEF_R), 0.0, d["rel_top"], cx=cx, cy=cy, taper=v(p.DRAFT_CAV))
+    return below.fuse(up).clean()
 
 
 # --------------------------------------------------------------------------
@@ -274,12 +316,15 @@ def lid(product=True, grind_allow=0.0):
     ft = v(p.FLANGE_T)
     z0 = v(p.LID_RECESS)
     fl = prism_rrect(d["flange"], d["flange"], d["r_flange"], z0 - grind_allow, z0 + ft, cx=xc)
-    plug = prism_rrect(d["plug"], d["plug"], d["r_plug"], z0 + ft - EPS, z0 + d["lid_t"], cx=xc,
+    zt = z0 + d["lid_t"]
+    zc = zt - v(p.PLUG_CHAMF_H)
+    plug = prism_rrect(d["plug"], d["plug"], d["r_plug"], z0 + ft - EPS, zc + EPS, cx=xc,
                        taper=v(p.DRAFT_CAV))
-    s = fl.fuse(plug).clean()
-    # фаска верхньої кромки пробки (заведення)
-    top = max(s.Faces(), key=lambda f: f.Center().z)
-    s = s.chamfer(1.0, None, top.Edges())
+    # верх борту — фаска R×H (≈30°): прибирає кут, що впирається в стінку при перекосі (аудит C1)
+    inset = (zc - (z0 + ft)) * TAN_C
+    ang = math.degrees(math.atan2(v(p.PLUG_CHAMF_R), v(p.PLUG_CHAMF_H)))
+    cap = prism_rrect(d["plug"] - 2 * inset, d["plug"] - 2 * inset, d["r_plug"] - inset, zc, zt, cx=xc, taper=ang)
+    s = fl.fuse(plug).fuse(cap).clean()
     # заокруглення внутрішнього кута фланець/пробка та зовнішньої верхньої кромки фланця
     zf = z0 + ft
     corner = edges_where(s, lambda e, pts: all(abs(q.z - zf) < 0.02 for q in pts)
@@ -287,7 +332,7 @@ def lid(product=True, grind_allow=0.0):
     s = fillet_edges(s, corner, 0.5)
     fl_top = edges_where(s, lambda e, pts: all(abs(q.z - zf) < 0.02 for q in pts)
                          and all(max(abs(q.x - xc), abs(q.y)) > d["flange"] / 2 - 2.0 for q in pts))
-    s = fillet_edges(s, fl_top, 0.6)
+    s = fillet_edges(s, fl_top, 0.3)
     if product:
         bot = min(s.Faces(), key=lambda f: f.Center().z)
         s = s.fillet(0.8, bot.Edges())
@@ -306,6 +351,18 @@ def lid(product=True, grind_allow=0.0):
                 and all(max(abs(q.x - xc), abs(q.y)) > half_gb + 0.5 for q in pts))
     s = fillet_edges(s, edges_where(s, groove_inner), 0.4)
     s = fillet_edges(s, edges_where(s, groove_outer), 0.4)
+    if v(p.LID_TRAY):
+        zf = z0 + v(p.LID_FLOOR)
+        ztop = z0 + d["lid_t"]
+        tray = prism_rrect(d["tray"], d["tray"], d["r_tray"], zf, ztop + 1.0, cx=xc, taper=-v(p.TRAY_DRAFT))
+        tray = tray.fillet(3.0, min(tray.Faces(), key=lambda f: f.Center().z).Edges())
+        s = s.cut(tray)
+        rim = edges_where(s, lambda e, pts: all(abs(q.z - ztop) < 0.02 for q in pts)
+                          and all(max(abs(q.x - xc), abs(q.y)) < d["tray"] / 2 + 1.5 for q in pts))
+        try:
+            s = fillet_edges(s, rim, 1.0)
+        except Exception as ex:  # pragma: no cover
+            print("WARN tray rim fillet:", ex)
     return s.clean()
 
 
@@ -326,7 +383,7 @@ def oring(installed=True):
     z = v(p.LID_RECESS) + (d["groove_z0"] + d["groove_z1"]) / 2
     cs = v(p.ORING_CS)
     a_rad = d["gland_depth"] / 2
-    a_ax = (cs / 2) ** 2 / a_rad
+    a_ax = cs / 2 * 0.98   # губка стискається об'ємно: осьовий розмір ≈ вільному
     half_c = d["groove_bottom_half"] + a_rad
     r_c = d["r_groove_bottom"] + a_rad
     wire = _rrect_wire(half_c, r_c, z, xc)
@@ -336,8 +393,9 @@ def oring(installed=True):
 
 
 def oring_free():
+    """Відріз губчастого шнура у вільному стані, згорнутий у кільце (довжина по центру = seal_cut_len)."""
     cs = v(p.ORING_CS)
-    r_c = v(p.ORING_ID) / 2 + cs / 2
+    r_c = d["seal_cut_len"] / (2 * math.pi)
     return cq.Solid.makeTorus(r_c, cs / 2)
 
 

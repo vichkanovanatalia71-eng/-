@@ -44,12 +44,12 @@ def main():
     liner = P.liner()
     dev = P.device()
     prod = [("01_body_concrete", body, "body"), ("02_lid_concrete", lid, "lid"),
-            ("03_oring_VMQ_74x3_installed", oring, "oring"), ("04_device_liner_silicone", liner, "liner")]
+            ("03_seal_silicone_sponge_cord_D4_installed", oring, "oring"), ("04_device_liner_silicone", liner, "liner")]
     for name, sh, _ in prod:
         X.export_step(sh, f"{EXP}/step/{name}.step")
         X.export_stl(sh, f"{EXP}/stl/{name}.stl")
         X.export_3mf(sh, f"{EXP}/3mf/{name}.3mf")
-    X.export_step(oring_free, f"{EXP}/step/03b_oring_VMQ_74x3_free_state.step")
+    X.export_step(oring_free, f"{EXP}/step/03b_seal_sponge_cord_D4_free_loop.step")
     X.export_step(dev, f"{EXP}/step/90_ref_IQOS_ILUMA_ONE_envelope.step")
     assy = prod + [("90_ref_ILUMA_ONE_envelope", dev, "device")]
     X.export_assembly_step(assy, f"{EXP}/step/00_STICKBOX_01_Monolith_assembly.step")
@@ -61,7 +61,7 @@ def main():
     T = M.all_tooling()
     print_orient = {
         "body_master": lambda s: s, "body_sleeve": lambda s: s, "body_base_plate": lambda s: s,
-        "finger_stiffener": flip, "core_silicone": lambda s: s, "core_spine_bridge": lambda s: s,
+        "finger_stiffener": flip, "stiffener_holder": flip, "core_silicone": lambda s: s, "core_spine_bridge": lambda s: s,
         "core_mold": flip, "lid_master": lambda s: s, "lid_sleeve": lambda s: s, "lid_base_plate": lambda s: s,
         "liner_mold_cup": lambda s: s, "liner_mold_core": flip,
         "gauge_hole_go_7p90": lambda s: s, "gauge_stick_heets": lambda s: s,
@@ -71,7 +71,7 @@ def main():
         "core_spine_bridge": "T05", "core_mold": "T06", "core_silicone": "T07_ref_cast_part",
         "lid_master": "T08", "lid_sleeve": "T09", "lid_base_plate": "T10",
         "liner_mold_cup": "T11", "liner_mold_core": "T12",
-        "gauge_hole_go_7p90": "T13", "gauge_stick_heets": "T14",
+        "gauge_hole_go_7p90": "T13", "gauge_stick_heets": "T14", "stiffener_holder": "T17",
     }
     tool_info = {}
     for k, sh in T.items():

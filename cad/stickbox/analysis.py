@@ -251,6 +251,7 @@ def run(write_to=None):
                                m_dev, min(base_half_min, v(p.W) / 2 - abs(R["assembly"]["com_with_device"][0])))
     R["lid_hook"] = lid_hook_check()
     R["lid_tilt"] = lid_tilt_check()
+    R["seal_force"] = seal_force_estimate()
     R["derived"] = d
     if write_to:
         with open(write_to, "w") as f:
@@ -276,3 +277,15 @@ def lid_tilt_check(angles=(1, 3, 5, 7, 8, 10, 12)):
         out.append(dict(angle_deg=a, interference_mm3=l.intersect(body).Volume(),
                         front_drop_mm=v(p.LID_RECESS) - l.BoundingBox().zmin))
     return out
+
+
+def seal_force_estimate(cld_kpa=(30.0, 60.0), mu=(0.3, 0.7), contact_w=3.0):
+    """Оцінка сили витягування кришки з губчастим шнуром (НЕ вимірювання):
+    F_n = p(25–30% стиснення) × ширина контакту × довжина; F = μ·F_n.
+    p (CLD) — типовий діапазон м'якої/середньої силіконової губки; уточнити за даташитом."""
+    L = d["seal_center_len"]
+    out = {}
+    for p_ in cld_kpa:
+        Fn = p_ * 1e-3 * contact_w * L
+        out[f"cld_{p_:.0f}kPa"] = dict(normal_N=Fn, pull_N=[Fn * m for m in mu])
+    return dict(length_mm=L, contact_w_mm=contact_w, mu=mu, cases=out)
