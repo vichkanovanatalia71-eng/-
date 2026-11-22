@@ -162,9 +162,12 @@ def _pocket_tool():
     wy0 = d["pocket_y"] - 2 * inset
     zf = d["pocket_floor"]
     extra = 2.0
-    # v2.7: заокруглений прямокутник R4 (вгорі) — приймає девайс із будь-яким кутовим радіусом ≥2.8
-    pk = prism_rrect(wx0, wy0, v(p.POCKET_R) - inset, zf, H + extra, cx=d["pocket_cx"], cy=d["pocket_cy"],
-                     taper=-v(p.DRAFT_POCKET))
+    # v2.9: овал (стадіон) під овальний девайс; якщо POCKET_R менший за півширину — заокруглений прямокутник
+    if v(p.POCKET_R) >= d["pocket_x"] / 2 - 1e-6:
+        pk = stadium_prism(wx0, wy0, d["pocket_cx"], d["pocket_cy"], zf, H + extra, taper=-v(p.DRAFT_POCKET))
+    else:
+        pk = prism_rrect(wx0, wy0, v(p.POCKET_R) - inset, zf, H + extra, cx=d["pocket_cx"], cy=d["pocket_cy"],
+                         taper=-v(p.DRAFT_POCKET))
     bot = min(pk.Faces(), key=lambda f: f.Center().z)
     pk = pk.fillet(v(p.POCKET_FLOOR_R), bot.Edges())
     return pk
@@ -371,6 +374,29 @@ def _relief_tool(height_extra=0.0, rebate=True):
 # --------------------------------------------------------------------------
 # Кришка (координати збірки: низ кришки на z = LID_RECESS)
 # --------------------------------------------------------------------------
+def _lid_tab(c_along, edge, sgn, axis, notch_w, z0, grind_allow, ref_c=None):
+    """Язичок кришки: від кромки фланця (edge) назовні до грані корпусу − LID_TAB_INSET, у межах ширини виїмки.
+    axis — вісь, уздовж якої язичок виходить назовні ("y" — задня грань, "x" — права грань)."""
+    w = notch_w - 2 * v(p.LID_TAB_GAP)
+    face = (v(p.D) if axis == "y" else v(p.W)) / 2
+    out = sgn * (face - v(p.LID_TAB_INSET))
+    inn = edge - sgn * 3.0                     # заходить у фланець на 3 мм (злиття)
+    L = abs(out - inn)
+    mid = (out + inn) / 2
+    zb, zt = z0 - grind_allow, z0 + v(p.LID_TAB_T)
+    if axis == "y":
+        t = prism_rrect(w, L, v(p.LID_TAB_R), zb, zt, cx=c_along, cy=mid)
+        top = lambda e, pts: all(abs(q.z - zt) < 0.02 for q in pts) and all(sgn * q.y > sgn * edge + 0.3 for q in pts)
+    else:
+        t = prism_rrect(L, w, v(p.LID_TAB_R), zb, zt, cx=mid, cy=c_along)
+        top = lambda e, pts: all(abs(q.z - zt) < 0.02 for q in pts) and all(sgn * q.x > sgn * edge + 0.3 for q in pts)
+    try:
+        t = fillet_edges(t, edges_where(t, top), 0.8)
+    except Exception as ex:  # pragma: no cover
+        print("WARN tab fillet:", ex)
+    return t
+
+
 def lid(product=True, grind_allow=0.0):
     xc = d["cav_xc"]
     ft = v(p.FLANGE_T)
@@ -393,6 +419,9 @@ def lid(product=True, grind_allow=0.0):
     fl_top = edges_where(s, lambda e, pts: all(abs(q.z - zf) < 0.02 for q in pts)
                          and all(max(abs(q.x - xc), abs(q.y)) > d["flange"] / 2 - 2.0 for q in pts))
     s = fillet_edges(s, fl_top, 0.3)
+    if v(p.LID_TAB_ON):   # v2.9: язичок у виїмці корпусу
+        s_ = 1 if v(p.RECESS_SIDE) > 0 else -1
+        s = s.fuse(_lid_tab(d["recess_x"], s_ * (d["flange"] / 2), s_, "y", v(p.RECESS_W), z0, grind_allow, ref_c=0.0)).clean()
     if product:
         bot = min(s.Faces(), key=lambda f: f.Center().z)
         s = s.fillet(0.8, bot.Edges())
@@ -514,8 +543,11 @@ def felt_pad():
     fx = d["pocket_x"] - 2 * inset - 2 * v(p.POCKET_FLOOR_R) - 2 * v(p.FELT_INSET)
     fy = d["pocket_y"] - 2 * inset - 2 * v(p.POCKET_FLOOR_R) - 2 * v(p.FELT_INSET)
     z0 = d["pocket_floor"]
-    rf = max(1.0, v(p.POCKET_R) - inset - v(p.POCKET_FLOOR_R) - v(p.FELT_INSET))
-    pad = prism_rrect(fx, fy, rf, z0, z0 + v(p.LINER_FLOOR), cx=d["pocket_cx"], cy=d["pocket_cy"])
+    if v(p.POCKET_R) >= d["pocket_x"] / 2 - 1e-6:
+        pad = stadium_prism(fx, fy, d["pocket_cx"], d["pocket_cy"], z0, z0 + v(p.LINER_FLOOR))
+    else:
+        rf = max(1.0, v(p.POCKET_R) - inset - v(p.POCKET_FLOOR_R) - v(p.FELT_INSET))
+        pad = prism_rrect(fx, fy, rf, z0, z0 + v(p.LINER_FLOOR), cx=d["pocket_cx"], cy=d["pocket_cy"])
     top = max(pad.Faces(), key=lambda f: f.Center().z)
     return pad.fillet(0.6, top.Edges())
 
@@ -554,6 +586,8 @@ def relief_lid(product=True, grind_allow=0.0):
     corner = edges_where(s, lambda e, pts: all(abs(q.z - zf) < 0.02 for q in pts)
                          and all(abs(q.x - cx) < d["rl_plug_w"] / 2 + 0.05 and abs(q.y - cy) < d["rl_plug_h"] / 2 + 0.05 for q in pts))
     s = fillet_edges(s, corner, 0.4)
+    if v(p.LID_TAB_ON) and v(p.RL_RECESS_ON):   # v2.9: язичок у виїмці правої грані
+        s = s.fuse(_lid_tab(cy, cx + d["rl_flange_w"] / 2, 1, "x", v(p.RL_RECESS_W), z0, grind_allow)).clean()
     if product:
         bot = min(s.Faces(), key=lambda f: f.Center().z)
         s = s.fillet(0.6, bot.Edges())
@@ -640,8 +674,10 @@ def device_controls():
     w = v(p.DEV_CTRL_W)
     def pad(z0, z1, width):
         L = z1 - z0
-        return (cq.Workplane("XZ", origin=(cx, yf - 0.15, 0)).center(0, (z0 + z1) / 2)
-                .slot2D(L, width, angle=90).extrude(-0.65).val())
+        slab = (cq.Workplane("XZ", origin=(cx, yf - 0.15, 0)).center(0, (z0 + z1) / 2)
+                .slot2D(L, width, angle=90).extrude(-1.5).val())
+        shell = stadium_prism(v(p.DEV_T) + 0.3, v(p.DEV_W) + 0.3, cx, d["pocket_cy"], z0 - 1, z1 + 1)
+        return slab.intersect(shell)   # накладка повторює овальну грань девайса
     led = pad(d["btn_z1"] + 0.8, d["led_z1"], w)      # v2.8: смужка ближче до торця зі стіком
     btn = pad(d["btn_z0"], d["btn_z1"], w - 0.3)
     return led, btn

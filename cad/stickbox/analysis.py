@@ -184,7 +184,13 @@ def lid_hook_check(F=30.0):
     arm = v(p.SHOULDER) / 2 + v(p.LID_GAP)
     M = F * arm
     sigma = 6 * M / (b * t * t)
-    return dict(F_N=F, contact_width_mm=b, arm_mm=arm, sigma_MPa=sigma)
+    out = dict(F_N=F, contact_width_mm=b, arm_mm=arm, sigma_MPa=sigma)
+    if v(p.LID_TAB_ON):   # v2.9: язичок — консоль від кромки фланця, сила на кінці (запас)
+        L = v(p.D) / 2 - v(p.LID_TAB_INSET) - d["flange"] / 2
+        bt, tt = v(p.RECESS_W) - 2 * v(p.LID_TAB_GAP), v(p.LID_TAB_T)
+        out.update(tab_len_mm=L, tab_w_mm=bt, tab_t_mm=tt, tab_sigma_MPa=6 * F * L / (bt * tt * tt),
+                   finger_gap_above_tab_mm=d["recess_top"] - v(p.LID_RECESS) - tt)
+    return out
 
 
 def run(write_to=None):
@@ -311,11 +317,17 @@ def rl_hook_check(F=15.0):
     b = v(p.RL_RECESS_W) - 2 * 1.5
     t = v(p.RL_FLANGE_T)
     arm = (v(p.RL_SHOULDER) - v(p.RL_GAP) + v(p.RL_PLUG_GAP)) / 2
-    return dict(F_N=F, contact_width_mm=b, ledge_mm=v(p.RL_SHOULDER) - v(p.RL_GAP) + v(p.RL_PLUG_GAP),
-                sigma_MPa=6 * F * arm / (b * t * t), groove_above_recess_mm=d["rl_groove_z0"] - d["rl_recess_top"])
+    out = dict(F_N=F, contact_width_mm=b, ledge_mm=v(p.RL_SHOULDER) - v(p.RL_GAP) + v(p.RL_PLUG_GAP),
+               sigma_MPa=6 * F * arm / (b * t * t), groove_above_recess_mm=d["rl_groove_z0"] - d["rl_recess_top"])
+    if v(p.LID_TAB_ON):
+        L = v(p.W) / 2 - v(p.LID_TAB_INSET) - ((d["rel_x0"] + d["rel_x1"]) / 2 + d["rl_flange_w"] / 2)
+        bt, tt = v(p.RL_RECESS_W) - 2 * v(p.LID_TAB_GAP), v(p.LID_TAB_T)
+        out.update(tab_len_mm=L, tab_w_mm=bt, tab_t_mm=tt, tab_sigma_MPa=6 * F * L / (bt * tt * tt),
+                   finger_gap_above_tab_mm=d["rl_recess_top"] - v(p.LID_RECESS) - tt)
+    return out
 
 
-def device_fit_check(radii=(3.0, 3.5, 5.0, 6.5, 8.2)):
+def device_fit_check(radii=(7.0, 7.5, 8.2)):
     """v2.7: посадка девайса для різних кутових радіусів перерізу (реальний — не опублікований).
     Для кожного: перетин з корпусом і мінімальний зазор до бетону (кишеня R4, ухил 0.5°)."""
     body = P.body()
