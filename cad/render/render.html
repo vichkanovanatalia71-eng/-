@@ -84,8 +84,8 @@ const MAT = {
   print_grey: () => new THREE.MeshStandardMaterial({ color: '#8c949c', roughness: 0.6 }),
   ghost: () => new THREE.MeshStandardMaterial({ color: '#d7c8b4', roughness: 0.9, transparent: true, opacity: 0.25, depthWrite: false }),
   felt: () => new THREE.MeshStandardMaterial({ color: S.feltColor || '#3b3a38', roughness: 1.0 }),
-  paint_stick: () => new THREE.MeshStandardMaterial({ color: '#383e42', roughness: 0.55 }),
-  paint_box: () => new THREE.MeshStandardMaterial({ color: '#058b8c', roughness: 0.55 }),
+  paint_stick: () => new THREE.MeshStandardMaterial({ color: '#383e42', roughness: 0.9, envMapIntensity: 0.5 }),  // матова акрилова фарба
+  paint_box: () => new THREE.MeshStandardMaterial({ color: '#058b8c', roughness: 0.9, envMapIntensity: 0.5 }),
 };
 
 const loader = new GLTFLoader();

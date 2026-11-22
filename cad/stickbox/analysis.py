@@ -87,6 +87,9 @@ def classify_regions(pts, nrm):
     reg[fl] = "cavity"   # розтруб формує сердечник
     logo = (pts[:, 1] < -v(p.D) / 2 + v(p.LOGO_DEPTH) + 0.05) & (np.abs(pts[:, 2] - v(p.LOGO_Z)) < 6) & (np.abs(pts[:, 0]) < 30)
     reg[logo] = "logo"
+    if v(p.MARK_ON):
+        mk = (pts[:, 1] < -v(p.D) / 2 + v(p.LOGO_DEPTH) + 0.05) & (np.abs(pts[:, 2] - v(p.MARK_Z)) < v(p.MARK_H) / 2 + 1) & (np.abs(pts[:, 0] - v(p.MARK_X)) < 20)
+        reg[mk] = "logo"
     return reg
 
 

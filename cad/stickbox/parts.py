@@ -198,10 +198,10 @@ def _recess_tool():
 
 
 def _logo_tool(depth_sign=-1):
-    txt = (cq.Workplane("XZ", origin=(0, -v(p.D) / 2 - 0.01, v(p.LOGO_Z)))
-           .text(p.LOGO_TEXT, v(p.LOGO_SIZE), depth_sign * (v(p.LOGO_DEPTH) + 0.01),
-                 fontPath=p.LOGO_FONT, halign="center", valign="center"))
-    return txt.val()
+    """Інструмент дебосингу напису STICKBOX (v2.6: з контурів гліфів Montserrat Bold, див. brand.py)."""
+    from . import brand
+    sols = [s for _, ss in brand.wordmark_solids() for s in ss]
+    return cq.Compound.makeCompound(sols)
 
 
 def body(product=True, with_slot=None, with_logo=None, with_cavity=True,
@@ -305,6 +305,9 @@ def body(product=True, with_slot=None, with_logo=None, with_cavity=True,
 
     if with_logo:
         s = s.cut(_logo_tool())
+        if v(p.MARK_ON):
+            from . import brand
+            s = s.cut(brand.mark_tool())
     return s.clean()
 
 
@@ -547,12 +550,23 @@ def relief_seal():
 
 
 def logo_fill(which="STICK"):
-    """Об'єм дебосингу окремих частин логотипа (під фарбу): STICK — RAL 7016, BOX — бірюзовий."""
-    full = _logo_tool()
-    sols = sorted(full.Solids(), key=lambda so: so.Center().x)
+    """Об'єм дебосингу окремих частин логотипа (під фарбу): STICK + стік знака — RAL 7016;
+    BOX + хвиля знака — бірюзовий. which: STICK | BOX | MARK_SWOOSH | MARK_BAR | GREY | TEAL."""
+    if which.startswith("MARK") or which in ("GREY", "TEAL"):
+        from . import brand
+        ms = brand.mark_solids()
+        if which == "MARK_SWOOSH":
+            return ms["swoosh"]
+        if which == "MARK_BAR":
+            return cq.Compound.makeCompound([ms["stem"], ms["cap"]])
+        txt = logo_fill("STICK" if which == "GREY" else "BOX")
+        extra = [ms["stem"], ms["cap"]] if which == "GREY" else [ms["swoosh"]]
+        return cq.Compound.makeCompound(list(txt.Solids()) + extra)
+    from . import brand
     n = len("STICK")
-    group = sols[:n] if which == "STICK" else sols[n:]
-    return cq.Compound.makeCompound(group)
+    letters = brand.wordmark_solids()
+    group = letters[:n] if which == "STICK" else letters[n:]
+    return cq.Compound.makeCompound([s for _, ss in group for s in ss])
 
 
 def device():

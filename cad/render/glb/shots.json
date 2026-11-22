@@ -626,7 +626,7 @@
  },
  {
   "glb": "assy.glb",
-  "out": "14_logo_two_colors.png",
+  "out": "14_logo_mark_two_colors.png",
   "w": 1600,
   "h": 1000,
   "concrete": "#c2ad92",
@@ -635,21 +635,21 @@
   "bg": "#eadfd1",
   "cam": {
    "pos": [
-    -20,
-    30,
-    170
+    -28,
+    58,
+    196
    ],
    "target": [
     0,
-    24,
-    40
+    46,
+    45
    ],
    "fov": 30
   },
   "keyPos": [
-   -150,
-   300,
-   350
+   -180,
+   320,
+   300
   ]
  },
  {

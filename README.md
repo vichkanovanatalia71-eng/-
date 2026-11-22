@@ -1,4 +1,4 @@
-# STICKBOX 01 Monolith — інженерний пакет (ревізія v2.5)
+# STICKBOX 01 Monolith — інженерний пакет (ревізія v2.6)
 
 Контейнер для використаних стіків TEREA / HEETS із тримачем IQOS ILUMA ONE. Корпус і кришка — з декоративного бетону,
 відливаються в силіконові форми. Пакет містить параметричну CAD-модель, файли для друку оснащення, креслення,
@@ -11,6 +11,7 @@
 |---|---|
 | ![Розріз](renders/08_section_funnel_sticks.png) | ![Вибухова схема](renders/07_exploded.png) |
 | ![Виїмка](renders/12_detail_finger_recess.png) | ![Оснащення](renders/20_tooling_body_casting_section.png) |
+| ![Фірмовий знак і напис](renders/14_logo_mark_two_colors.png) | ![Фронт](renders/04_front_ortho.png) |
 
 ## Ключові характеристики
 
@@ -23,7 +24,7 @@
 | Отвір | Ø8, пряма ділянка 2 мм; воронка Ø22; допустимий нахил стіка 15° (TEREA) / 11.8° (HEETS) |
 | Тримач девайса | Кишеня 18.8 × 33.0 × 85.6 (ухил 0.5°) без вставки; на дні — повстяна підкладка 2 мм на клеї; зазор девайса ≥0.5 мм |
 | Низ | Основна кришка (губка Ø4) + кришечка полегшувальної порожнини (губка Ø3), обидві врівень |
-| Логотип | Дебосинг 0.8 мм, фарбується: STICK — RAL 7016 (темно-сірий), BOX — бірюзовий |
+| Логотип | Фірмовий знак без щита (40 мм) + напис STICKBOX (Montserrat Bold), дебосинг 0.8 мм; фарбується: STICK і стік-i — RAL 7016, BOX і хвиля — бірюзовий |
 | Кришка | Пробка-лоток із губчастим силіконовим шнуром Ø4 (стиснення 27.5%, оцінка сили зняття 7–34 Н), без замків; виїмка 30 × 9.5 в корпусі; перекіс без заклинювання до 8° |
 | Стійкість | Кут перекидання 41° з девайсом |
 | Полегшення | Порожнина 20.5 × 34.5 у правій колонці, закрита знизу кришечкою (`RELIEF_ON`, `RL_ON`) |
@@ -34,6 +35,8 @@
 cad/                      параметрична модель (Python, CadQuery/OpenCASCADE)
   stickbox/params.py      ЄДИНЕ джерело розмірів, кожен параметр зі статусом і джерелом
   stickbox/parts.py       деталі виробу
+  stickbox/brand.py       фірмовий знак і напис: вектор → полігони → тіла дебосингу та маски фарб (data/brand_mark.json)
+  fonts/                  Montserrat Bold (SIL OFL 1.1) для напису
   stickbox/molds.py       оснащення (майстри, гільзи, сердечник, форми кришки та кришечки, калібри)
   stickbox/analysis.py    перевірки: маси, перетини, зазори, товщини, ухили, піднутрення, прохідність стіка, стійкість
   stickbox/capacity_sim.py  фізична симуляція місткості (MuJoCo)
@@ -41,7 +44,7 @@ cad/                      параметрична модель (Python, CadQuer
   cost.py                 калькулятор собівартості  ·  render/  рендер-конвеєр (three.js + Chromium)
 exports/step|stl|3mf|glb  деталі виробу + збірка (STEP зі збіркою, назвами, кольорами)
 tooling/step|stl|3mf      оснащення T01–T10, T13–T20 (STL/3MF уже орієнтовані для друку)
-drawings/                 6 аркушів A3 (SVG) + зведений PDF
+drawings/                 7 аркушів A3 (SVG) + зведений PDF (аркуш 07 — артворк знака й напису, схема фарбування)
 renders/                  фотореалістичні рендери, розрізи, оснащення, варіанти CMF
 reports/                  analysis.json, geometry_protocol.md, capacity_sim*.json, independent_audit.md
 docs/                     документація (нижче)
@@ -58,14 +61,14 @@ docs/                     документація (нижче)
 | [05_production_tech_card](docs/05_production_tech_card.md) | Склад суміші (орієнтири), операції, контроль якості, дефекти лиття, повторюваність |
 | [06_cost_estimate](docs/06_cost_estimate.md) | Собівартість: кількості з CAD × ціни-припущення (редагуються в `cad/cost.py`) |
 | [07_user_guide](docs/07_user_guide.md) | Складання, використання, спорожнення, догляд, застереження |
-| [08_prototype_test_program](docs/08_prototype_test_program.md) | 12 випробувань прототипу з критеріями прийняття |
+| [08_prototype_test_program](docs/08_prototype_test_program.md) | 15 випробувань прототипу з критеріями прийняття |
 | [09_audit](docs/09_audit.md) | Самоаудит і незалежний аудит (4 критичні знахідки виправлено), відкриті ризики |
 | [geometry_protocol](reports/geometry_protocol.md) | Протокол перевірки геометрії (генерується з моделі) |
 
 ## Як перебудувати
 
 ```bash
-python3 -m venv /opt/cadenv && /opt/cadenv/bin/pip install cadquery trimesh numpy scipy shapely manifold3d rtree mujoco
+python3 -m venv /opt/cadenv && /opt/cadenv/bin/pip install cadquery trimesh numpy scipy shapely manifold3d rtree mujoco fonttools
 cd cad
 /opt/cadenv/bin/python build_all.py        # STEP/STL/3MF/GLB + оснащення + аналіз (~1 хв)
 /opt/cadenv/bin/python make_drawings.py    # креслення SVG

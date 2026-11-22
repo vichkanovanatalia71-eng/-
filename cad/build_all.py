@@ -44,13 +44,13 @@ def main():
     felt = P.felt_pad()
     rlid = P.relief_lid()
     rseal = P.relief_seal()
-    logo_s = P.logo_fill("STICK")
-    logo_b = P.logo_fill("BOX")
+    logo_s = P.logo_fill("GREY")   # STICK + стік-i знака → RAL 7016
+    logo_b = P.logo_fill("TEAL")   # BOX + хвиля знака → бірюзовий
     dev = P.device()
     prod = [("01_body_concrete", body, "body"), ("02_lid_concrete", lid, "lid"),
             ("03_seal_silicone_sponge_cord_D4_installed", oring, "oring"), ("04_felt_pad_device_pocket", felt, "liner"),
             ("05_relief_lid_concrete", rlid, "lid"), ("06_relief_seal_sponge_cord_D3_installed", rseal, "oring"),
-            ("07_logo_paint_mask_STICK_RAL7016", logo_s, "liner"), ("08_logo_paint_mask_BOX_turquoise", logo_b, "oring")]
+            ("07_paint_mask_GREY_RAL7016_STICK_and_mark_bar", logo_s, "liner"), ("08_paint_mask_TEAL_BOX_and_mark_swoosh", logo_b, "oring")]
     for name, sh, _ in prod:
         X.export_step(sh, f"{EXP}/step/{name}.step")
         X.export_stl(sh, f"{EXP}/stl/{name}.stl")
