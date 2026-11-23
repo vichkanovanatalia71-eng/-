@@ -381,16 +381,16 @@
   "h": 1050,
   "cam": {
    "pos": [
-    -48,
-    20,
-    -150
+    -30,
+    14,
+    -125
    ],
    "target": [
-    -15,
-    7,
+    0,
+    4,
     -45
    ],
-   "fov": 30
+   "fov": 26
   },
   "concrete": "#c2ad92",
   "keyPos": [
@@ -901,5 +901,88 @@
    260,
    260
   ]
+ },
+ {
+  "glb": "assy.glb",
+  "concrete": "#c2ad92",
+  "exposure": 0.88,
+  "envIntensity": 0.75,
+  "bg": "#eadfd1",
+  "out": "26_lid_tab_back.png",
+  "w": 1400,
+  "h": 1050,
+  "cam": {
+   "pos": [
+    95,
+    120,
+    -175
+   ],
+   "target": [
+    0,
+    4,
+    -8
+   ],
+   "fov": 30
+  },
+  "keyPos": [
+   200,
+   300,
+   -250
+  ],
+  "nodes": {
+   "body": {
+    "visible": false
+   },
+   "felt": {
+    "visible": false
+   },
+   "device": {
+    "visible": false
+   },
+   "logo_stick": {
+    "visible": false
+   },
+   "logo_box": {
+    "visible": false
+   },
+   "nfc_tag": {
+    "visible": false
+   },
+   "ctrl_led": {
+    "visible": false
+   },
+   "ctrl_btn": {
+    "visible": false
+   }
+  }
+ },
+ {
+  "glb": "assy.glb",
+  "concrete": "#c2ad92",
+  "exposure": 0.88,
+  "envIntensity": 0.75,
+  "bg": "#eadfd1",
+  "out": "27_notch_tab_from_below.png",
+  "w": 1400,
+  "h": 1050,
+  "cam": {
+   "pos": [
+    -70,
+    18,
+    -190
+   ],
+   "target": [
+    0,
+    14,
+    -30
+   ],
+   "fov": 30
+  },
+  "keyPos": [
+   -150,
+   250,
+   -300
+  ],
+  "ground": true
  }
 ]

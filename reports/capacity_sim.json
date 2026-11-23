@@ -2,67 +2,45 @@
  "runs": [
   {
    "seed": 0,
-   "no_shake": 60,
-   "with_shake": 60,
-   "shakes": 3,
-   "inside": 60
+   "no_shake": 74,
+   "with_shake": 97,
+   "shakes": 12,
+   "inside": 97,
+   "center_xy_mm": [
+    -15.0,
+    0.0
+   ]
   },
   {
    "seed": 1,
-   "no_shake": 61,
-   "with_shake": 61,
-   "shakes": 3,
-   "inside": 61
+   "no_shake": 79,
+   "with_shake": 80,
+   "shakes": 4,
+   "inside": 80
   },
   {
    "seed": 2,
-   "no_shake": 48,
-   "with_shake": 54,
-   "shakes": 5,
-   "inside": 54
+   "no_shake": 69,
+   "with_shake": 78,
+   "shakes": 6,
+   "inside": 78
   },
   {
    "seed": 3,
-   "no_shake": 44,
-   "with_shake": 56,
-   "shakes": 7,
-   "inside": 56
-  },
-  {
-   "seed": 4,
-   "no_shake": 49,
-   "with_shake": 72,
-   "shakes": 11,
-   "inside": 72
-  },
-  {
-   "seed": 5,
-   "no_shake": 57,
-   "with_shake": 63,
-   "shakes": 4,
-   "inside": 63
-  },
-  {
-   "seed": 6,
-   "no_shake": 42,
-   "with_shake": 62,
-   "shakes": 10,
-   "inside": 62
-  },
-  {
-   "seed": 7,
-   "no_shake": 44,
-   "with_shake": 44,
-   "shakes": 3,
-   "inside": 44
+   "no_shake": 64,
+   "with_shake": 76,
+   "shakes": 6,
+   "inside": 76
   }
  ],
- "no_shake_mean": 50.625,
- "no_shake_min": 42,
- "no_shake_max": 61,
- "with_shake_mean": 59.0,
- "with_shake_min": 44,
- "with_shake_max": 72,
+ "no_shake_mean": 71.5,
+ "no_shake_min": 64,
+ "no_shake_max": 79,
+ "with_shake_mean": 82.75,
+ "with_shake_min": 76,
+ "with_shake_max": 97,
  "stick_d": 7.2,
- "elapsed_s": 780.8659644126892
+ "elapsed_s": 3096.297853946686,
+ "n_max": 220,
+ "version": "v3.6 rect lid plug, L reservoir above rect socket"
 }

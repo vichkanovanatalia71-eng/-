@@ -257,7 +257,7 @@ if "nfc" in R:
                    ("dist_tag_edge_to_device_pocket_mm", "Від краю мітки до кишені девайса (по X), мм"), ("symbol_to_funnel_rim_mm", "Від знака NFC до краю воронки, мм")):
         L.append(f"| {t_} | {N_[k_]} |")
     si_ = N_["symbol"]
-    L.append(f"\nЗнак: «крапка» + 3 дуги (радіуси {', '.join(str(r_) for r_ in si_['radii'])} мм, товщина {v(p.NFC_STROKE)}, перемички {v(p.NFC_GAP)}), "
+    L.append(f"\nЗнак: «крапка» + 3 дуги (радіуси {', '.join(str(r_) for r_ in si_['radii'])} мм, товщина {v(p.NFC_STROKE)}, перемички {v(p.NFC_GAP)}), " +
              (f"під ним «NFC» {v(p.NFC_TEXT_CAP)} мм (перемички між літерами {si_['text_gap_min']} мм); " if v(p.NFC_TEXT_ON) else "без напису «NFC» (v3.7); ") +
              f"габарит {si_['bounds'][2] - si_['bounds'][0]:.1f} × "
              f"{si_['bounds'][3] - si_['bounds'][1]:.1f} мм. Дальність зчитування крізь бетон тут не розраховується — це перевіряє тест Т22 на зразку.\n")
