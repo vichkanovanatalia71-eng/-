@@ -71,12 +71,13 @@ docs/                     документація (нижче)
 | [11_wall_mass_audit](docs/11_wall_mass_audit.md) | v3.4: аудит товщини стінок і маси — чому було 7.5 мм, стінки 5 мм (міцність, лиття, усадка, виймання сердечника), порожнина полегшення, що ще можна, маса за густинами |
 | [10_L_reservoir](docs/10_L_reservoir.md) | v3.0: Г-подібний резервуар під однією кришкою — обмеження ущільнювача, геометрія, міцність, виймання сердечника, місткість, маса й собівартість |
 | [12_full_lid_rect_seal](docs/12_full_lid_rect_seal.md) | v3.5–v3.7: кришка на всю основу → прямокутна пробка й шнур → кришка схована в дні (14 мм, язичок 15 × 5), виступ девайса 48 мм — варіанти, перевірки, маса, стійкість, тести |
+| [13_mold_maker_brief](docs/13_mold_maker_brief.md) | **ТЗ для виробника силіконових форм** (v3.7): що виготовити, склад пакета, вимоги до майстрів і силікону, порядок і критичні елементи кожної форми, приймання, що вказати в пропозиції. PDF + ZIP з файлами — `handoff/` |
 | [geometry_protocol](reports/geometry_protocol.md) | Протокол перевірки геометрії (генерується з моделі) |
 
 ## Як перебудувати
 
 ```bash
-python3 -m venv /opt/cadenv && /opt/cadenv/bin/pip install cadquery trimesh numpy scipy shapely manifold3d rtree mujoco fonttools
+python3 -m venv /opt/cadenv && /opt/cadenv/bin/pip install cadquery trimesh numpy scipy shapely manifold3d rtree mujoco fonttools markdown
 cd cad
 /opt/cadenv/bin/python build_all.py        # STEP/STL/3MF/GLB + оснащення + аналіз (~1 хв)
 /opt/cadenv/bin/python make_drawings.py    # креслення SVG
@@ -86,6 +87,7 @@ cd cad
 /opt/cadenv/bin/python make_viewer_glb.py  # модель для веб-переглядача viewer/
 /opt/cadenv/bin/python -m stickbox.capacity_sim ../reports/capacity_sim.json   # симуляція (~12 хв)
 cd render && npm i three@0.160.0 && node render.js glb/shots.json ../../renders && node svg2pdf.js ../../drawings ../../drawings/STICKBOX_01_Monolith_drawings_A3.pdf
+cd .. && /opt/cadenv/bin/pip install markdown && /opt/cadenv/bin/python make_handoff.py   # ТЗ (PDF) + архів для виробника форм → handoff/
 ```
 
 Будь-яку зміну розміру вносять у `cad/stickbox/params.py`. Решта (деталі, оснащення, креслення, звіти) перебудовується автоматично.
