@@ -166,11 +166,13 @@ def stiffener_holder():
 def _recess_tab(z_from):
     """Вкладка, що формує пальцеву виїмку (від стінки форми до порожнини) + натяг.
     v2.7: виїмка на задній грані, по осі кришки."""
-    w, r = v(p.RECESS_W), v(p.RECESS_R)
+    w, r = v(p.RECESS_W), P.recess_r()
     top = d["recess_top"]
     s_ = 1 if v(p.RECESS_SIDE) > 0 else -1
     y0 = s_ * (v(p.D) / 2 + TAB_PRELOAD)
     y1 = (d["cav_y1"] - v(p.R_CAV)) if s_ > 0 else (d["cav_y0"] + v(p.R_CAV))
+    if v(p.FULL_LID_ON):   # v3.5: виїмка крізь задню стінку 5 мм — вкладка заходить у сердечник на 3 мм
+        y1 = (d["Ly1"] - 3.0) if s_ > 0 else (d["Ly0"] + 3.0)
     prof = (cq.Workplane("XZ", origin=(d["recess_x"], y0, 0))
             .moveTo(-w / 2, z_from).lineTo(w / 2, z_from).lineTo(w / 2, top - r)
             .radiusArc((w / 2 - r, top), -r)
@@ -182,14 +184,18 @@ def _recess_tab(z_from):
 
 def core_outer(neck=BRIDGE_RAISE):
     """Повна формотворча поверхня сердечника (до масштабування)."""
-    z_open = -GA
+    z_open = (d["zb"] if v(p.FULL_LID_ON) else 0.0) - GA
     cav = P._cavity_tool()
     cut = box(-200, 200, -200, 200, z_open, 200)
     core = cav.intersect(cut)
     core = core.fuse(P.flare_boss())
     core = core.fuse(_recess_tab(z_open - neck))
     xc = d["cav_xc"]
-    neck_s = P.prism_rrect(d["reb"], d["reb"], d["r_reb"], z_open - neck, z_open + 0.01, cx=xc)
+    if v(p.FULL_LID_ON):   # v3.5: шийка сердечника — Г-профіль гирла резервуара (разом із заходною фаскою)
+        rad = v(p.LEADIN_LEN) * math.tan(math.radians(v(p.LEADIN_ANGLE)))
+        neck_s = P.S_loft(-rad - 0.2, z_open - neck, -rad - 0.2, z_open + 0.01)   # v3.6: прямокутна
+    else:
+        neck_s = P.prism_rrect(d["reb"], d["reb"], d["r_reb"], z_open - neck, z_open + 0.01, cx=xc)
     core = core.fuse(neck_s)
     if v(p.RELIEF_ON):
         core = core.fuse(relief_core_outer(neck))
@@ -233,19 +239,30 @@ def core_spine_and_bridge():
     """Жорсткий хребет (знімний, ухил 2°) + міст із ніжками та штифтами у вушка гільзи.
     v3.4: на мосту — вставка порожнини полегшення основи (BASE_VOID_ON), виходить униз разом із хребтом."""
     xc = d["cav_xc"] * K
-    z_open = -GA * K
+    FULL = bool(v(p.FULL_LID_ON))
+    z_open = ((d["zb"] if FULL else 0.0) - GA) * K
     zb1 = z_open - BRIDGE_RAISE          # низ мосту
     zb0 = zb1 - BRIDGE_T
     inset = CORE_SKIN
     side0 = v(p.CAV) * K - 2 * inset
     z_top = (d["z_ceil_edge"] - CORE_SKIN) * K
-    spine = (cq.Workplane("XY", origin=(xc, 0, zb1 - 0.01)).sketch().rect(side0, side0).vertices().fillet(8)
-             .finalize().extrude(z_top - zb1, taper=2.0).val())
-    # плита мосту: лише над шийкою сердечника (−1 мм на сторону) — бортик лишається відкритим (аудит M2)
-    neck_w = d["reb"] * K - 2
-    plate = P.prism_rrect(neck_w, neck_w, d["r_reb"] * K - 1, zb0, zb1, cx=xc)
-    for sgn in (-1, 1):   # вушка під центрувальні штифти форми сердечника (поза шийкою)
-        plate = plate.fuse(cyl(6.0, zb0, zb1, xc + sgn * CORE_PIN_X, 0))
+    if FULL:   # v3.5: Г-хребет (Г-профіль мінус шкіра сердечника, ухил 2°) і Г-плита мосту
+        t2 = math.tan(math.radians(2.0))
+        za, zt_ = zb1 / K - 0.01, z_top / K
+        spine = S(P.L_loft(CORE_SKIN, za, CORE_SKIN + (zt_ - za) * t2, zt_))
+        rad = v(p.LEADIN_LEN) * math.tan(math.radians(v(p.LEADIN_ANGLE)))
+        plate = S(P.S_loft(-rad + 0.8, zb0 / K, -rad + 0.8, zb1 / K))   # v3.6: прямокутна плита (під гніздом пробки)
+        neck_w = 0.0
+    else:
+        spine = (cq.Workplane("XY", origin=(xc, 0, zb1 - 0.01)).sketch().rect(side0, side0).vertices().fillet(8)
+                 .finalize().extrude(z_top - zb1, taper=2.0).val())
+        # плита мосту: лише над шийкою сердечника (−1 мм на сторону) — бортик лишається відкритим (аудит M2)
+        neck_w = d["reb"] * K - 2
+        plate = P.prism_rrect(neck_w, neck_w, d["r_reb"] * K - 1, zb0, zb1, cx=xc)
+    for (px_, py_) in core_pins():   # вушка під центрувальні штифти форми сердечника (поза шийкою)
+        plate = plate.fuse(cyl(6.0, zb0, zb1, px_, py_))
+        if v(p.FULL_LID_ON):        # перемичка вушка до плити
+            plate = plate.fuse(box(min(px_, xc), max(px_, xc), py_ - 4, py_ + 4, zb0, zb1).intersect(cyl(abs(px_ - xc) + 1, zb0 - 1, zb1 + 1, px_, py_)))
     for (x, y) in lug_positions():
         ang = math.atan2(y - 0, x - xc)
         L = math.hypot(x - xc, y)
@@ -272,9 +289,18 @@ def core_spine_and_bridge():
         plate = plate.fuse(ins).fuse(pad).fuse(link)
     s = plate.fuse(spine)
     # заливні та вентиляційні отвори в зоні шийки (між хребтом і контуром шийки)
-    r_mid = (side0 / 2 + d["reb"] * K / 2) / 2
-    for (dx, dy, r) in ((-r_mid, 0, 5), (r_mid, 0, 5), (0, -r_mid, 2.5), (0, r_mid, 2.5)):
-        s = s.cut(cyl(r, zb0 - 1, zb1 + 1, xc + dx, dy))
+    if FULL:   # v3.5: смуга між Г-хребтом і краєм плити ≈8.5 мм → отвори Ø6 / Ø4
+        om = (CORE_SKIN + (-v(p.LEADIN_LEN) * math.tan(math.radians(v(p.LEADIN_ANGLE))) + 0.8)) / 2
+        holes = [(d["Lx0"] + om, 0.0, 3.0), (d["Lx1"] - om, (d["Lyc"] + d["Ly1"]) / 2, 3.0),
+                 ((d["Lx0"] + d["Lxc"]) / 2, d["Ly0"] + om, 2.0), (d["cav_xc"], d["Ly1"] - om, 2.0)]
+        if P.rect_lid():   # v3.6: під колонкою тримача — суцільний силікон гнізда; заливний отвір по центру зони колонки
+            holes.append(((d["Lxc"] + d["Lx1"]) / 2, (d["Ly0"] + d["Lyc"]) / 2, 3.0))
+        for (hx, hy, r) in holes:
+            s = s.cut(cyl(r, zb0 - 1, zb1 + 1, hx * K, hy * K))
+    else:
+        r_mid = (side0 / 2 + d["reb"] * K / 2) / 2
+        for (dx, dy, r) in ((-r_mid, 0, 5), (r_mid, 0, 5), (0, -r_mid, 2.5), (0, r_mid, 2.5)):
+            s = s.cut(cyl(r, zb0 - 1, zb1 + 1, xc + dx, dy))
     # вентиляційний канал хребта (зрив вакууму при вийманні)
     s = s.cut(cyl(1.5, zb0 - 1, z_top + 1, xc, 0))
     if v(p.RELIEF_ON):
@@ -284,7 +310,9 @@ def core_spine_and_bridge():
             s = s.cut(cyl(2.0, zb0 - 1, zb1 + 1, rcx * K, rcy * K + dy * (rh * K / 2 - 3.0)))
     # отвори під центрувальні штифти форми сердечника
     for sgn in (-1, 1):
-        s = s.cut(cyl(2.15, zb0 - 1, zb1 + 1, xc + sgn * CORE_PIN_X, 0))
+        pass
+    for (px_, py_) in core_pins():
+        s = s.cut(cyl(2.15, zb0 - 1, zb1 + 1, px_, py_))
     # наскрізні отвори під стяжні шпильки M5 (міст притискається до гільзи — сердечник не спливає)
     for (x, y) in lug_positions():
         s = s.cut(cyl(ROD_HOLE / 2, zb0 - 1, z_open + 1, x, y))
@@ -292,6 +320,19 @@ def core_spine_and_bridge():
 
 
 CORE_PIN_X = d["reb"] * K / 2 + 5.0
+
+
+def core_pins():
+    """Центрувальні штифти мосту у формі сердечника (масштабовані координати), поза контуром сердечника.
+    v3.5: правий штифт — у зоні колонки тримача (поза Г-сердечником), лівий — за лівою стінкою.
+    v3.6: шийка прямокутна (гніздо пробки) — обидва штифти за лівою і правою стінками."""
+    xc = d["cav_xc"] * K
+    if P.rect_lid():   # v3.6: шийка — повний прямокутник; обидва штифти за лівою і правою стінками
+        rad = v(p.LEADIN_LEN) * math.tan(math.radians(v(p.LEADIN_ANGLE)))
+        return [((d["Lx0"] - rad - 0.2) * K - 7.0, 0.0), ((d["Lx1"] + rad + 0.2) * K + 7.0, 0.0)]
+    if v(p.FULL_LID_ON):
+        return [(xc - CORE_PIN_X, 0.0), (d["pocket_cx"] * K, d["pocket_cy"] * K)]
+    return [(xc - CORE_PIN_X, 0.0), (xc + CORE_PIN_X, 0.0)]
 
 
 def core_silicone():
@@ -306,18 +347,21 @@ def core_mold():
     co = S(core_outer())
     bb = co.BoundingBox()
     wall = 4.0
-    z_open = -GA * K
+    z_open = ((d["zb"] if v(p.FULL_LID_ON) else 0.0) - GA) * K
     zb1 = z_open - BRIDGE_RAISE
     neck_w = d["reb"] * K + 8
-    x0 = min(xc - CORE_PIN_X - 5, bb.xmin - wall)
-    x1 = max(xc + CORE_PIN_X + 5, bb.xmax + wall)
+    pins_x = [q[0] for q in core_pins()]
+    x0 = min(xc - CORE_PIN_X - 5, bb.xmin - wall, min(pins_x) - 6)
+    x1 = max(xc + CORE_PIN_X + 5, bb.xmax + wall, max(pins_x) + 6)
     y0 = min(-neck_w / 2 - 6, bb.ymin - wall)
     y1 = max(neck_w / 2 + 6, bb.ymax + wall)
     outer = P.prism_rrect(x1 - x0, y1 - y0, 10, zb1, bb.zmax + wall, cx=(x0 + x1) / 2, cy=(y0 + y1) / 2)
     m = outer.cut(co)
     # штифти центрування мосту (вгору від обідка)
     for sgn in (-1, 1):
-        m = m.fuse(cyl(2.0 - 0.1, zb1 - 5, zb1 + 0.01, xc + sgn * CORE_PIN_X, 0))
+        pass
+    for (px_, py_) in core_pins():
+        m = m.fuse(cyl(2.0 - 0.1, zb1 - 5, zb1 + 0.01, px_, py_))
     return m.clean()
 
 

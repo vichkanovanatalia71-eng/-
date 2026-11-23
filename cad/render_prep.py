@@ -55,7 +55,7 @@ else:
 # купа стіків
 if "--sim" in sys.argv:
     from stickbox import capacity_sim as C
-    r = C.run_once(0, return_poses=True, tilt_x_deg=40.0 if v(p.ARM_ON) else 0.0)   # v3.0: струшування з нахилом до плеча
+    r = C.run_once(0, return_poses=True, n_max=220, tilt_x_deg=40.0 if (v(p.ARM_ON) and not v(p.FULL_LID_ON)) else 0.0)   # v3.0: нахил до плеча; v3.5 — не потрібен
     json.dump(r, open(f"{OUT}/sim_poses.json", "w"))
 r = json.load(open(f"{OUT}/sim_poses.json"))
 xc = P.d["cav_xc"]

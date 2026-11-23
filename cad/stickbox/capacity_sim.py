@@ -46,7 +46,38 @@ def build_xml(n_sticks, stick_d=None, stick_l=None):
     xh = (d["cav_xc"] - d["cav_xc"]) / 1000  # отвір на осі порожнини
     R_h = v(p.HOLE_D) / 2000
     ARM = bool(v(p.ARM_ON))
-    if not ARM:
+    FULL = bool(v(p.FULL_LID_ON))
+    if FULL:
+        # v3.5: Г-резервуар однакового перерізу до лотка кришки (без порогу й рампи); координати X — від осі отвору
+        o = (mid - d["zb"]) * tan_c
+        xc_ = d["cav_xc"]
+        X0, XC, X1 = (d["Lx0"] + o - xc_) / 1000, (d["Lxc"] - o - xc_) / 1000, (d["Lx1"] - o - xc_) / 1000
+        Y0, YC, Y1 = (d["Ly0"] + o) / 1000, (d["Lyc"] + o) / 1000, (d["Ly1"] - o) / 1000
+        def bx(xa, xb, ya, yb, za, zb_):
+            return (f'<geom type="box" size="{(xb - xa) / 2} {(yb - ya) / 2} {(zb_ - za) / 2}" '
+                    f'pos="{(xa + xb) / 2} {(ya + yb) / 2} {(za + zb_) / 2}"/>\n')
+        za, zt_ = z_tray, z_ceil + 0.01
+        walls = bx(X0 - t, X1 + t, Y0 - t, Y1 + t, z_tray - 8 * t, z_tray)                           # дно (лоток)
+        walls += bx(X0 - 2 * t, X0, Y0 - t, Y1 + t, za, zt_) + bx(X0 - t, XC + t, Y0 - 2 * t, Y0, za, zt_)   # ліва, фронт
+        RECT = bool(v(p.FULL_LID_ON)) and bool(v(p.LID_RECT_ON))
+        if RECT:   # v3.6: внизу — прямокутне гніздо пробки; колонка тримача (суцільна) — від z_sock до стелі
+            zs_ = d["z_sock"] / 1000
+            walls += bx(X0 - t, X1 + t, Y0 - 2 * t, Y0, za, zt_) + bx(X1, X1 + 2 * t, Y0 - t, Y1 + t, za, zt_)   # фронт, права
+            walls += bx(XC, X1 + t, Y0 - t, YC, zs_, zt_)                                                       # колонка
+            walls += bx(X0 - t, X1 + t, Y1, Y1 + 2 * t, za, zt_)                                               # задня
+        else:
+            walls += bx(XC, XC + 2 * t, Y0 - t, YC + t, za, zt_) + bx(XC - t, X1 + t, YC - 2 * t, YC, za, zt_)   # колонка
+            walls += bx(X1, X1 + 2 * t, YC - t, Y1 + t, za, zt_) + bx(X0 - t, X1 + t, Y1, Y1 + 2 * t, za, zt_)   # права, задня
+        if v(p.LID_TRAY) and RECT:   # борт лотка кришки — прямокутна пробка
+            sk = (v(p.SKIRT_W) + v(p.PLUG_GAP)) / 1000
+            walls += bx(X0, X0 + sk, Y0, Y1, z_tray, z_floor) + bx(X0, X1, Y0, Y0 + sk, z_tray, z_floor)
+            walls += bx(X1 - sk, X1, Y0, Y1, z_tray, z_floor) + bx(X0, X1, Y1 - sk, Y1, z_tray, z_floor)
+        elif v(p.LID_TRAY):   # борт лотка кришки (Г-пробка) по периметру до верху пробки
+            sk = (v(p.SKIRT_W) + v(p.PLUG_GAP)) / 1000
+            walls += bx(X0, X0 + sk, Y0, Y1, z_tray, z_floor) + bx(X0, XC, Y0, Y0 + sk, z_tray, z_floor)
+            walls += bx(XC - sk, XC, Y0, YC + sk, z_tray, z_floor) + bx(XC - sk, X1, YC, YC + sk, z_tray, z_floor)
+            walls += bx(X1 - sk, X1, YC, Y1, z_tray, z_floor) + bx(X0, X1, Y1 - sk, Y1, z_tray, z_floor)
+    elif not ARM:
         walls = f"""
     <geom name="floor" type="box" size="{hs+t} {hs+t} {4*t}" pos="0 0 {z_tray - 4*t}"/>
     <geom type="box" size="{t} {hs+t} {hz + 0.01}" pos="{hs + t} 0 {zc}"/>
@@ -80,7 +111,7 @@ def build_xml(n_sticks, stick_d=None, stick_l=None):
     <geom type="box" size="{t} {(hs - y0) / 2 + t} {za_h + 0.01}" pos="{x1 + t} {(y0 + hs) / 2} {za_c}"/>
     <geom type="box" size="{(x1 - hs) / 2 + t} {(hs - y0) / 2 + t} {t}" pos="{(hs + x1) / 2} {(y0 + hs) / 2} {z_ceil + t}"/>
     """
-    if v(p.LID_TRAY):  # борт лотка кришки по периметру (6 мм) до верху пробки
+    if v(p.LID_TRAY) and not FULL:  # борт лотка кришки по периметру (6 мм) до верху пробки
         sk = (side - d["tray"] / 1000) / 2
         hzs = (z_floor - z_tray) / 2
         zs = (z_floor + z_tray) / 2
@@ -95,7 +126,11 @@ def build_xml(n_sticks, stick_d=None, stick_l=None):
     ztop = z_ceil
     thick = (zc_c + plate - z_ceil) / 2 + 0.001
     zmid = z_ceil + thick
-    walls += f"""
+    if FULL:   # стеля над усім габаритом Г-профілю навколо квадрата отвору ±q
+        walls += bx(X0 - t, X1 + t, q, Y1 + t, zmid - thick, zmid + thick) + bx(X0 - t, X1 + t, Y0 - t, -q, zmid - thick, zmid + thick)
+        walls += bx(q, X1 + t, -q, q, zmid - thick, zmid + thick) + bx(X0 - t, -q, -q, q, zmid - thick, zmid + thick)
+    else:
+        walls += f"""
     <geom type="box" size="{hs+t} {(hs - q)/2 + t/2} {thick}" pos="0 {q + (hs - q)/2 + t/2} {zmid}"/>
     <geom type="box" size="{hs+t} {(hs - q)/2 + t/2} {thick}" pos="0 {-q - (hs - q)/2 - t/2} {zmid}"/>
     <geom type="box" size="{(hs - q)/2 + t/2} {q} {thick}" pos="{q + (hs - q)/2 + t/2} 0 {zmid}"/>
@@ -112,7 +147,7 @@ def build_xml(n_sticks, stick_d=None, stick_l=None):
     # під кільцем (від стелі-купола до низу прямої ділянки) — розтруб, моделюємо відкритим конусом-сходинкою
     # кутові фаски: коробка, повернута на 45°, грань якої відтинає трикутник з катетом a
     off = (hs - a / 2) * 1.0
-    for sx in (-1, 1):
+    for sx in ((-1, 1) if not FULL else ()):   # v3.5: кути R12 — фаски-апроксимації не потрібні
         for sy in (-1, 1):
             if v(p.ARM_ON) and sx > 0 and sy > 0:
                 continue          # v3.0: кут (+,+) відкритий у плече вище порогу

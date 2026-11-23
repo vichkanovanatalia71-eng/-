@@ -1,59 +1,59 @@
 {
   "mass": {
     "body": {
-      "volume_mm3": 390527.42253380484,
-      "volume_ml": 390.52742253380484,
-      "mass_kg": 0.7810548450676097,
+      "volume_mm3": 318212.20490170765,
+      "volume_ml": 318.21220490170765,
+      "mass_kg": 0.6364244098034153,
       "com": [
-        7.335530203277939,
-        -2.0121635052458555,
-        53.20100198368351
+        5.005437763301499,
+        -1.8570245434268233,
+        59.35506321465553
       ]
     },
     "lid": {
-      "volume_mm3": 47604.340583467776,
-      "volume_ml": 47.604340583467774,
-      "mass_kg": 0.09520868116693557,
+      "volume_mm3": 73153.65178672835,
+      "volume_ml": 73.15365178672836,
+      "mass_kg": 0.14630730357345673,
       "com": [
-        -14.999999982351993,
-        0.30183626369798333,
-        6.656591562162476
+        9.048639247250548e-09,
+        -4.242218655293697e-15,
+        5.668488055487901
       ]
     },
     "oring": {
-      "volume_mm3": 2344.978868220826,
-      "volume_ml": 2.344978868220826,
-      "mass_kg": 0.0025794767550429087,
+      "volume_mm3": 3102.7284064010237,
+      "volume_ml": 3.102728406401024,
+      "mass_kg": 0.003413001247041126,
       "com": [
-        -15.000000000000002,
-        0.0,
-        13.994637892075627
+        5.276293148359048e-15,
+        1.1725095885242328e-15,
+        13.493355667096983
       ]
     },
     "felt": {
-      "volume_mm3": 609.2279853662317,
-      "volume_ml": 0.6092279853662317,
-      "mass_kg": 0.0002436911941464927,
+      "volume_mm3": 629.5648236007315,
+      "volume_ml": 0.6295648236007315,
+      "mass_kg": 0.00025182592944029264,
       "com": [
-        40.599999999999994,
-        -20.500000000000004,
-        10.39259614768246
+        40.6,
+        -20.499999999999993,
+        27.39273625627321
       ]
     },
-    "device_dummy_volume_ml": 53.222800614492755
+    "device_dummy_volume_ml": 53.22280061449274
   },
   "assembly": {
-    "mass_kg": 0.8790866941837346,
+    "mass_kg": 0.7863965405533534,
     "com": [
-      4.860183790758129,
-      -1.7607686499711126,
-      48.03314322942758
+      4.063861860489988,
+      -1.5094397284087055,
+      49.15751955337071
     ],
-    "mass_with_device_kg": 0.9475866941837346,
+    "mass_with_device_kg": 0.8548965405533534,
     "com_with_device": [
-      7.443775799130476,
-      -3.1154070755166745,
-      49.78013872751255
+      6.991380389149003,
+      -3.031089795868323,
+      52.36598956170492
     ]
   },
   "validity": {
@@ -64,7 +64,7 @@
   },
   "interference_mm3": {
     "body-lid": 0.0,
-    "body-oring": 0.002851605046380712,
+    "body-oring": 0.0,
     "lid-oring": 0.0,
     "body-felt": 0.0,
     "felt-device": 0.0,
@@ -72,130 +72,101 @@
   },
   "min_clearance_mm": {
     "body-lid": 0.0,
-    "body-oring": 2.1390168887322673e-14,
+    "body-oring": 7.105427357601002e-15,
     "lid-oring": 0.0,
-    "body-felt": 1.7763568394002505e-15,
-    "felt-device": 0.0,
-    "body-device": 0.5138582328256659
+    "body-felt": 3.552713678800501e-15,
+    "felt-device": 3.552713678800501e-15,
+    "body-device": 0.6622093362980274
   },
   "cavity": {
-    "net_volume_ml": 429.5451906665753,
-    "arm_ml": 47.91399888582804,
-    "main_ml": 381.63119178074726,
+    "net_volume_ml": 468.45718123297456,
+    "arm_ml": 70.04474095947737,
+    "main_ml": 398.41244027349717,
     "stick_volume_ml": 1.8321768355735677,
     "sticks_at_packing": {
-      "0.4": 93.77810751157217,
-      "0.5": 117.22263438946521,
-      "0.6": 140.66716126735824
+      "0.4": 102.27335530881174,
+      "0.5": 127.84169413601467,
+      "0.6": 153.4100329632176
     }
   },
   "wall_thickness_mm": {
     "outer": {
-      "min": 4.499000000000002,
-      "p01": 4.522938219361941,
-      "p05": 5.205104246853754,
-      "median": 9.485490187133
+      "min": 3.761823886080286,
+      "p01": 4.940647076421459,
+      "p05": 5.212419846530631,
+      "median": 6.779909007755718
     },
     "cavity": {
-      "min": 1.8269574450815895,
-      "p01": 4.499000000000002,
-      "p05": 5.0824229710754,
-      "median": 7.688541475866195
-    },
-    "arm": {
-      "min": 0.11326253266836514,
-      "p01": 4.998999999999994,
-      "p05": 4.998999999999997,
-      "median": 8.348214939828548
+      "min": 2.0307821613032218,
+      "p01": 5.0119443091669496,
+      "p05": 5.16841457580474,
+      "median": 6.2812060904606755
     },
     "pocket": {
-      "min": 6.221871309246837,
-      "p01": 7.246493293069173,
-      "p05": 8.714648209252735,
-      "median": 10.53862495627593
+      "min": 5.025369583765374,
+      "p01": 5.1905142227939605,
+      "p05": 5.399000000000001,
+      "median": 10.115507220422659
     },
     "funnel": {
-      "min": 4.933762638613568,
-      "p01": 5.5282116571231565,
-      "p05": 5.854167182388409,
-      "median": 9.519455116035383
+      "min": 4.8337647748333055,
+      "p01": 5.515527685118782,
+      "p05": 5.851586672890175,
+      "median": 9.260268359053883
     },
     "slot": {
-      "min": 6.894988008705091,
-      "p01": 7.164151639202781,
-      "p05": 8.308356144081017,
-      "median": 22.532631565679566
+      "min": 6.663239937477378,
+      "p01": 7.348219071968585,
+      "p05": 8.786873272460825,
+      "median": 18.34991159149192
     },
     "logo": {
-      "min": 0.09155048593311932,
-      "p01": 1.1962623837520796,
-      "p05": 1.938925135192269,
-      "median": 5.956293825385767
+      "min": 0.18558305948924464,
+      "p01": 1.1965489266261973,
+      "p05": 1.864282011554565,
+      "median": 5.998999999999995
     }
   },
   "draft": {
     "cavity": {
-      "area_mm2": 25697.281460504335,
-      "undercut_area_mm2": 1043.7869918670958,
-      "near_zero_draft_area_mm2": 1192.032054267197,
-      "min_draft_deg": -33.03882943637852,
-      "draft_p05_deg": 0.7490966951616698
+      "area_mm2": 35021.380483995985,
+      "undercut_area_mm2": 0.0,
+      "near_zero_draft_area_mm2": 33.087979008576696,
+      "min_draft_deg": 0.0,
+      "draft_p05_deg": 0.7490966951616207
     },
     "pocket": {
-      "area_mm2": 7470.48580889856,
-      "undercut_area_mm2": 6.574659232330651,
-      "near_zero_draft_area_mm2": 163.82873134501244,
-      "min_draft_deg": -17.655165536672587,
-      "draft_p05_deg": 0.4993977586238896
+      "area_mm2": 6067.5709253547975,
+      "undercut_area_mm2": 5.487091582310258,
+      "near_zero_draft_area_mm2": 161.65688230069688,
+      "min_draft_deg": -17.761715614295106,
+      "draft_p05_deg": 0.4993977586238824
     },
     "funnel": {
-      "area_mm2": 495.1471138273614,
-      "undercut_area_mm2": 17.47649547608403,
+      "area_mm2": 503.08148544687907,
+      "undercut_area_mm2": 25.410867095601677,
       "near_zero_draft_area_mm2": 44.898202718025395,
       "min_draft_deg": -90.0,
-      "draft_p05_deg": 3.5661759221523495
+      "draft_p05_deg": 0.039654383982659656
     },
     "slot": {
-      "area_mm2": 665.33121367028,
-      "undercut_area_mm2": 22.022076845166083,
-      "near_zero_draft_area_mm2": 513.061393728336,
-      "min_draft_deg": -76.21978811756962,
-      "draft_p05_deg": -34.647095466700826
-    },
-    "arm": {
-      "area_mm2": 8113.9370097971405,
-      "undercut_area_mm2": 66.3165943084651,
-      "near_zero_draft_area_mm2": 3800.2243243906096,
-      "min_draft_deg": -29.999999999999996,
-      "draft_p05_deg": 7.463059834911934
+      "area_mm2": 665.3504875831707,
+      "undercut_area_mm2": 22.041355172457216,
+      "near_zero_draft_area_mm2": 513.061389512314,
+      "min_draft_deg": -76.20920069358934,
+      "draft_p05_deg": -34.70487648440302
     }
   },
   "undercut_rays": {
     "cavity": {
-      "faces": 29860,
+      "faces": 69941,
       "blocked_faces": 0,
-      "blocked_area_mm2": 0.0,
-      "rigid_blocked_faces": 4528,
-      "collapse_faces": 4528,
-      "collapse_max_mm": 2.667170381290395,
-      "note": "тонкі стінки: чашка сердечника підтискається на collapse_max_mm, щоб пройти шийку"
+      "blocked_area_mm2": 0.0
     },
     "pocket": {
-      "faces": 19993,
+      "faces": 76256,
       "blocked_faces": 0,
       "blocked_area_mm2": 0.0
-    },
-    "base_void": {
-      "faces": 9126,
-      "blocked_faces": 0,
-      "blocked_area_mm2": 0.0
-    },
-    "arm": {
-      "faces": 6317,
-      "blocked_faces": 1,
-      "blocked_area_mm2": 0.1946565515057072,
-      "path": "уздовж рампи до її початку → горизонтально по порогу → −Z",
-      "stage1_max_travel_mm": 36.88163072532703
     }
   },
   "stick_passage": {
@@ -235,78 +206,88 @@
     ]
   },
   "stability": {
-    "tip_angle_deg": 41.4730363518445,
-    "force_at_device_top_N": 3.075310681785468,
-    "lever_height_mm": 133.0
+    "tip_angle_deg": 40.03832117378945,
+    "force_at_device_top_N": 2.4600502850963295,
+    "lever_height_mm": 150.0
   },
   "lid_hook": {
     "F_N": 30.0,
     "contact_width_mm": 16.0,
-    "arm_mm": 2.0,
-    "sigma_MPa": 1.40625,
-    "tab_len_mm": 4.200000000000003,
-    "tab_w_mm": 28.0,
-    "tab_t_mm": 3.0,
-    "tab_sigma_MPa": 3.0000000000000018,
-    "finger_gap_above_tab_mm": 6.0
+    "arm_mm": 2.75,
+    "sigma_MPa": 1.93359375
   },
   "lid_tilt": [
     {
       "angle_deg": 1,
       "interference_mm3": 0.0,
-      "pull_edge_drop_mm": 1.4550434213698977
+      "pull_edge_drop_mm": 1.5388149722688582
     },
     {
       "angle_deg": 3,
       "interference_mm3": 0.0,
-      "pull_edge_drop_mm": 4.360433261876151
+      "pull_edge_drop_mm": 4.611645951842283
     },
     {
       "angle_deg": 5,
       "interference_mm3": 0.0,
-      "pull_edge_drop_mm": 7.256611979048277
+      "pull_edge_drop_mm": 7.674959644237036
     },
     {
       "angle_deg": 7,
       "interference_mm3": 0.0,
-      "pull_edge_drop_mm": 10.14005102524153
+      "pull_edge_drop_mm": 10.725023873586236
     },
     {
       "angle_deg": 8,
       "interference_mm3": 0.0,
-      "pull_edge_drop_mm": 11.575894540042484
+      "pull_edge_drop_mm": 12.243925424650795
     },
     {
       "angle_deg": 10,
-      "interference_mm3": 1.82373824820856,
-      "pull_edge_drop_mm": 14.433642927061056
+      "interference_mm3": 0.0,
+      "pull_edge_drop_mm": 15.267154179862322
     },
     {
       "angle_deg": 12,
-      "interference_mm3": 10.224038274960819,
-      "pull_edge_drop_mm": 17.26990743654931
+      "interference_mm3": 0.0,
+      "pull_edge_drop_mm": 18.267883552474554
     }
   ],
   "seal_wall": [
     {
-      "z": 11.5,
-      "cavity_loop_xmax": 22.408234073235313,
-      "closed": true
+      "z": 8.5,
+      "outer_wall_continuous": true,
+      "cavity_loop_closed": false,
+      "closed": false,
+      "in_groove": false
     },
     {
-      "z": 14.0,
-      "cavity_loop_xmax": 22.37550728052323,
-      "closed": true
+      "z": 9.5,
+      "outer_wall_continuous": true,
+      "cavity_loop_closed": true,
+      "closed": true,
+      "in_groove": false
     },
     {
-      "z": 16.5,
-      "cavity_loop_xmax": 22.34278048781114,
-      "closed": true
+      "z": 11.0,
+      "outer_wall_continuous": true,
+      "cavity_loop_closed": true,
+      "closed": true,
+      "in_groove": true
     },
     {
-      "z": 18.7,
-      "cavity_loop_xmax": 22.96989595351718,
-      "closed": true
+      "z": 13.5,
+      "outer_wall_continuous": true,
+      "cavity_loop_closed": true,
+      "closed": true,
+      "in_groove": true
+    },
+    {
+      "z": 16.0,
+      "outer_wall_continuous": true,
+      "cavity_loop_closed": true,
+      "closed": true,
+      "in_groove": true
     }
   ],
   "nfc": {
@@ -315,16 +296,16 @@
       -15.0
     ],
     "tag_d": 25.0,
-    "pocket_d_ceil": 26.54,
+    "pocket_d_ceil": 26.51,
     "pocket_d_top": 26.29,
-    "pocket_depth_mm": 3.58,
-    "slab_mm": 9.58,
+    "pocket_depth_mm": 3.16,
+    "slab_mm": 9.16,
     "cover_mm": 6.0,
     "cover_under_symbol_mm": 5.0,
     "tag_radial_clearance_mm": 0.65,
     "tag_body_interference_mm3": 0.0,
-    "margin_to_ceiling_fillet_mm": 2.61,
-    "margin_to_hole_flare_mm": 4.1,
+    "margin_to_ceiling_fillet_mm": 0.7,
+    "margin_to_hole_flare_mm": 4.12,
     "dist_tag_edge_to_device_pocket_mm": 50.7,
     "symbol_to_funnel_rim_mm": 5.54,
     "symbol_bounds": [
@@ -356,33 +337,33 @@
     {
       "corner_r_mm": 7.0,
       "interference_mm3": 0.0,
-      "min_clearance_mm": 0.016820884357902938
+      "min_clearance_mm": 0.1651719878301897
     },
     {
       "corner_r_mm": 7.5,
       "interference_mm3": 0.0,
-      "min_clearance_mm": 0.2239197795527622
+      "min_clearance_mm": 0.37227088302512784
     },
     {
       "corner_r_mm": 8.2,
       "interference_mm3": 0.0,
-      "min_clearance_mm": 0.5138582328256659
+      "min_clearance_mm": 0.6622093362980274
     }
   ],
   "slot_controls": {
     "led_z": [
-      104.9,
-      121.5
+      121.9,
+      138.5
     ],
     "button_z": [
-      94.1,
-      104.9
+      111.1,
+      121.9
     ],
     "body_top_z": 95.0,
     "led_fully_above": true,
-    "button_above_mm": 9.900000000000006,
+    "button_above_mm": 10.800000000000011,
     "button_len_mm": 10.800000000000011,
-    "button_below_top_mm": 0.9000000000000057,
+    "button_below_top_mm": 0.0,
     "slot_z": [
       61.0,
       95.0
@@ -392,7 +373,7 @@
     "ctrl_w_mm": 5.3
   },
   "seal_force": {
-    "length_mm": 266.0947098265569,
+    "length_mm": 347.5062166788898,
     "contact_w_mm": 3.0,
     "mu": [
       0.3,
@@ -400,17 +381,17 @@
     ],
     "cases": {
       "cld_30kPa": {
-        "normal_N": 23.94852388439012,
+        "normal_N": 31.275559501100084,
         "pull_N": [
-          7.1845571653170355,
-          16.763966719073082
+          9.382667850330025,
+          21.892891650770057
         ]
       },
       "cld_60kPa": {
-        "normal_N": 47.89704776878024,
+        "normal_N": 62.55111900220017,
         "pull_N": [
-          14.369114330634071,
-          33.527933438146164
+          18.76533570066005,
+          43.785783301540114
         ]
       }
     }
@@ -422,46 +403,59 @@
     "cav_y0": -37.5,
     "cav_y1": 37.5,
     "t_front_back": 7.5,
-    "z_reb": 4.5,
+    "z_reb": 4.0,
     "reb": 81.0,
     "r_reb": 19.0,
     "flange": 80.0,
-    "r_flange": 18.5,
+    "r_flange": 13.5,
     "plug": 73.2,
     "r_plug": 15.1,
     "plug_h": 16.0,
     "lid_t": 20.0,
-    "z_plug_top": 20.5,
+    "z_plug_top": 20.0,
     "groove_z0": 11.0,
     "groove_z1": 16.0,
-    "groove_depth": 2.0000000000000013,
+    "groove_depth": 2.0,
     "groove_bottom_half": 34.47563818769407,
-    "gland_depth": 2.8999999999999986,
-    "squeeze_pct": 27.500000000000036,
-    "groove_fill_pct": 86.66462492661503,
+    "gland_depth": 2.9,
+    "squeeze_pct": 27.500000000000004,
+    "groove_fill_pct": 86.66462492661499,
     "r_groove_bottom": 12.975638187694065,
-    "groove_perimeter": 253.5283392121977,
-    "seal_center_len": 266.0947098265569,
-    "seal_cut_len": 258.3443784723853,
+    "groove_perimeter": 338.39559798347943,
+    "seal_center_len": 347.5062166788898,
+    "seal_cut_len": 337.38467638727167,
     "oring_stretch_pct": 3.0,
-    "recess_top": 9.5,
+    "recess_top": 9.0,
     "recess_x": -15.0,
+    "flange_w": 119.0,
+    "flange_d": 89.0,
     "liner_in_x": 18.799999999999997,
     "liner_in_y": 33.0,
     "pocket_x": 18.799999999999997,
     "pocket_y": 33.0,
-    "dev_z0": 11.400000000000006,
-    "pocket_floor": 9.400000000000006,
-    "pocket_depth": 85.6,
+    "dev_z0": 28.400000000000006,
+    "pocket_floor": 26.400000000000006,
+    "pocket_depth": 68.6,
     "pocket_cx": 40.6,
     "pocket_cy": -20.5,
-    "pocket_inset_floor": 0.7470198828889523,
-    "liner_wall_bottom": -0.7470198828889523,
+    "pocket_inset_floor": 0.5986631304460529,
+    "liner_wall_bottom": -0.5986631304460529,
     "z_ceil_c": 86.0,
-    "r_dome": 443.207084478804,
-    "z_ceil_edge": 84.5,
-    "partition_at_floor": 9.511164396604649,
-    "partition_at_ceil": 9.84543525253089,
+    "r_dome": 1615.0624999999998,
+    "z_ceil_edge": 84.0,
+    "zb": 4.0,
+    "Lx0": -55.0,
+    "Lx1": 55.0,
+    "Ly0": -39.5,
+    "Ly1": 39.5,
+    "Lxc": 25.205103009160354,
+    "Lyc": 0.10810480685364077,
+    "L_r_out": 12.0,
+    "L_r_col": 8.0,
+    "z_sock": 21.0,
+    "col_slab": 5.400000000000006,
+    "partition_at_floor": 9.59189519314636,
+    "partition_at_ceil": 9.851980611073309,
     "tray": 60.2,
     "r_tray": 8.6,
     "tray_depth": 15.5,
@@ -473,19 +467,19 @@
     "arm_x1": 55.0,
     "arm_y0": 3.5,
     "arm_y1": 37.5,
-    "arm_sill_z": 19.0,
+    "arm_sill_z": 18.5,
     "up_x0": -55.0,
     "up_y0": -39.5,
     "up_y1": 40.0,
     "up_step": 2.5,
     "up_r": 18.5,
     "arm_r": 9.0,
-    "up_z0": 19.0,
-    "up_zt": 23.33012701892219,
+    "up_z0": 18.5,
+    "up_zt": 22.83012701892219,
     "rl_reb_w": 28.0,
     "rl_reb_h": 39.5,
     "rl_r_reb": 9.5,
-    "rl_z_reb": 4.5,
+    "rl_z_reb": 4.0,
     "rl_flange_w": 27.0,
     "rl_flange_h": 38.5,
     "rl_plug_w": 21.2,
@@ -493,11 +487,11 @@
     "rl_r_plug": 6.1,
     "rl_plug_len": 12.600000000000001,
     "rl_t": 16.6,
-    "rl_recess_top": 8.5,
-    "rl_groove_z0": 10.3,
-    "led_z1": 121.5,
-    "btn_z1": 104.9,
-    "btn_z0": 94.1,
+    "rl_recess_top": 8.0,
+    "rl_groove_z0": 9.8,
+    "led_z1": 138.5,
+    "btn_z1": 121.9,
+    "btn_z0": 111.1,
     "slot_straight_z0": 65.0,
     "slot_tip_z": 61.0,
     "rl_groove_depth": 1.3000000000000003,
@@ -506,20 +500,20 @@
   "tooling": {
     "T01_body_master": {
       "valid": true,
-      "volume_ml": 970.0815726135868,
+      "volume_ml": 935.9975774778633,
       "print_bbox_mm": [
         120.3,
         90.2,
-        95.8
+        91.7
       ]
     },
     "T02_body_sleeve": {
       "valid": true,
-      "volume_ml": 361.316465517655,
+      "volume_ml": 348.23359165096133,
       "print_bbox_mm": [
         176.2,
         146.2,
-        110.7
+        106.7
       ]
     },
     "T03_body_base_plate": {
@@ -533,11 +527,11 @@
     },
     "T04_finger_stiffener": {
       "valid": true,
-      "volume_ml": 17.73317957223783,
+      "volume_ml": 15.5379258052808,
       "print_bbox_mm": [
         18.0,
         48.0,
-        96.3
+        79.2
       ]
     },
     "T17_stiffener_holder": {
@@ -551,55 +545,55 @@
     },
     "T07_ref_cast_part_core_silicone": {
       "valid": true,
-      "volume_ml": 327.13628645981635,
+      "volume_ml": 315.6402406115872,
       "print_bbox_mm": [
-        110.3,
-        86.7,
-        93.7
+        113.4,
+        87.3,
+        89.7
       ]
     },
     "T05_core_spine_bridge": {
       "valid": true,
-      "volume_ml": 331.74028775888354,
+      "volume_ml": 397.9705485985365,
       "print_bbox_mm": [
         180.2,
         150.2,
-        86.2
+        81.7
       ]
     },
     "T06_core_mold": {
       "valid": true,
-      "volume_ml": 638.7961839458555,
+      "volume_ml": 658.0236897969859,
       "print_bbox_mm": [
-        124.3,
+        139.2,
         101.2,
-        102.7
+        98.7
       ]
     },
     "T08_lid_master": {
       "valid": true,
-      "volume_ml": 50.911350334754346,
+      "volume_ml": 78.74666373288791,
       "print_bbox_mm": [
-        80.2,
-        84.4,
+        119.2,
+        89.2,
         20.6
       ]
     },
     "T09_lid_sleeve": {
       "valid": true,
-      "volume_ml": 62.45099234878438,
+      "volume_ml": 73.17396212117683,
       "print_bbox_mm": [
-        124.2,
-        128.4,
+        163.2,
+        133.2,
         30.5
       ]
     },
     "T10_lid_base_plate": {
       "valid": true,
-      "volume_ml": 93.08166631304074,
+      "volume_ml": 124.28349541754972,
       "print_bbox_mm": [
-        134.2,
-        138.4,
+        173.2,
+        143.2,
         11.0
       ]
     },
@@ -623,11 +617,11 @@
     }
   },
   "silicone": {
-    "outer_mold_body_ml": 1007.3198700830841,
-    "core_cup_ml": 327.15055832827375,
-    "lid_mold_ml": 292.8810480543362,
-    "outer_mold_body_kg": 1.1080518570913924,
-    "core_cup_kg": 0.35986561416110113,
-    "lid_mold_kg": 0.3221691528597698
+    "outer_mold_body_ml": 971.3589387704786,
+    "core_cup_ml": 315.6377172352168,
+    "lid_mold_ml": 415.4216130624646,
+    "outer_mold_body_kg": 1.0684948326475263,
+    "core_cup_kg": 0.34720148895873854,
+    "lid_mold_kg": 0.45696377436871105
   }
 }

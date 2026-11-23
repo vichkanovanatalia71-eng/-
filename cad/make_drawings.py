@@ -26,7 +26,9 @@ def keep(shape, axis, val, side):
 
 GENERAL = [
     "Загальні допуски литих поверхонь: лінійні ±0.5 (до 120 мм), кутові ±0.5°; функціональні — див. позначення ⊕.",
-    f"⊕ Функціональні розміри (±0.25; отвір ±0.2): ребейт {P.d['reb']:.1f}, порожнина в зоні ущільнення {v(p.CAV):.1f}, кишеня девайса, отвір Ø8.",
+    (f"⊕ Функціональні розміри (±0.25; отвір ±0.2): {'гніздо пробки' if P.rect_lid() else 'Г-резервуар'} біля низу ({P.d['Lx1'] - P.d['Lx0']:.0f} × {P.d['Ly1'] - P.d['Ly0']:.1f}), "
+     f"фланець кришки {P.d['flange_w']:.0f} × {P.d['flange_d']:.0f}, кишеня девайса, отвір Ø8." if v(p.FULL_LID_ON) else
+     f"⊕ Функціональні розміри (±0.25; отвір ±0.2): ребейт {P.d['reb']:.1f}, порожнина в зоні ущільнення {v(p.CAV):.1f}, кишеня девайса, отвір Ø8."),
     "Невказані радіуси литих ребер R0.5–1. Нижня (відкрита) грань — шліфування P120→P220, площинність 0.3, притуплення R≈1.",
 ]
 
@@ -45,7 +47,7 @@ mass_lid = AN.get("mass", {}).get("lid", {}).get("mass_kg")
 # Аркуш 1 — корпус: види
 # ======================================================================
 S = DR.Sheet("Корпус", "Деталь 01 — Корпус монолітний (загальні види)", "декоративний бетон / GFRC-премікс",
-             "1:1", 1, NS, notes=GENERAL + ["Напис STICKBOX, літера I — фірмовий знак (стік-i + хвиля): дебосинг " + f"{v(p.LOGO_DEPTH)}" + " мм. Фарбування після виготовлення: STICK (з I) — RAL 7016 (темно-сірий), хвиля і BOX — бірюзовий (RAL 5018 / еталон бренду).", "Напис — Montserrat Bold, великі літери " + f"{v(p.LOGO_CAP_H)}" + " мм, центр на висоті " + f"{v(p.LOGO_Z):.0f}" + ", ширина " + f"{BR0.wordmark_layout()['info']['width_mm']:.1f}" + "; окремого знака немає (v3.2); перемички між елементами ≥1.2 мм. Виїмка 30 × " + f"{P.d['recess_top']:.1f}" + ", кути R7, кромки R1.5 (вручну)."], mass=(f"Маса ≈ {mass_body:.2f} кг (ρ 2000)" if mass_body else None))
+             "1:1", 1, NS, notes=GENERAL + ["Напис STICKBOX, літера I — фірмовий знак (стік-i + хвиля): дебосинг " + f"{v(p.LOGO_DEPTH)}" + " мм. Фарбування після виготовлення: STICK (з I) — RAL 7016 (темно-сірий), хвиля і BOX — бірюзовий (RAL 5018 / еталон бренду).", "Напис — Montserrat Bold, великі літери " + f"{v(p.LOGO_CAP_H)}" + " мм, центр на висоті " + f"{v(p.LOGO_Z):.0f}" + ", ширина " + f"{BR0.wordmark_layout()['info']['width_mm']:.1f}" + "; окремого знака немає (v3.2); перемички між елементами ≥1.2 мм. " + (f"Виїмка для пальця на задній грані {v(p.RECESS_W):.0f} × {v(p.HOOK_H):.0f} мм над фланцем кришки, кути R{P.recess_r():.1f}, кромки R≈1 (вручну)." if v(p.FULL_LID_ON) else "Виїмка 30 × " + f"{P.d['recess_top']:.1f}" + ", кути R7, кромки R1.5 (вручну).")], mass=(f"Маса ≈ {mass_body:.2f} кг (ρ 2000)" if mass_body else None))
 V = S.view(body, "front", (100, 145), 1.0, label="ФРОНТАЛЬНИЙ ВИГЛЯД")
 V.dim((-60, -45, 0), (60, -45, 0), "h", off=-16)
 V.dim((-60, -45, 0), (-60, -45, H), "v", off=-10)
@@ -59,7 +61,8 @@ VB = S.view(body, "back", (226, 225.5), 0.5, hidden=False)
 S.text((226, 174.5), "ВИГЛЯД ЗЗАДУ (1:2)", 3.6, weight="bold")
 rx = d["recess_x"]
 VB.dim((rx - v(p.RECESS_W) / 2, 45, 0), (rx + v(p.RECESS_W) / 2, 45, 0), "h", off=-5, txt=f"{v(p.RECESS_W):.0f}")
-VB.leader((rx, 45, d["recess_top"]), 14, -16, f"виїмка кришки {v(p.RECESS_W):.0f}×{d['recess_top']:.1f}")
+VB.leader((rx, 45, d["recess_top"]), 14, -16, (f"виїмка для пальця {v(p.RECESS_W):.0f}×{v(p.HOOK_H):.0f} над фланцем" if v(p.FULL_LID_ON)
+                                                 else f"виїмка кришки {v(p.RECESS_W):.0f}×{d['recess_top']:.1f}"))
 rcy_ = (d["rel_y0"] + d["rel_y1"]) / 2
 VR = S.view(body, "right", (322, 225.5), 0.5, hidden=False)
 S.text((322, 174.5), "ВИГЛЯД СПРАВА (1:2)", 3.6, weight="bold")
@@ -101,19 +104,41 @@ print("sheet 1")
 # ======================================================================
 # Аркуш 2 — корпус: розрізи та виносні елементи
 # ======================================================================
+if v(p.FULL_LID_ON):
+    _notes2 = [f"Розріз A-A — по осі воронки (y = 0). Розріз C-C — по осі воронки (x = {xc:.1f}).",
+               (f"Внизу — прямокутне гніздо пробки {d['Lx1'] - d['Lx0']:.0f} × {d['Ly1'] - d['Ly0']:.1f} R{v(p.CAV_R_OUT):.0f} від z = {d['zb']:.0f} до низу колонки тримача "
+                f"z = {d.get('z_sock', 0):.0f} (фаска {v(p.COL_CHAMF):.0f}×45°); вище — Г-резервуар того самого контуру стінок до стелі; ухил {v(p.DRAFT_CAV)}° (вихід сердечника); "
+                if P.rect_lid() else
+                f"Г-резервуар: однаковий переріз від низу корпусу (z = {d['zb']:.0f}, верх фланця кришки) до стелі; ухил {v(p.DRAFT_CAV)}° (вихід сердечника); ") +
+               f"купол стелі R{d['r_dome']:.0f} — стріла {v(p.DOME_SAG_FAR)} мм до найдальшого кута (відведення повітря).",
+               f"Заходна фаска шнура {v(p.LEADIN_ANGLE):.0f}° × {v(p.LEADIN_LEN)} біля низу; кромку виїмки для пальця з боку резервуара притупити R≈1 (вручну).",
+               "Корпус стоїть на фланці кришки — кришка займає всю основу; розрізи через частину резервуара за кишенею девайса — аркуш 4."]
+else:
+    _notes2 = None
 S = DR.Sheet("Корпус", "Деталь 01 — Розрізи A-A, C-C; виносні елементи E (4:1), F (5:1)", "декоративний бетон / GFRC-премікс",
-             "1:1; 4:1; 5:1", 2, NS, notes=[f"Розріз A-A — по осі воронки (y = 0). Розріз C-C — по осі воронки (x = {xc:.1f}).",
+             "1:1; 4:1; 5:1", 2, NS, notes=_notes2 or [f"Розріз A-A — по осі воронки (y = 0). Розріз C-C — по осі воронки (x = {xc:.1f}).",
                                             f"Порожнина: ухил стінок {v(p.DRAFT_CAV)}° (вихід сердечника), купол стелі — стріла {v(p.DOME_SAG)} мм (відведення повітря).",
                                             f"Заходна фаска ущільнювача {v(p.LEADIN_ANGLE):.0f}° × {v(p.LEADIN_LEN)}; кромка стелі виїмки R1.5 (по ній проходить ущільнювач).",
                                             ("Г-резервуар: плече за кишенею девайса з'єднане з основною частиною над порогом z = " + f"{d['arm_sill_z']:.1f}" + " (стінка під ущільнювачем суцільна) — розрізи на аркуші 4. " if v(p.ARM_ON) else "") + "Полегшувальна порожнина правої колонки (відкрита знизу) — див. вид знизу на аркуші 5 і розріз D-D."])
 cutA = keep(body, "y", 0, +1)
 VA = S.view(cutA, "front", (95, 150), 1.0, label="РОЗРІЗ A-A", section=(cutA, (0, 0, 0), (0, 1, 0)))
-VA.dim((d["cav_x0"], 0, 5), (d["cav_x1"], 0, 5), "h", off=-24, txt=f"{v(p.CAV):.1f} ⊕ (низ)")
-VA.dim((xc - d["reb"] / 2, 0, 0), (xc + d["reb"] / 2, 0, 0), "h", off=-12, txt=f"{d['reb']:.1f} ⊕")
+FULL = bool(v(p.FULL_LID_ON))
+if FULL:   # v3.5: Г-резервуар від низу корпусу; корпус стоїть на фланці кришки
+    if P.rect_lid():   # v3.6: гніздо прямокутної пробки на всю ширину; колонка тримача — над ним
+        VA.dim((d["Lx0"], 0, d["zb"] + 1), (d["Lx1"], 0, d["zb"] + 1), "h", off=-14, txt=f"{d['Lx1'] - d['Lx0']:.1f} ⊕ (гніздо)")
+        VA.leader((d["Lxc"] + 6, 0, d["z_sock"]), -22, -26, f"низ колонки z = {d['z_sock']:.0f}, фаска {v(p.COL_CHAMF):.0f}×45°", size=2.6)
+    else:
+        VA.dim((d["Lx0"], 0, d["zb"] + 1), (d["Lxc"], 0, d["zb"] + 1), "h", off=-14, txt=f"{d['Lxc'] - d['Lx0']:.1f} ⊕ (низ)")
+else:
+    VA.dim((d["cav_x0"], 0, 5), (d["cav_x1"], 0, 5), "h", off=-24, txt=f"{v(p.CAV):.1f} ⊕ (низ)")
+    VA.dim((xc - d["reb"] / 2, 0, 0), (xc + d["reb"] / 2, 0, 0), "h", off=-12, txt=f"{d['reb']:.1f} ⊕")
 VA.dim((-60, 0, 0), (-60, 0, d["z_ceil_c"]), "v", off=-8, txt=f"{d['z_ceil_c']:.0f} (стеля, центр)")
 VA.dim((xc + 14, 0, d["z_ceil_c"]), (xc + 14, 0, H), "v", off=6, txt=f"{v(p.T_TOP):.0f}")
-VA.dim((60, 0, 0), (60, 0, d["z_reb"]), "v", off=8, txt=f"{d['z_reb']:.1f} ⊕")
-if v(p.WALL_ON):   # v3.4: зона ущільнення — 7.5; над порогом — тонкі стінки WALL_T (60° перехід)
+VA.dim((60, 0, 0), (60, 0, d["z_reb"]), "v", off=8, txt=(f"{d['zb']:.1f} (фланець кришки)" if FULL else f"{d['z_reb']:.1f} ⊕"))
+if FULL:
+    _tn = math.tan(math.radians(v(p.DRAFT_CAV)))
+    VA.dim((-60, 0, 30), (d["Lx0"] + (30 - d["zb"]) * _tn, 0, 30), "h", off=6, txt=f"{v(p.WALL_T):.0f}")
+elif v(p.WALL_ON):   # v3.4: зона ущільнення — 7.5; над порогом — тонкі стінки WALL_T (60° перехід)
     _tn = math.tan(math.radians(v(p.DRAFT_CAV)))
     VA.dim((-60, 0, 12), (d["cav_x0"] + (12 - d["z_reb"]) * _tn, 0, 12), "h", off=6, txt=f"{v(p.T_LEFT):.1f}")
     _zw = d["up_zt"] + 4
@@ -121,18 +146,25 @@ if v(p.WALL_ON):   # v3.4: зона ущільнення — 7.5; над пор�
     VA.leader((d["up_x0"] + 1.2, 0, (d["up_z0"] + d["up_zt"]) / 2), 22, -26, f"перехід {v(p.WALL_STEP_DEG):.0f}°, z {d['up_z0']:.0f}–{d['up_zt']:.1f}", size=2.6)
 else:
     VA.dim((-60, 0, 30), (d["cav_x0"], 0, 30), "h", off=6, txt=f"{v(p.T_LEFT):.0f}")
-VA.leader((d["cav_x1"] - 0.6, 0, 60), 12, -16, f"ухил {v(p.DRAFT_CAV)}°")
-VA.leader((xc + 20, 0, d["z_ceil_edge"] + 0.5), 18, -22, f"купол R{d['r_dome']:.0f}, стріла {v(p.DOME_SAG)}")
+VA.leader(((d["Lxc"] if FULL else d["cav_x1"]) - 0.6, 0, 60), 12, -16, f"ухил {v(p.DRAFT_CAV)}°")
+VA.leader((xc + 20, 0, d["z_ceil_c"] - 0.2), 18, -22, (f"купол R{d['r_dome']:.0f}, стріла {v(p.DOME_SAG_FAR)} до дальнього кута" if FULL
+                                                    else f"купол R{d['r_dome']:.0f}, стріла {v(p.DOME_SAG)}"))
 cutC = keep(body, "x", xc, +1)
 VC = S.view(cutC, "left", (238, 150), 1.0, label="РОЗРІЗ C-C", section=(cutC, (xc, 0, 0), (1, 0, 0)))
-VC.dim((xc, -45, 0), (xc, d["cav_y0"], 0), "h", off=-8, txt=f"{d['t_front_back']:.1f}")
-if v(p.WALL_ON):
+if FULL:
+    _zw, _tn = 40.0, math.tan(math.radians(v(p.DRAFT_CAV)))
+    VC.dim((xc, -45, _zw), (xc, d["Ly0"] + (_zw - d["zb"]) * _tn, _zw), "h", off=0, txt=f"{v(p.WALL_FRONT_T)}")
+    VC.dim((xc, 45, _zw), (xc, d["Ly1"] - (_zw - d["zb"]) * _tn, _zw), "h", off=0, txt=f"{45 - d['Ly1']:g}")
+else:
+    VC.dim((xc, -45, 0), (xc, d["cav_y0"], 0), "h", off=-8, txt=f"{d['t_front_back']:.1f}")
+if v(p.WALL_ON) and not FULL:
     _zw = 60.0
     _tn = math.tan(math.radians(v(p.DRAFT_CAV)))
     VC.dim((xc, -45, _zw), (xc, d["up_y0"] + (_zw - d["up_zt"]) * _tn, _zw), "h", off=0, txt=f"{v(p.WALL_FRONT_T)}")
     VC.dim((xc, 45, _zw), (xc, d["up_y1"] - (_zw - d["up_zt"]) * _tn, _zw), "h", off=0, txt=f"{v(p.WALL_T):.0f}")
-VC.dim((xc, 45, 0), (xc, -45, 0), "h", off=-16, txt="90")
-VC.dim((xc, 45, 0), (xc, 45, d["recess_top"]), "v", off=8, txt=f"{d['recess_top']:.1f} (виїмка)")
+VC.dim((xc, 45, H), (xc, -45, H), "h", off=8, txt="90")
+VC.dim((xc, 45, d["zb"] if v(p.FULL_LID_ON) else 0), (xc, 45, d["recess_top"]), "v", off=8,
+       txt=(f"{v(p.HOOK_H):.0f} (виїмка)" if v(p.FULL_LID_ON) else f"{d['recess_top']:.1f} (виїмка)"))
 # виносний елемент E — воронка, 4:1
 ce, re = (330, 82), 42
 DR.clip_begin(S, "cE", ce[0], ce[1], re)
@@ -159,7 +191,7 @@ cf, rf = (318, 186), 38
 DR.clip_begin(S, "cF", cf[0], cf[1], rf)
 k = 5.0
 VF = DR.View(S, "front", None, k)
-u0, v0 = VF.uv((d["cav_x0"] - 1.5, 0, 8))
+u0, v0 = VF.uv(((d["Lx0"] if FULL else d["cav_x0"]) - 1.5, 0, 8))
 VF.o = (cf[0] - k * u0, cf[1] + k * v0)
 vis, hid = DR.hlr(asm, "front", False)
 for rings in DR.section_faces(asm, (0, 0, 0), (0, 1, 0), "front"):
@@ -168,56 +200,128 @@ for rings in DR.section_faces(asm, (0, 0, 0), (0, 1, 0), "front"):
 for pl in vis:
     S.poly([VF.p(uu, vv) for uu, vv in pl], "v")
 DR.clip_end(S, cf[0], cf[1], rf, "F (5:1) — кришка / ущільнення")
-x0 = d["cav_x0"]
-VF.dim((x0 - v(p.SHOULDER), 0, d["z_reb"]), (x0, 0, d["z_reb"]), "h", off=4, txt=f"{v(p.SHOULDER)}")
-VF.dim((x0 - 2.0, 0, 0.5), (x0 - 2.0, 0, d["z_reb"]), "v", off=-6, txt=f"{v(p.FLANGE_T)}")
-VF.dim((x0 - 9, 0, 0), (x0 - 9, 0, 0.5), "v", off=-4, txt="0.5")
-VF.leader((x0 + 0.45, 0, 6.2), 30, 6, f"фаска {v(p.LEADIN_ANGLE):.0f}°×{v(p.LEADIN_LEN)}")
-VF.leader((x0 + 0.6 + 1.2, 0, v(p.LID_RECESS) + 11.0), 30, -16, f"шнур-губка Ø{v(p.ORING_CS):.0f}, стиснення {d['squeeze_pct']:.0f}%")
-VF.leader((x0 + 1.8, 0, v(p.LID_RECESS) + 9.0), 30, 18, f"канавка {v(p.GROOVE_W)}×{d['groove_depth']:.1f}")
+if FULL:   # v3.5: стінка 5 мм стоїть на фланці кришки; шнур — у канавці Г-пробки
+    x0 = d["Lx0"]
+    gz = (d["groove_z0"] + d["groove_z1"]) / 2
+    VF.dim((-60, 0, gz), (x0 + (gz - d["zb"]) * math.tan(math.radians(v(p.DRAFT_CAV))), 0, gz), "h", off=7, txt=f"{v(p.WALL_T):.0f}")
+    VF.dim((x0 - 2.0, 0, 0), (x0 - 2.0, 0, d["zb"]), "v", off=-6, txt=f"{v(p.FLANGE_T)}")
+    VF.dim((-60 + v(p.LID_GAP), 0, 1.0), (-60, 0, 1.0), "h", off=-4, txt=f"{v(p.LID_GAP)}")
+    VF.leader((x0 - 0.3, 0, d["zb"] + 1.0), 30, 8, f"фаска {v(p.LEADIN_ANGLE):.0f}°×{v(p.LEADIN_LEN)}")
+    VF.leader((x0 + 1.4, 0, gz), 34, -24, f"шнур-губка Ø{v(p.ORING_CS):.0f}, стиснення {d['squeeze_pct']:.0f}%")
+    VF.leader((x0 + 3.2, 0, d["groove_z0"] + 0.5), 34, 6, f"канавка {v(p.GROOVE_W)}×{d['groove_depth']:.1f}")
+else:
+    x0 = d["cav_x0"]
+    VF.dim((x0 - v(p.SHOULDER), 0, d["z_reb"]), (x0, 0, d["z_reb"]), "h", off=4, txt=f"{v(p.SHOULDER)}")
+    VF.dim((x0 - 2.0, 0, 0.5), (x0 - 2.0, 0, d["z_reb"]), "v", off=-6, txt=f"{v(p.FLANGE_T)}")
+    VF.dim((x0 - 9, 0, 0), (x0 - 9, 0, 0.5), "v", off=-4, txt="0.5")
+    VF.leader((x0 + 0.45, 0, 6.2), 30, 6, f"фаска {v(p.LEADIN_ANGLE):.0f}°×{v(p.LEADIN_LEN)}")
+    VF.leader((x0 + 0.6 + 1.2, 0, v(p.LID_RECESS) + 11.0), 30, -16, f"шнур-губка Ø{v(p.ORING_CS):.0f}, стиснення {d['squeeze_pct']:.0f}%")
+    VF.leader((x0 + 1.8, 0, v(p.LID_RECESS) + 9.0), 30, 18, f"канавка {v(p.GROOVE_W)}×{d['groove_depth']:.1f}")
 open(f"{OUT}/02_body_sections.svg", "w").write(S.svg())
 print("sheet 2")
 
 # ======================================================================
 # Аркуш 3 — кришка
 # ======================================================================
-L = lid.translate(Vector(-xc, 0, -v(p.LID_RECESS)))
-LT = d["lid_t"]
-S = DR.Sheet("Кришка", "Деталь 02 — Нижня кришка з пробкою-лотком і канавкою ущільнювача", "декоративний бетон / GFRC-премікс",
-             "1:1; 2:1; 6:1", 3, NS, mass=(f"Маса ≈ {mass_lid:.3f} кг (ρ 2000)" if mass_lid else None),
-             notes=["Видима (нижня) грань — відкрита грань лиття: шліфування P120→P220 з припуском 0.5; площинність 0.2.",
-                    f"Пробка: ухил {v(p.DRAFT_CAV)}° (вужча вгору). Канавка ущільнювача формується валиком силіконової форми; кромки R0.4. Верх борту — фаска 2 × 3.5 (антизаклинювання).",
-                    f"Ущільнювач: шнур Ø{v(p.ORING_CS):.0f} із закритопористої силіконової губки, відріз {d['seal_cut_len']:.0f} мм, стиснення ≈{d['squeeze_pct']:.0f}%. Лоток пробки: ухил {v(p.TRAY_DRAFT)}°, дно {v(p.LID_FLOOR)}."])
-VLt = S.view(L, "top", (90, 130), 1.0, label="ВИД ЗВЕРХУ (внутрішня сторона)")
-VLt.dim((-d["flange"] / 2, d["flange"] / 2, LT), (d["flange"] / 2, d["flange"] / 2, LT), "h", off=8, txt=f"{d['flange']:.1f}")
-VLt.dim((d["flange"] / 2, -d["flange"] / 2, LT), (d["flange"] / 2, d["flange"] / 2, LT), "v", off=8, txt=f"{d['flange']:.1f}")
-VLt.leader((-d["flange"] / 2 + 5.4, -d["flange"] / 2 + 5.4, 0), -12, 14, f"R{d['r_flange']:.1f}")
-VLt.leader((-d["plug"] / 2 + 4.5, d["plug"] / 2 - 4.5, LT), -12, -18, f"пробка {d['plug']:.1f}, R{d['r_plug']:.1f}; лоток {d['tray']:.1f}")
-Ls = keep(L, "y", 0, +1)
-VLs = S.view(Ls, "front", (245, 105), 2.0, label="РОЗРІЗ (2:1)", section=(Ls, (0, 0, 0), (0, 1, 0)))
-VLs.dim((-d["plug"] / 2, 0, 4.6), (d["plug"] / 2, 0, 4.6), "h", off=-30, txt=f"{d['plug']:.1f} ⊕ (основа пробки)")
-VLs.dim((-d["flange"] / 2, 0, 0), (d["flange"] / 2, 0, 0), "h", off=-8, txt=f"{d['flange']:.1f}")
-VLs.dim((d["flange"] / 2, 0, 0), (d["flange"] / 2, 0, LT), "v", off=10, txt=f"{LT:.1f}")
-VLs.dim((d["flange"] / 2, 0, 0), (d["flange"] / 2, 0, v(p.FLANGE_T)), "v", off=4, txt=f"{v(p.FLANGE_T)}")
-cg, rg = (330, 190), 38
-DR.clip_begin(S, "cG", cg[0], cg[1], rg)
-k = 6.0
-VG = DR.View(S, "front", None, k)
-u0, v0 = VG.uv((d["plug"] / 2 - 1, 0, d["groove_z0"] + 1))
-VG.o = (cg[0] - k * u0, cg[1] + k * v0)
-vis, hid = DR.hlr(Ls, "front", False)
-for rings in DR.section_faces(Ls, (0, 0, 0), (0, 1, 0), "front"):
-    dpath = "".join("M " + " L ".join(f"{VG.p(uu, vv)[0]:.3f},{VG.p(uu, vv)[1]:.3f}" for uu, vv in ring) + " Z " for ring in rings)
-    S.el.append(f'<path class="hatch" d="{dpath}" fill-rule="evenodd"/>')
-for pl in vis:
-    S.poly([VG.p(uu, vv) for uu, vv in pl], "v")
-gb = d["groove_bottom_half"]
-pr = d["plug"] / 2 - ((d["groove_z0"] + d["groove_z1"]) / 2 - 4.5) * np.tan(np.radians(1))
-DR.clip_end(S, cg[0], cg[1], rg, "G (6:1) — канавка ущільнювача")
-VG.dim((gb, 0, d["groove_z0"]), (gb, 0, d["groove_z1"]), "v", off=-8, txt=f"{v(p.GROOVE_W)}")
-VG.dim((gb, 0, d["groove_z1"]), (pr, 0, d["groove_z1"]), "h", off=5, txt=f"{d['groove_depth']:.1f}")
-VG.dim((pr + 1.5, 0, v(p.FLANGE_T)), (pr + 1.5, 0, d["groove_z0"]), "v", off=10, txt=f"{d['groove_z0'] - v(p.FLANGE_T):.1f}")
-VG.leader((pr - 1.0, 0, d["lid_t"] - 1.7), 8, -8, f"фаска {v(p.PLUG_CHAMF_R)}×{v(p.PLUG_CHAMF_H)}")
+if v(p.FULL_LID_ON):   # v3.5: кришка на всю основу з Г-пробкою
+    L = lid
+    LT = d["lid_t"]
+    fw, fd = d["flange_w"], d["flange_d"]
+    tn = math.tan(math.radians(v(p.DRAFT_CAV)))
+    RECT = P.rect_lid()
+    _pn = "прямокутна пробка" if RECT else "Г-пробка"
+    S = DR.Sheet("Кришка", f"Деталь 02 — Кришка: {_pn}, канавка шнура, лоток", "декоративний бетон / GFRC-премікс",
+                 "1:1; 4:1", 3, NS, mass=(f"Маса ≈ {mass_lid:.3f} кг (ρ 2000)" if mass_lid else None),
+                 notes=["Видима (нижня) грань — відкрита грань лиття: шліфування P120→P220 з припуском 0.5; площинність 0.2. На ній стоїть увесь виріб.",
+                        f"Фланець — уся основа {fw:.0f} × {fd:.0f}, R{d['r_flange']:.1f}: на {v(p.LID_GAP)} мм менший за корпус з кожного боку "
+                        "(тіньова лінія); корпус стоїть на ньому торцями стінок.",
+                        (f"Пробка — прямокутник {d['Lx1'] - d['Lx0'] - 2 * v(p.PLUG_GAP):.1f} × {d['Ly1'] - d['Ly0'] - 2 * v(p.PLUG_GAP):.1f} R{v(p.CAV_R_OUT) - v(p.PLUG_GAP):.1f} "
+                         f"(гніздо корпусу мінус {v(p.PLUG_GAP)} на сторону), ухил {v(p.DRAFT_CAV)}°, висота {d['plug_h']:.0f}; " if RECT else
+                         f"Г-пробка — профіль резервуара мінус {v(p.PLUG_GAP)} мм на сторону, ухил {v(p.DRAFT_CAV)}°, висота {d['plug_h']:.0f}; ") +
+                        f"верх борту — фаска {v(p.PLUG_CHAMF_R)} × {v(p.PLUG_CHAMF_H)}; кромки канавки R0.4.",
+                        f"Шнур Ø{v(p.ORING_CS):.0f} (закритопориста силіконова губка), відріз {d['seal_cut_len']:.0f} мм, стиснення ≈{d['squeeze_pct']:.0f}%; " +
+                        ("прямокутна петля з 4 кутами R≈11. " if RECT else "огинає кут колонки тримача. ") +
+                        f"Лоток пробки: дно {v(p.LID_FLOOR)}, ухил {v(p.TRAY_DRAFT):.0f}°" +
+                        (f"; над лотком під колонкою тримача — зазор {v(p.SOCK_TOP_GAP)} до низу колонки." if RECT else ".")])
+    VLt = S.view(L, "top", (88, 140), 1.0, label="ВИД ЗВЕРХУ (внутрішня сторона)")
+    VLt.dim((-fw / 2, fd / 2, LT), (fw / 2, fd / 2, LT), "h", off=8, txt=f"{fw:.1f}")
+    VLt.dim((fw / 2, -fd / 2, LT), (fw / 2, fd / 2, LT), "v", off=8, txt=f"{fd:.1f}")
+    VLt.leader((-fw / 2 + 4.0, -fd / 2 + 4.0, 0), 16, 14, f"R{d['r_flange']:.1f}")
+    if RECT:
+        _c = (v(p.CAV_R_OUT) - v(p.PLUG_GAP)) * (1 - 1 / math.sqrt(2))
+        VLt.leader((d["Lx1"] - v(p.PLUG_GAP) - _c, d["Ly0"] + v(p.PLUG_GAP) + _c, LT), 16, 22,
+                   f"пробка {d['Lx1'] - d['Lx0'] - 2 * v(p.PLUG_GAP):.1f} × {d['Ly1'] - d['Ly0'] - 2 * v(p.PLUG_GAP):.1f}, R{v(p.CAV_R_OUT) - v(p.PLUG_GAP):.1f}")
+        ys = 0.0
+    else:
+        VLt.leader((d["Lxc"] - v(p.PLUG_GAP) - 2.0, d["Lyc"] + v(p.PLUG_GAP) + 2.0, LT), 22, 34,
+                   f"Г-пробка, зазор {v(p.PLUG_GAP)}; кут колонки R{v(p.CAV_R_COL) + v(p.PLUG_GAP):.1f}")
+        ys = (d["Lyc"] + d["Ly1"]) / 2
+    Ls = keep(L, "y", ys, +1)
+    VLs = S.view(Ls, "front", (290, 92), 1.0, label=f"РОЗРІЗ (y = {ys:.1f})", section=(Ls, (0, ys, 0), (0, 1, 0)))
+    xp0, xp1 = d["Lx0"] + v(p.PLUG_GAP), d["Lx1"] - v(p.PLUG_GAP)
+    VLs.dim((xp0, ys, d["zb"]), (xp1, ys, d["zb"]), "h", off=-22, txt=f"{xp1 - xp0:.1f} ⊕ (основа пробки)")
+    VLs.dim((-fw / 2, ys, 0), (fw / 2, ys, 0), "h", off=-12, txt=f"{fw:.1f}")
+    VLs.dim((fw / 2, ys, 0), (fw / 2, ys, LT), "v", off=10, txt=f"{LT:.1f}")
+    VLs.dim((fw / 2, ys, 0), (fw / 2, ys, v(p.FLANGE_T)), "v", off=4, txt=f"{v(p.FLANGE_T)}")
+    g0, g1 = d["groove_z0"], d["groove_z1"]
+    gz = (g0 + g1) / 2
+    gb = d["Lx0"] + (gz - d["zb"]) * tn + v(p.PLUG_GAP) + d["groove_depth"]     # дно канавки (ліва сторона)
+    pr = d["Lx0"] + v(p.PLUG_GAP) + (g1 - d["zb"]) * tn                         # грань пробки над канавкою
+    cg, rg = (330, 165), 36
+    DR.clip_begin(S, "cG", cg[0], cg[1], rg)
+    k = 4.0
+    VG = DR.View(S, "front", None, k)
+    u0, v0 = VG.uv((pr + 1.0, ys, 12.0))
+    VG.o = (cg[0] - k * u0, cg[1] + k * v0)
+    vis, hid = DR.hlr(Ls, "front", False)
+    for rings in DR.section_faces(Ls, (0, ys, 0), (0, 1, 0), "front"):
+        dpath = "".join("M " + " L ".join(f"{VG.p(uu, vv)[0]:.3f},{VG.p(uu, vv)[1]:.3f}" for uu, vv in ring) + " Z " for ring in rings)
+        S.el.append(f'<path class="hatch" d="{dpath}" fill-rule="evenodd"/>')
+    for pl in vis:
+        S.poly([VG.p(uu, vv) for uu, vv in pl], "v")
+    DR.clip_end(S, cg[0], cg[1], rg, "G (4:1) — канавка шнура (ліва сторона)")
+    VG.dim((gb, ys, g0), (gb, ys, g1), "v", off=8, txt=f"{v(p.GROOVE_W)}")
+    VG.dim((pr, ys, g1), (gb, ys, g1), "h", off=5, txt=f"{d['groove_depth']:.1f}")
+    VG.dim((pr - 1.5, ys, v(p.FLANGE_T)), (pr - 1.5, ys, g0), "v", off=-10, txt=f"{g0 - v(p.FLANGE_T):.1f}")
+    VG.leader((pr + 1.0, ys, LT - 1.7), -8, -8, f"фаска {v(p.PLUG_CHAMF_R)}×{v(p.PLUG_CHAMF_H)}")
+else:
+    L = lid.translate(Vector(-xc, 0, -v(p.LID_RECESS)))
+    LT = d["lid_t"]
+    S = DR.Sheet("Кришка", "Деталь 02 — Нижня кришка з пробкою-лотком і канавкою ущільнювача", "декоративний бетон / GFRC-премікс",
+                 "1:1; 2:1; 6:1", 3, NS, mass=(f"Маса ≈ {mass_lid:.3f} кг (ρ 2000)" if mass_lid else None),
+                 notes=["Видима (нижня) грань — відкрита грань лиття: шліфування P120→P220 з припуском 0.5; площинність 0.2.",
+                        f"Пробка: ухил {v(p.DRAFT_CAV)}° (вужча вгору). Канавка ущільнювача формується валиком силіконової форми; кромки R0.4. Верх борту — фаска 2 × 3.5 (антизаклинювання).",
+                        f"Ущільнювач: шнур Ø{v(p.ORING_CS):.0f} із закритопористої силіконової губки, відріз {d['seal_cut_len']:.0f} мм, стиснення ≈{d['squeeze_pct']:.0f}%. Лоток пробки: ухил {v(p.TRAY_DRAFT)}°, дно {v(p.LID_FLOOR)}."])
+    VLt = S.view(L, "top", (90, 130), 1.0, label="ВИД ЗВЕРХУ (внутрішня сторона)")
+    VLt.dim((-d["flange"] / 2, d["flange"] / 2, LT), (d["flange"] / 2, d["flange"] / 2, LT), "h", off=8, txt=f"{d['flange']:.1f}")
+    VLt.dim((d["flange"] / 2, -d["flange"] / 2, LT), (d["flange"] / 2, d["flange"] / 2, LT), "v", off=8, txt=f"{d['flange']:.1f}")
+    VLt.leader((-d["flange"] / 2 + 5.4, -d["flange"] / 2 + 5.4, 0), -12, 14, f"R{d['r_flange']:.1f}")
+    VLt.leader((-d["plug"] / 2 + 4.5, d["plug"] / 2 - 4.5, LT), -12, -18, f"пробка {d['plug']:.1f}, R{d['r_plug']:.1f}; лоток {d['tray']:.1f}")
+    Ls = keep(L, "y", 0, +1)
+    VLs = S.view(Ls, "front", (245, 105), 2.0, label="РОЗРІЗ (2:1)", section=(Ls, (0, 0, 0), (0, 1, 0)))
+    VLs.dim((-d["plug"] / 2, 0, 4.6), (d["plug"] / 2, 0, 4.6), "h", off=-30, txt=f"{d['plug']:.1f} ⊕ (основа пробки)")
+    VLs.dim((-d["flange"] / 2, 0, 0), (d["flange"] / 2, 0, 0), "h", off=-8, txt=f"{d['flange']:.1f}")
+    VLs.dim((d["flange"] / 2, 0, 0), (d["flange"] / 2, 0, LT), "v", off=10, txt=f"{LT:.1f}")
+    VLs.dim((d["flange"] / 2, 0, 0), (d["flange"] / 2, 0, v(p.FLANGE_T)), "v", off=4, txt=f"{v(p.FLANGE_T)}")
+    cg, rg = (330, 190), 38
+    DR.clip_begin(S, "cG", cg[0], cg[1], rg)
+    k = 6.0
+    VG = DR.View(S, "front", None, k)
+    u0, v0 = VG.uv((d["plug"] / 2 - 1, 0, d["groove_z0"] + 1))
+    VG.o = (cg[0] - k * u0, cg[1] + k * v0)
+    vis, hid = DR.hlr(Ls, "front", False)
+    for rings in DR.section_faces(Ls, (0, 0, 0), (0, 1, 0), "front"):
+        dpath = "".join("M " + " L ".join(f"{VG.p(uu, vv)[0]:.3f},{VG.p(uu, vv)[1]:.3f}" for uu, vv in ring) + " Z " for ring in rings)
+        S.el.append(f'<path class="hatch" d="{dpath}" fill-rule="evenodd"/>')
+    for pl in vis:
+        S.poly([VG.p(uu, vv) for uu, vv in pl], "v")
+    gb = d["groove_bottom_half"]
+    pr = d["plug"] / 2 - ((d["groove_z0"] + d["groove_z1"]) / 2 - 4.5) * np.tan(np.radians(1))
+    DR.clip_end(S, cg[0], cg[1], rg, "G (6:1) — канавка ущільнювача")
+    VG.dim((gb, 0, d["groove_z0"]), (gb, 0, d["groove_z1"]), "v", off=-8, txt=f"{v(p.GROOVE_W)}")
+    VG.dim((gb, 0, d["groove_z1"]), (pr, 0, d["groove_z1"]), "h", off=5, txt=f"{d['groove_depth']:.1f}")
+    VG.dim((pr + 1.5, 0, v(p.FLANGE_T)), (pr + 1.5, 0, d["groove_z0"]), "v", off=10, txt=f"{d['groove_z0'] - v(p.FLANGE_T):.1f}")
+    VG.leader((pr - 1.0, 0, d["lid_t"] - 1.7), 8, -8, f"фаска {v(p.PLUG_CHAMF_R)}×{v(p.PLUG_CHAMF_H)}")
 open(f"{OUT}/03_lid.svg", "w").write(S.svg())
 print("sheet 3")
 
@@ -228,10 +332,23 @@ FP = P.felt_pad().translate(Vector(-cx, -cy, -d["pocket_floor"]))
 fx, fy = P.felt_pad_dims()
 if not P.has_relief_lid():
     zH = 50.0
-    ya = (d["arm_y0"] + d["arm_y1"]) / 2
+    FULL = bool(v(p.FULL_LID_ON))
+    RECT = P.rect_lid()
+    ya = (d["pocket_cy"] if RECT else (d["Lyc"] + d["Ly1"]) / 2) if FULL else ((d["arm_y0"] + d["arm_y1"]) / 2)
+    _n4 = [f"04: підкладка (овал) {fx:.1f} × {fy:.1f} × {v(p.LINER_FLOOR):.1f} мм, вирубка; клеїти на чисте загерметизоване дно кишені.",
+           "Г-резервуар: однаковий переріз до стелі — частина за кишенею девайса з'єднана з основною по всій висоті; "
+           "порогу, рампи й порожнини полегшення немає.",
+           *([f"v3.6: кришка — уся основа; пробка й шнур Ø{v(p.ORING_CS):.0f} — прямокутник R{v(p.CAV_R_OUT):.0f} по стінках {v(p.WALL_T):.0f} (ліва, права) / {v(p.WALL_FRONT_T)} (фронт, зад) мм — кришку можна ставити будь-яким боком.",
+              f"Низ колонки тримача піднято до z = {d.get('z_sock', 0):.0f} (над пробкою, зазор {v(p.SOCK_TOP_GAP)}), фаска {v(p.COL_CHAMF):.0f}×45°; "
+              f"дно кишені z = {d['pocket_floor']:.1f} (бетон {d.get('col_slab', 0):.1f}); девайс виступає на {v(p.DEV_PROTRUDE):.0f} мм."]
+             if RECT else
+             [f"Кришка — уся основа: шнур Ø{v(p.ORING_CS):.0f} на Г-пробці огинає кут колонки тримача (R{v(p.CAV_R_COL):.0f}); стінка під шнуром суцільна, "
+              "виїмка для пальця — нижче канавки."]),
+           ("Сердечник — прямокутна основа (гніздо пробки) + Г-призма з ухилом 0.75° на Г-хребті: виходить прямо вниз, без підтиску." if RECT else
+            "Сердечник — Г-призма з ухилом 0.75° на Г-хребті: виходить прямо вниз, без підтиску.")] if FULL else None
     S = DR.Sheet("Підкладка, Г-резервуар", "Деталь 04 — підкладка; корпус 01 — Г-резервуар",
                  "04: повсть на клейовій основі; 01: бетон", "2:1; 1:1", 4, NS,
-                 notes=[f"04: підкладка (овал) {fx:.1f} × {fy:.1f} × {v(p.LINER_FLOOR):.1f} мм, вирубка; клеїти на чисте загерметизоване дно кишені.",
+                 notes=_n4 or [f"04: підкладка (овал) {fx:.1f} × {fy:.1f} × {v(p.LINER_FLOOR):.1f} мм, вирубка; клеїти на чисте загерметизоване дно кишені.",
                         f"Г-резервуар: плече за кишенею з'єднане з основною частиною над порогом z = {d['arm_sill_z']:.1f} — на {v(p.ARM_SILL_MARGIN)} мм вище "
                         f"канавки ущільнювача, тож стінка під шнуром суцільна по всьому периметру квадратної кришки.",
                         f"Дно плеча — рампа {v(p.ARM_RAMP_DEG):.0f}° до порогу (стіки зісковзують до отвору); кромка порогу — фаска 1.5; кут колонки тримача R{v(p.ARM_CORNER_R):.0f}; "
@@ -243,19 +360,39 @@ if not P.has_relief_lid():
     cutH = keep(body, "z", zH, -1)
     VH = S.view(cutH, "top", (190, 125), 1.0, hidden=False, label=f"РОЗРІЗ H-H (z = {zH:.0f}) — Г-РЕЗЕРВУАР", label_dy=14,
                 section=(cutH, (0, 0, zH), (0, 0, 1)))
-    xa_ = d["cav_x1"] - (zH - d["z_reb"]) * math.tan(math.radians(v(p.DRAFT_CAV)))
-    VH.dim((xa_, 30, zH), (d["arm_x1"] - (zH - d["z_reb"]) * math.tan(math.radians(v(p.DRAFT_CAV))), 30, zH), "h", off=-24, txt="плече")
-    VH.dim((d["arm_x1"], 20, zH), (60, 20, zH), "h", off=22, txt=f"{60 - d['arm_x1']:.0f}")
-    VH.dim((45, d["arm_y1"], zH), (45, 45, zH), "v", off=8, txt=f"{45 - d['arm_y1']:.1f}")
-    VH.leader((d["cav_x1"] + 1.5, d["arm_y0"] - 1.5, zH), -26, 20, f"кут колонки R{v(p.ARM_CORNER_R):.0f}")
+    if FULL:
+        _tz = (zH - d["zb"]) * math.tan(math.radians(v(p.DRAFT_CAV)))
+        VH.dim((d["Lxc"] + _tz, 30, zH), (d["Lx1"] - _tz, 30, zH), "h", off=-24, txt="частина за колонкою")
+        VH.dim((d["Lx1"] - _tz, 20, zH), (60, 20, zH), "h", off=22, txt=f"{60 - d['Lx1'] + _tz:.1f}")
+        VH.dim((45, d["Ly1"] - _tz, zH), (45, 45, zH), "v", off=8, txt=f"{45 - d['Ly1'] + _tz:.1f}")
+        _c = v(p.CAV_R_COL) * (1 - 1 / math.sqrt(2))
+        VH.leader((d["Lxc"] + _tz + _c, d["Lyc"] + _tz - _c, zH), -26, 20, f"кут колонки R{v(p.CAV_R_COL):.0f}")
+    else:
+        xa_ = d["cav_x1"] - (zH - d["z_reb"]) * math.tan(math.radians(v(p.DRAFT_CAV)))
+        VH.dim((xa_, 30, zH), (d["arm_x1"] - (zH - d["z_reb"]) * math.tan(math.radians(v(p.DRAFT_CAV))), 30, zH), "h", off=-24, txt="плече")
+        VH.dim((d["arm_x1"], 20, zH), (60, 20, zH), "h", off=22, txt=f"{60 - d['arm_x1']:.0f}")
+        VH.dim((45, d["arm_y1"], zH), (45, 45, zH), "v", off=8, txt=f"{45 - d['arm_y1']:.1f}")
+        VH.leader((d["cav_x1"] + 1.5, d["arm_y0"] - 1.5, zH), -26, 20, f"кут колонки R{v(p.ARM_CORNER_R):.0f}")
     VH.leader((cx, cy, zH), -34, 30, "кишеня девайса (колонка)")
     asmA = cq.Compound.makeCompound([keep(s_, "y", ya, +1) for s_ in (body, lid, oring)])
-    VAa = S.view(asmA, "front", (330, 172), 1.0, hidden=False, label=f"РОЗРІЗ A-A (y = {ya:.1f}, через плече)", label_dy=14,
+    VAa = S.view(asmA, "front", (330, 172), 1.0, hidden=False,
+                 label=(f"РОЗРІЗ A-A (y = {ya:.1f}, через кишеню девайса)" if (FULL and RECT) else f"РОЗРІЗ A-A (y = {ya:.1f}, через частину за колонкою)"), label_dy=14,
                  section=(asmA, (0, ya, 0), (0, 1, 0)))
-    VAa.leader((d["cav_x1"] - 0.3, ya, d["arm_sill_z"]), 6, -46, f"поріг z = {d['arm_sill_z']:.1f}")
-    VAa.leader((d["cav_x1"] + 12, ya, d["arm_sill_z"] + 12 * math.tan(math.radians(v(p.ARM_RAMP_DEG)))), -6, -22, f"рампа {v(p.ARM_RAMP_DEG):.0f}°")
-    VAa.leader((d["cav_x1"] - 0.6, ya, v(p.LID_RECESS) + (d["groove_z0"] + d["groove_z1"]) / 2), -34, 22, "шнур Ø4 — суцільна стінка")
-    VAa.dim((d["arm_x1"], ya, 0), (d["arm_x1"], ya, d["z_ceil_edge"]), "v", off=12, txt=f"{d['z_ceil_edge']:.1f}")
+    if FULL:
+        _gz = (d["groove_z0"] + d["groove_z1"]) / 2
+        if RECT:
+            VAa.leader((d["Lx0"] + 0.6, ya, _gz), 22, -44, f"шнур Ø{v(p.ORING_CS):.0f} — суцільна стінка {v(p.WALL_T):.0f} мм", size=2.6)
+            VAa.leader((d["Lxc"] + 10, ya, d["z_sock"]), -22, -16, f"низ колонки z = {d['z_sock']:.0f}", size=2.6)
+            VAa.leader((cx, ya, d["pocket_floor"]), -40, -20, f"дно кишені z = {d['pocket_floor']:.1f}", size=2.6)
+        else:
+            VAa.leader((d["Lx1"] - 0.6, ya, _gz), 20, 26, f"шнур Ø{v(p.ORING_CS):.0f} — суцільна стінка {v(p.WALL_T):.0f} мм")
+            VAa.leader((10, ya, 2.0), -30, 22, "кришка — уся основа")
+        VAa.dim((60, ya, 0), (60, ya, d["z_ceil_edge"]), "v", off=12, txt=f"{d['z_ceil_edge']:.1f}")
+    else:
+        VAa.leader((d["cav_x1"] - 0.3, ya, d["arm_sill_z"]), 6, -46, f"поріг z = {d['arm_sill_z']:.1f}")
+        VAa.leader((d["cav_x1"] + 12, ya, d["arm_sill_z"] + 12 * math.tan(math.radians(v(p.ARM_RAMP_DEG)))), -6, -22, f"рампа {v(p.ARM_RAMP_DEG):.0f}°")
+        VAa.leader((d["cav_x1"] - 0.6, ya, v(p.LID_RECESS) + (d["groove_z0"] + d["groove_z1"]) / 2), -34, 22, "шнур Ø4 — суцільна стінка")
+        VAa.dim((d["arm_x1"], ya, 0), (d["arm_x1"], ya, d["z_ceil_edge"]), "v", off=12, txt=f"{d['z_ceil_edge']:.1f}")
     if v(p.BASE_VOID_ON):   # v3.4: порожнина полегшення знизу під рампою
         bv = P.base_void_dims()
         VAa.leader(((bv["x0"] + bv["x1"]) / 2, ya, 8), -26, -62, f"порожнина полегшення знизу, стінки {v(p.WALL_T):.0f}", size=2.6)

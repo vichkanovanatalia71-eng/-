@@ -77,8 +77,126 @@ def _outer_block(H, bottom_arris=True):
     return s.val()
 
 
+# --------------------------------------------------------------------------
+# v3.5: Г-профіль резервуара (однаковий переріз від низу до стелі, лише ухил)
+# --------------------------------------------------------------------------
+def L_face(o, z):
+    """Г-профіль резервуара, зміщений усередину на o (o < 0 — назовні), на висоті z → плоска грань.
+    Опуклі кути R = CAV_R_OUT − o, кут колонки тримача (увігнутий) R = CAV_R_COL + o."""
+    x0, x1, y0, y1 = d["Lx0"] + o, d["Lx1"] - o, d["Ly0"] + o, d["Ly1"] - o
+    xc, yc = d["Lxc"] - o, d["Lyc"] + o
+    pts = [(x0, y0), (xc, y0), (xc, yc), (x1, yc), (x1, y1), (x0, y1)]
+    f = cq.Face.makeFromWires(cq.Wire.makePolygon([Vector(x, y, z) for x, y in pts], close=True))
+    near = lambda vx, q: abs(vx.X - q[0]) < 1e-5 and abs(vx.Y - q[1]) < 1e-5
+    conv = [q for q in pts if q != (xc, yc)]
+    f = f.fillet2D(max(0.3, d["L_r_out"] - o), [vx for vx in f.Vertices() if any(near(vx, q) for q in conv)])
+    f = f.fillet2D(max(0.3, d["L_r_col"] + o), [vx for vx in f.Vertices() if near(vx, (xc, yc))])
+    return f
+
+
+def L_wire(o, z):
+    return L_face(o, z).outerWire()
+
+
+def L_loft(o0, z0, o1, z1):
+    """Тіло між Г-профілями (o0, z0) і (o1, z1) — лінійчата поверхня (ухил)."""
+    return cq.Solid.makeLoft([L_wire(o0, z0), L_wire(o1, z1)], True)
+
+
+def R_face(o, z):
+    """v3.6: прямокутник по внутрішньому контуру зовнішніх стінок (гніздо пробки), зміщений усередину на o; кути R = CAV_R_OUT − o."""
+    x0, x1, y0, y1 = d["Lx0"] + o, d["Lx1"] - o, d["Ly0"] + o, d["Ly1"] - o
+    pts = [(x0, y0), (x1, y0), (x1, y1), (x0, y1)]
+    f = cq.Face.makeFromWires(cq.Wire.makePolygon([Vector(x, y, z) for x, y in pts], close=True))
+    return f.fillet2D(max(0.3, d["L_r_out"] - o), f.Vertices())
+
+
+def R_wire(o, z):
+    return R_face(o, z).outerWire()
+
+
+def R_loft(o0, z0, o1, z1):
+    return cq.Solid.makeLoft([R_wire(o0, z0), R_wire(o1, z1)], True)
+
+
+def rect_lid():
+    return bool(v(p.FULL_LID_ON)) and bool(v(p.LID_RECT_ON))
+
+
+def S_wire(o, z):
+    """Профіль пробки / канавки / шнура: v3.6 — прямокутник, v3.5 — Г-профіль."""
+    return R_wire(o, z) if rect_lid() else L_wire(o, z)
+
+
+def S_loft(o0, z0, o1, z1):
+    return R_loft(o0, z0, o1, z1) if rect_lid() else L_loft(o0, z0, o1, z1)
+
+
+def S_polygon(o, z=None, step=0.5):
+    return L_polygon(o, z, step, wire_fn=S_wire)
+
+
+def L_polygon(o, z=None, step=0.5, wire_fn=None):
+    """Той самий профіль як shapely-полігон (для перевірок і класифікації)."""
+    from shapely.geometry import Polygon
+    w = (wire_fn or L_wire)(o, d["zb"] if z is None else z)
+    pts = []
+    for e in w.Edges():
+        n = max(2, int(e.Length() / step))
+        pts += [(q.x, q.y) for q in [e.positionAt(t) for t in [i / n for i in range(n)]]]
+    return Polygon(pts).buffer(0)
+
+
+def _cavity_tool_full():
+    """v3.5: Г-резервуар від низу корпусу (zb) до купола стелі; ухил DRAFT_CAV; заходна фаска шнура біля низу;
+    купол зі стрілою DOME_SAG_FAR до найдальшого кута; R_CEIL на стелі; кишеня NFC-мітки."""
+    zb = d["zb"]
+    tn = math.tan(math.radians(v(p.DRAFT_CAV)))
+    o = lambda z: (z - zb) * tn
+    zlo, ztop = zb - 1.0, d["z_ceil_c"] + 3.0
+    C = L_loft(o(zlo), zlo, o(ztop), ztop)
+    R = d["r_dome"]
+    # полюс параметризації сфери — убік (вісь Y), а не над отвором: з пологим куполом (R≈1600) булеві операції OCC біля полюса
+    # мовчки давали порожній перетин з кишенею NFC
+    sph = (cq.Solid.makeSphere(R, Vector(0, 0, 0), angleDegrees1=-90, angleDegrees2=90)
+           .rotate(Vector(0, 0, 0), Vector(1, 0, 0), 90).translate(Vector(d["cav_xc"], 0, d["z_ceil_c"] - R)))
+    C = C.intersect(sph)
+    top = max(C.Faces(), key=lambda f: f.Center().z)
+    C = C.fillet(v(p.R_CEIL), top.Edges())
+    # заходна фаска шнура: від −rad біля низу до профілю порожнини на висоті LEADIN_LEN
+    L = v(p.LEADIN_LEN)
+    rad = L * math.tan(math.radians(v(p.LEADIN_ANGLE)))
+    t_li = rad / L
+    lead = S_loft(-rad - 1.0 * t_li, zb - 1.0, o(zb + L), zb + L)
+
+    def _merge(a, b):   # одне тіло: звичайне об'єднання; нечітке — лише якщо звичайне дало кілька тіл
+        u = a.fuse(b).clean()
+        if len(u.Solids()) > 1:
+            u = a.fuse(b, tol=1e-3).clean()
+        assert len(u.Solids()) == 1, "cavity tool: merge produced several solids"
+        return u.Solids()[0]
+    tool = _merge(C, lead)
+    if rect_lid():
+        # v3.6: гніздо прямокутної пробки — повний прямокутник від низу до z_sock; колонка тримача починається вище
+        zs = d["z_sock"]
+        tool = _merge(tool, R_loft(o(zlo), zlo, o(zs), zs))
+        c = v(p.COL_CHAMF)
+        if c > 0:   # фаска 45° нижніх ребер колонки: Г-профіль, розширений на c у бік колонки, звужується до профілю на zs + c
+            ch = L_loft(o(zs) - c, zs, o(zs + c), zs + c).intersect(R_loft(o(zs - 1), zs - 1, o(zs + c + 1), zs + c + 1))
+            tool = _merge(tool, ch)
+    if v(p.NFC_ON):
+        tool = _merge(tool, _nfc_pocket_tool())
+    return tool
+
+
+def recess_r():
+    return min(v(p.RECESS_R), v(p.HOOK_H) - 0.5) if v(p.FULL_LID_ON) else v(p.RECESS_R)
+
+
 def _cavity_tool():
     """Порожнина + ребейт кришки (інструмент віднімання), з куполом і заокругленнями."""
+    if v(p.FULL_LID_ON):
+        return _cavity_tool_full()
     zr = d["z_reb"]
     xc = d["cav_xc"]
     top_extra = 3.0
@@ -383,12 +501,14 @@ def _slot_tool():
 
 def _recess_tool():
     """Пальцева виїмка основної кришки у нерухомому корпусі (v2.7: задня грань, на осі кришки)."""
-    w, r = v(p.RECESS_W), v(p.RECESS_R)
+    w, r = v(p.RECESS_W), recess_r()
     top = d["recess_top"]
     s_ = 1 if v(p.RECESS_SIDE) > 0 else -1
     y0 = s_ * (v(p.D) / 2 + 2)
     # наскрізь до лицьової поверхні пробки, включно із зоною кутового радіуса порожнини
     y1 = (d["cav_y1"] - v(p.R_CAV)) if s_ > 0 else (d["cav_y0"] + v(p.R_CAV))
+    if v(p.FULL_LID_ON):   # v3.5: крізь тонку задню стінку (5 мм) у резервуар
+        y1 = (d["Ly1"] - 3.0) if s_ > 0 else (d["Ly0"] + 3.0)
     prof = (cq.Workplane("XZ", origin=(d["recess_x"], y0, 0))
             .moveTo(-w / 2, -1).lineTo(w / 2, -1).lineTo(w / 2, top - r)
             .radiusArc((w / 2 - r, top), -r)
@@ -421,7 +541,11 @@ def body(product=True, with_slot=None, with_logo=None, with_cavity=True,
     H = v(p.H)
     # Нижні кромки (зовнішня R≈1 і внутрішня кромка ребейту R≈0.5) — ручне притуплення після
     # шліфування відкритої грані; у CAD не моделюються (відкрита грань формується не силіконом).
-    s = _outer_block(H + height_extra, bottom_arris=False).translate(Vector(0, 0, -height_extra))
+    if v(p.FULL_LID_ON):   # v3.5: корпус стоїть на фланці кришки — низ корпусу на zb
+        zb = d["zb"]
+        s = _outer_block(H - zb + height_extra, bottom_arris=False).translate(Vector(0, 0, zb - height_extra))
+    else:
+        s = _outer_block(H + height_extra, bottom_arris=False).translate(Vector(0, 0, -height_extra))
 
     # кишеня девайса
     s = s.cut(_pocket_tool())
@@ -457,20 +581,22 @@ def body(product=True, with_slot=None, with_logo=None, with_cavity=True,
         xc = d["cav_xc"]
         half_cav = v(p.CAV) / 2
         rad_li = v(p.LEADIN_LEN) * math.tan(math.radians(v(p.LEADIN_ANGLE)))
-        inner = edges_where(s, lambda e, pts: all(abs(q.z - zr) < 0.02 for q in pts)
-                            and all(max(abs(q.x - xc), abs(q.y)) < half_cav + rad_li + 0.3 for q in pts))
-        s = fillet_edges(s, inner, 0.4)     # притуплення кромки фаски (не ріже О-кільце)
-        outer = edges_where(s, lambda e, pts: all(abs(q.z - zr) < 0.02 for q in pts)
-                            and all(max(abs(q.x - xc), abs(q.y)) > half_cav + 1.0 for q in pts))
-        s = fillet_edges(s, outer, 0.3)     # внутрішній кут ребейту (не зменшує опору фланця)
+        if not v(p.FULL_LID_ON):   # v3.5: ребейту немає; кромку заходної фаски притупляють вручну після шліфування низу
+            inner = edges_where(s, lambda e, pts: all(abs(q.z - zr) < 0.02 for q in pts)
+                                and all(max(abs(q.x - xc), abs(q.y)) < half_cav + rad_li + 0.3 for q in pts))
+            s = fillet_edges(s, inner, 0.4)     # притуплення кромки фаски (не ріже О-кільце)
+            outer = edges_where(s, lambda e, pts: all(abs(q.z - zr) < 0.02 for q in pts)
+                                and all(max(abs(q.x - xc), abs(q.y)) > half_cav + 1.0 for q in pts))
+            s = fillet_edges(s, outer, 0.3)     # внутрішній кут ребейту (не зменшує опору фланця)
         if with_recess:
             s = s.cut(_recess_tool())
             s_ = 1 if v(p.RECESS_SIDE) > 0 else -1
             rx = d["recess_x"]
+            z_lo = (d["zb"] + 0.3) if v(p.FULL_LID_ON) else (-height_extra + 0.05)   # v3.5: не чіпати кромки біля низу корпусу
             def on_recess(e, pts):
                 return (all(abs(q.x - rx) <= v(p.RECESS_W) / 2 + 0.05 for q in pts)
                         and all(abs(q.y - s_ * v(p.D) / 2) < 0.02 for q in pts)
-                        and all(-height_extra + 0.05 < q.z < 10 for q in pts))
+                        and all(z_lo < q.z < 10 for q in pts))
             try:
                 s = fillet_edges(s, edges_where(s, on_recess), 1.5)
             except Exception as ex:  # pragma: no cover
@@ -481,10 +607,11 @@ def body(product=True, with_slot=None, with_logo=None, with_cavity=True,
                 return (all(abs(q.z - rt) < 0.02 for q in pts)
                         and all(abs(q.x - rx) <= v(p.RECESS_W) / 2 + 0.05 for q in pts)
                         and all(s_ * q.y < v(p.D) / 2 - 2.0 for q in pts))
-            try:
-                s = fillet_edges(s, edges_where(s, ceil_back), 1.5)
-            except Exception as ex:  # pragma: no cover
-                print("WARN recess ceiling fillet:", ex)
+            if not v(p.FULL_LID_ON):   # v3.5: виїмка 5 мм заввишки з R4.5 — кромку до порожнини притупляють вручну (R≈1)
+                try:
+                    s = fillet_edges(s, edges_where(s, ceil_back), 1.5)
+                except Exception as ex:  # pragma: no cover
+                    print("WARN recess ceiling fillet:", ex)
 
     if with_cavity and v(p.RELIEF_ON):
         s = s.cut(_relief_tool(height_extra))
@@ -602,7 +729,77 @@ def _lid_tab(c_along, edge, sgn, axis, notch_w, z0, grind_allow, ref_c=None):
     return t
 
 
+def _lid_full(product=True, grind_allow=0.0):
+    """v3.5: кришка на всю основу. Фланець = габарит дна мінус тіньовий зазор LID_GAP (корпус стоїть на ньому);
+    пробка — профіль гнізда (v3.6: прямокутник R12; v3.5: Г) з радіальним зазором PLUG_GAP і тим самим ухилом;
+    канавка шнура Ø4; лоток."""
+    zb = d["zb"]
+    ft = v(p.FLANGE_T)
+    tn = math.tan(math.radians(v(p.DRAFT_CAV)))
+    op = lambda z: v(p.PLUG_GAP) + (z - zb) * tn                     # зміщення пробки від Г-профілю на висоті z
+    fl = prism_rrect(d["flange_w"], d["flange_d"], d["r_flange"], -grind_allow, ft)
+    zt = zb + d["plug_h"]
+    zc = zt - v(p.PLUG_CHAMF_H)
+    plug = S_loft(op(zb - EPS), zb - EPS, op(zc), zc)
+    cap = S_loft(op(zc), zc, op(zc) + v(p.PLUG_CHAMF_R), zt)       # фаска верху борту (перекіс при знятті)
+    s = fl.fuse(plug).fuse(cap).clean()
+    polyP = S_polygon(op(zb), zb)
+    from shapely.geometry import Point as _Pt
+    inside_plug = lambda q, m: polyP.buffer(m).contains(_Pt(q.x, q.y))
+    corner = edges_where(s, lambda e, pts: all(abs(q.z - ft) < 0.02 for q in pts) and all(inside_plug(q, 0.05) for q in pts))
+    try:
+        s = fillet_edges(s, corner, 0.5)
+    except Exception as ex:  # pragma: no cover
+        print("WARN lid corner fillet:", ex)
+    fl_top = edges_where(s, lambda e, pts: all(abs(q.z - ft) < 0.02 for q in pts) and not any(inside_plug(q, 1.0) for q in pts))
+    try:
+        s = fillet_edges(s, fl_top, 0.3)
+    except Exception as ex:  # pragma: no cover
+        print("WARN lid flange top fillet:", ex)
+    if product:
+        bot = min(s.Faces(), key=lambda f: f.Center().z)
+        s = s.fillet(0.8, bot.Edges())
+    # канавка шнура: дно — вертикальне, на (зазор + глибина канавки) від Г-профілю на середині канавки
+    g0, g1 = d["groove_z0"], d["groove_z1"]
+    gz = (g0 + g1) / 2
+    ob = (gz - zb) * tn + v(p.PLUG_GAP) + d["groove_depth"]
+    ring_out = S_loft(op(g0) - 3.0, g0, op(g1) - 3.0, g1)
+    ring_in = S_loft(ob, g0 - 1.0, ob, g1 + 1.0)
+    s = s.cut(ring_out.cut(ring_in))
+    polyG = S_polygon(ob, gz)
+    def groove_inner(e, pts):
+        return (all(abs(q.z - g0) < 0.02 or abs(q.z - g1) < 0.02 for q in pts)
+                and all(polyG.buffer(0.05).contains(_Pt(q.x, q.y)) for q in pts))
+    def groove_outer(e, pts):
+        return (all(abs(q.z - g0) < 0.02 or abs(q.z - g1) < 0.02 for q in pts)
+                and not any(polyG.buffer(0.5).contains(_Pt(q.x, q.y)) for q in pts))
+    for sel in (groove_inner, groove_outer):
+        try:
+            s = fillet_edges(s, edges_where(s, sel), 0.4)
+        except Exception as ex:  # pragma: no cover
+            print("WARN groove fillet:", ex)
+    if v(p.LID_TRAY):
+        zf = v(p.LID_FLOOR)
+        tt = math.tan(math.radians(v(p.TRAY_DRAFT)))
+        ot = lambda z: v(p.PLUG_GAP) + v(p.SKIRT_W) - (z - zf) * tt   # лоток ширшає догори
+        tray = S_loft(ot(zf), zf, ot(zt + 1.0), zt + 1.0)
+        try:
+            tray = tray.fillet(3.0, min(tray.Faces(), key=lambda f: f.Center().z).Edges())
+        except Exception as ex:  # pragma: no cover
+            print("WARN tray fillet:", ex)
+        s = s.cut(tray)
+        polyT = S_polygon(ot(zt), zt)
+        rim = edges_where(s, lambda e, pts: all(abs(q.z - zt) < 0.02 for q in pts) and all(polyT.buffer(1.5).contains(_Pt(q.x, q.y)) for q in pts))
+        try:
+            s = fillet_edges(s, rim, 1.0)
+        except Exception as ex:  # pragma: no cover
+            print("WARN tray rim fillet:", ex)
+    return s.clean()
+
+
 def lid(product=True, grind_allow=0.0):
+    if v(p.FULL_LID_ON):
+        return _lid_full(product, grind_allow)
     xc = d["cav_xc"]
     ft = v(p.FLANGE_T)
     z0 = v(p.LID_RECESS)
@@ -673,6 +870,17 @@ def _rrect_wire(half, r, z, xc):
 def oring(installed=True):
     """Встановлене кільце: еліптичний перетин (радіально = глибина залозу 2.4,
     аксіально ≈3.75), площа перетину = площі круга Ø3.0 (силікон нестисливий)."""
+    if v(p.FULL_LID_ON):   # v3.5/3.6: шнур огинає пробку (v3.6 — прямокутник; v3.5 — Г, з колонкою тримача)
+        zb = d["zb"]
+        tn = math.tan(math.radians(v(p.DRAFT_CAV)))
+        gz = (d["groove_z0"] + d["groove_z1"]) / 2
+        a_rad = d["gland_depth"] / 2
+        a_ax = v(p.ORING_CS) / 2 * 0.98
+        oc = (gz - zb) * tn + a_rad
+        wire = S_wire(oc, gz)
+        xm = (d["Lx0"] + (d["Lx1"] if rect_lid() else d["Lxc"])) / 2
+        prof = cq.Workplane("YZ", origin=(xm, d["Ly0"] + oc, gz)).ellipse(a_rad, a_ax)
+        return prof.sweep(cq.Workplane("XY").add(wire), transition="right").val()
     xc = d["cav_xc"]
     z = v(p.LID_RECESS) + (d["groove_z0"] + d["groove_z1"]) / 2
     cs = v(p.ORING_CS)

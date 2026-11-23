@@ -77,7 +77,18 @@ def classify_regions(pts, nrm):
     H = v(p.H)
     reg = np.full(len(pts), "outer", dtype=object)
     xc = d["cav_xc"]
-    inside_cav = (np.abs(pts[:, 0] - xc) < v(p.CAV) / 2 + 3.2) & (np.abs(pts[:, 1]) < v(p.CAV) / 2 + 3.2) & (pts[:, 2] < d["z_ceil_c"] + 0.5)
+    if v(p.FULL_LID_ON):   # v3.5: Г-резервуар від низу корпусу до стелі — одна зона «cavity»
+        from shapely.geometry import Point as _Pt
+        Lp = P.L_polygon(-2.5, d["zb"])
+        inside_cav = np.array([Lp.contains(_Pt(q[0], q[1])) for q in pts]) & (pts[:, 2] < d["z_ceil_c"] + 0.5) & (pts[:, 2] > d["zb"] - 0.5)
+        if P.rect_lid():   # v3.6: прямокутне гніздо пробки внизу (до низу колонки тримача з фаскою)
+            Rp = P.R_face(-2.5, d["zb"])
+            from shapely.geometry import Polygon as _Pg
+            Rp = _Pg([(q.x, q.y) for q in [e.positionAt(t / 20) for e in Rp.outerWire().Edges() for t in range(20)]]).buffer(0)
+            zs_top = d["z_sock"] + v(p.COL_CHAMF) + 0.5
+            inside_cav |= np.array([Rp.contains(_Pt(q[0], q[1])) for q in pts]) & (pts[:, 2] < zs_top) & (pts[:, 2] > d["zb"] - 0.5)
+    else:
+        inside_cav = (np.abs(pts[:, 0] - xc) < v(p.CAV) / 2 + 3.2) & (np.abs(pts[:, 1]) < v(p.CAV) / 2 + 3.2) & (pts[:, 2] < d["z_ceil_c"] + 0.5)
     reg[inside_cav] = "cavity"
     pk = (np.abs(pts[:, 0] - d["pocket_cx"]) < d["pocket_x"] / 2 + 0.3) & (np.abs(pts[:, 1] - d["pocket_cy"]) < d["pocket_y"] / 2 + 0.3) & (pts[:, 2] > d["pocket_floor"] - 0.3)
     reg[pk] = "pocket"
@@ -88,7 +99,7 @@ def classify_regions(pts, nrm):
     reg[fn] = "funnel"
     fl = (np.hypot(pts[:, 0] - xc, pts[:, 1]) < v(p.FLARE_D) / 2 + 1.0) & (pts[:, 2] > d["z_ceil_c"] - 0.3) & (pts[:, 2] <= d["z_ceil_c"] + v(p.FLARE_H) + 0.01)
     reg[fl] = "cavity"   # розтруб формує сердечник
-    if v(p.ARM_ON):      # v3.0: плече Г-резервуара — сердечник виходить уздовж рампи (2 етапи)
+    if v(p.ARM_ON) and not v(p.FULL_LID_ON):      # v3.0: плече Г-резервуара — сердечник виходить уздовж рампи (2 етапи)
         arm = ((pts[:, 0] > d["cav_x1"] - 1.5) & (pts[:, 0] < d["arm_x1"] + 1.0) & (pts[:, 1] > d["arm_y0"] - 1.0) & (pts[:, 1] < d["arm_y1"] + 1.0)
                & (pts[:, 2] > d["arm_sill_z"] - 1.0) & (pts[:, 2] < d["z_ceil_c"] + 0.5))
         # + заокруглений кут колонки (y до arm_y0 − R) і пласка ділянка порогу в куті R16 (виходять разом із плечем)
@@ -161,8 +172,10 @@ def draft_analysis(body_shape):
 
 
 def undercut_rays(body_shape):
-    """Промені з поверхонь порожнини в напрямку виходу сердечника: перетин = піднутрення."""
-    m = mesh_of(body_shape, tol=0.03, ang=0.1)
+    """Промені з поверхонь порожнини в напрямку виходу сердечника: перетин = піднутрення.
+    v3.6: сітка 0.01 мм — на 0.03 мм одна майже вертикальна грань кишені біля дна прорізу давала хибне «піднутрення»
+    (точний зонд: стінка відходить з висотою, як і має з ухилом 0.5°)."""
+    m = mesh_of(body_shape, tol=0.01, ang=0.05)
     m.merge_vertices()
     c = m.triangles_center
     n = m.face_normals
@@ -176,7 +189,7 @@ def undercut_rays(body_shape):
         hit = m.ray.intersects_any(orig, dirs)
         res[name] = dict(faces=int(len(msk)), blocked_faces=int(hit.sum()),
                          blocked_area_mm2=float(m.area_faces[msk][hit].sum()))
-        if name == "cavity" and v(p.WALL_ON):
+        if name == "cavity" and v(p.WALL_ON) and not v(p.FULL_LID_ON):
             # v3.4: тонкостінна частина ширша за шийку ущільнення → жорсткий сердечник би не вийшов; силіконова чашка
             # (після виймання хребта) підтискається всередину на відстань від точки до контуру шийки. Справжнє піднутрення —
             # лише заблокована грань, що лежить у межах контуру шийки (її підтиск не звільняє).
@@ -195,7 +208,7 @@ def undercut_rays(body_shape):
                              blocked_area_mm2=float(m.area_faces[msk][real].sum()),
                              collapse_faces=int(coll.sum()), collapse_max_mm=float(out[above].max()) if above.any() else 0.0,
                              note="тонкі стінки: чашка сердечника підтискається на collapse_max_mm, щоб пройти шийку")
-    if v(p.ARM_ON):
+    if v(p.ARM_ON) and not v(p.FULL_LID_ON):
         # етап 1: плече сердечника ковзає вздовж рампи, доки кожна точка не опиниться над основною частиною (x < cav_x1 − 1);
         # етап 2 — униз (−Z) через отвір, як основна частина. Піднутрення = перетин променя раніше, ніж точка вийде з плеча.
         msk = np.where(reg == "arm")[0]
@@ -261,6 +274,23 @@ def nfc_check(body):
                 symbol=S_["info"])
 
 
+def seal_wall_check_full():
+    """v3.5/3.6: шнур на пробці (v3.6 — прямокутній) тисне на стінку корпусу; на висотах канавки контур корпусу має бути суцільним
+    (зовнішній контур — повний габарит, резервуар — замкнений внутрішній контур). Виїмка для пальця — нижче канавки."""
+    import cadquery as cq
+    body = P.body()
+    out = []
+    g0, g1 = d["groove_z0"], d["groove_z1"]
+    for z in (d["recess_top"] - 0.5, d["recess_top"] + 0.5, g0, (g0 + g1) / 2, g1):
+        s = body.intersect(cq.Solid.makeBox(400, 400, 0.02, pnt=cq.Vector(-200, -200, z - 0.01)))
+        faces = [f for f in s.Faces() if abs(f.normalAt().z) > 0.99 and f.Center().z > z]
+        full = [f for f in faces if f.outerWire().BoundingBox().xlen > v(p.W) - 0.2 and f.outerWire().BoundingBox().ylen > v(p.D) - 0.2]
+        cav = [w for f in full for w in f.innerWires() if w.BoundingBox().xmin < d["cav_xc"] and w.BoundingBox().xmax > d["Lxc"]]
+        out.append(dict(z=round(z, 2), outer_wall_continuous=bool(full) and len(faces) == 1, cavity_loop_closed=bool(cav),
+                        closed=bool(full) and len(faces) == 1 and bool(cav), in_groove=bool(g0 - 0.01 <= z <= g1 + 0.01)))
+    return out
+
+
 def seal_wall_check():
     """v3.0: стінка під губчастим ущільнювачем має бути суцільною по периметру пробки (плече відкривається лише вище порогу).
     Переріз корпусу на висотах смуги ущільнення: контур порожнини не виходить за x = cav_x1."""
@@ -318,6 +348,8 @@ def lid_hook_check(F=30.0):
     b = 16.0  # ширина контакту пальця, мм
     t = v(p.FLANGE_T)
     arm = v(p.SHOULDER) / 2 + v(p.LID_GAP)
+    if v(p.FULL_LID_ON):   # v3.5: палець тисне на верх фланця у виїмці задньої стінки (глибина = стінка + тіньовий зазор)
+        arm = (v(p.WALL_T) + v(p.LID_GAP)) / 2
     M = F * arm
     sigma = 6 * M / (b * t * t)
     out = dict(F_N=F, contact_width_mm=b, arm_mm=arm, sigma_MPa=sigma)
@@ -372,19 +404,29 @@ def run(write_to=None):
     # порожнина: «повітряний» об'єм над пробкою кришки
     import cadquery as cq
     xc = d["cav_xc"]
-    env = P.prism_rrect(v(p.CAV) + 8, v(p.CAV) + 8, 18, d["z_plug_top"], d["z_ceil_c"] + 1, cx=xc)
+    if v(p.FULL_LID_ON):   # v3.5: весь Г-резервуар над пробкою кришки
+        env = P.prism_rrect(v(p.W) - 2, v(p.D) - 2, 12, d["z_plug_top"], d["z_ceil_c"] + 1)
+    else:
+        env = P.prism_rrect(v(p.CAV) + 8, v(p.CAV) + 8, 18, d["z_plug_top"], d["z_ceil_c"] + 1, cx=xc)
     air = env.cut(body).cut(lid)
     # залишити лише частину всередині порожнини (обрізати шматки ззовні)
     sols = sorted(air.Solids(), key=lambda s: -s.Volume())
     cav_air = sols[0]
     arm_ml = 0.0
-    if v(p.ARM_ON):   # повітря плеча поза контуром основної обвідної призми
+    if v(p.FULL_LID_ON):
+        arm_ml = cav_air.intersect(cq.Solid.makeBox(200, 200, 200, cq.Vector(d["Lxc"], -100, -50))).Volume() / 1000
+        cav_air_main_ml = cav_air.Volume() / 1000 - arm_ml
+    if v(p.ARM_ON) and not v(p.FULL_LID_ON):   # повітря плеча поза контуром основної обвідної призми
         xe = xc + (v(p.CAV) + 8) / 2
         abox = P.prism_rrect(d["arm_x1"] + 2 - xe, d["arm_y1"] + 2 - (d["arm_y0"] - 1), 0.5, d["arm_sill_z"] - 1, d["z_ceil_c"] + 1,
                              cx=(xe + d["arm_x1"] + 2) / 2, cy=(d["arm_y0"] - 1 + d["arm_y1"] + 2) / 2)
         arm_air = abox.cut(body)
         arm_ml = max((s_.Volume() for s_ in arm_air.Solids()), default=0.0) / 1000
-    R["cavity"] = dict(net_volume_ml=cav_air.Volume() / 1000 + arm_ml, arm_ml=arm_ml, main_ml=cav_air.Volume() / 1000,
+    if v(p.FULL_LID_ON):
+        R["cavity"] = dict(net_volume_ml=cav_air.Volume() / 1000, arm_ml=arm_ml, main_ml=cav_air_main_ml,
+                           stick_volume_ml=math.pi * (v(p.STICK_D) / 2) ** 2 * v(p.STICK_L) / 1000)
+    else:
+        R["cavity"] = dict(net_volume_ml=cav_air.Volume() / 1000 + arm_ml, arm_ml=arm_ml, main_ml=cav_air.Volume() / 1000,
                        stick_volume_ml=math.pi * (v(p.STICK_D) / 2) ** 2 * v(p.STICK_L) / 1000)
     R["cavity"]["sticks_at_packing"] = {str(phi): R["cavity"]["net_volume_ml"] * phi / R["cavity"]["stick_volume_ml"]
                                         for phi in (0.40, 0.50, 0.60)}
@@ -414,7 +456,9 @@ def run(write_to=None):
     if RL:
         R["relief_lid_tilt"] = rl_tilt_check()
         R["relief_lid_hook"] = rl_hook_check()
-    if v(p.ARM_ON):
+    if v(p.FULL_LID_ON):
+        R["seal_wall"] = seal_wall_check_full()
+    elif v(p.ARM_ON):
         R["seal_wall"] = seal_wall_check()
     if v(p.NFC_ON):
         R["nfc"] = nfc_check(body)
@@ -441,6 +485,8 @@ def lid_tilt_check(angles=(1, 3, 5, 7, 8, 10, 12)):
     body, lid = P.body(), P.lid()
     s_ = 1 if v(p.RECESS_SIDE) > 0 else -1          # v2.7: тягнуть за задній край, упор — передня кромка
     xc, yb, zp = d["cav_xc"], -s_ * d["flange"] / 2, d["z_reb"]
+    if v(p.FULL_LID_ON):   # v3.5: упор — передня верхня кромка фланця під передньою стінкою корпусу
+        yb, zp = -s_ * d["flange_d"] / 2, v(p.FLANGE_T)
     out = []
     for a in angles:
         l = lid.rotate(Vector(xc - 50, yb, zp), Vector(xc + 50, yb, zp), -s_ * a)
