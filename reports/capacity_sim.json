@@ -2,10 +2,10 @@
  "runs": [
   {
    "seed": 0,
-   "no_shake": 74,
-   "with_shake": 97,
-   "shakes": 12,
-   "inside": 97,
+   "no_shake": 80,
+   "with_shake": 80,
+   "shakes": 3,
+   "inside": 80,
    "center_xy_mm": [
     -15.0,
     0.0
@@ -13,34 +13,34 @@
   },
   {
    "seed": 1,
-   "no_shake": 79,
-   "with_shake": 80,
+   "no_shake": 76,
+   "with_shake": 82,
    "shakes": 4,
-   "inside": 80
+   "inside": 82
   },
   {
    "seed": 2,
-   "no_shake": 69,
-   "with_shake": 78,
-   "shakes": 6,
-   "inside": 78
+   "no_shake": 61,
+   "with_shake": 67,
+   "shakes": 4,
+   "inside": 67
   },
   {
    "seed": 3,
-   "no_shake": 64,
-   "with_shake": 76,
-   "shakes": 6,
-   "inside": 76
+   "no_shake": 78,
+   "with_shake": 89,
+   "shakes": 5,
+   "inside": 89
   }
  ],
- "no_shake_mean": 71.5,
- "no_shake_min": 64,
- "no_shake_max": 79,
- "with_shake_mean": 82.75,
- "with_shake_min": 76,
- "with_shake_max": 97,
+ "no_shake_mean": 73.75,
+ "no_shake_min": 61,
+ "no_shake_max": 80,
+ "with_shake_mean": 79.5,
+ "with_shake_min": 67,
+ "with_shake_max": 89,
  "stick_d": 7.2,
- "elapsed_s": 3096.297853946686,
+ "elapsed_s": 1190.138279914856,
  "n_max": 220,
- "version": "v3.6 rect lid plug, L reservoir above rect socket"
+ "version": "v3.7 hidden rect lid 14 mm, L reservoir above rect socket"
 }

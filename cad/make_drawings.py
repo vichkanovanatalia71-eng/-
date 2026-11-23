@@ -244,8 +244,9 @@ if v(p.FULL_LID_ON):   # v3.5: кришка на всю основу з Г-пр�
     tn = math.tan(math.radians(v(p.DRAFT_CAV)))
     RECT = P.rect_lid()
     _pn = "прямокутна пробка" if RECT else "Г-пробка"
-    S = DR.Sheet("Кришка", f"Деталь 02 — Кришка: {_pn}, канавка шнура, лоток", "декоративний бетон / GFRC-премікс",
-                 "1:1; 4:1", 3, NS, mass=(f"Маса ≈ {mass_lid:.3f} кг (ρ 2000)" if mass_lid else None),
+    _ttl = "Деталь 02 — Кришка схована: лоток, канавка шнура, язичок" if HID else f"Деталь 02 — Кришка: {_pn}, канавка шнура, лоток"
+    S = DR.Sheet("Кришка", _ttl, "декоративний бетон / GFRC-премікс",
+                 ("1:1; 4:1; 3:1" if P.lid_hidden() else "1:1; 4:1"), 3, NS, mass=(f"Маса ≈ {mass_lid:.3f} кг (ρ 2000)" if mass_lid else None),
                  notes=([f"v3.7: кришка схована в дні — без фланця; нижня грань (відкрита грань лиття, P120→P220, площинність 0.2) урівень з низом корпусу.",
                          f"Язичок {v(p.RECESS_W) - 2 * v(p.LID_TAB_GAP):.0f} мм завширшки: {v(p.LID_TAB_TIP_T)} біля торця → {v(p.LID_TAB_ROOT_T)} біля кореня (скіс 45°), "
                          f"торець на {v(p.LID_TAB_INSET)} усередині габариту; входить у виїмку {v(p.RECESS_W):.0f} × {v(p.HOOK_H):.0f} задньої грані — кришка стає лише язичком до виїмки."]
@@ -281,7 +282,7 @@ if v(p.FULL_LID_ON):   # v3.5: кришка на всю основу з Г-пр�
     Ls = keep(L, "y", ys, +1)
     VLs = S.view(Ls, "front", (290, 92), 1.0, label=f"РОЗРІЗ (y = {ys:.1f})", section=(Ls, (0, ys, 0), (0, 1, 0)))
     xp0, xp1 = d["Lx0"] + v(p.PLUG_GAP), d["Lx1"] - v(p.PLUG_GAP)
-    VLs.dim((xp0, ys, d["zb"]), (xp1, ys, d["zb"]), "h", off=-22, txt=f"{xp1 - xp0:.1f} ⊕ (основа пробки)")
+    VLs.dim((xp0, ys, d["zb"]), (xp1, ys, d["zb"]), "h", off=(-9 if HID else -22), txt=f"{xp1 - xp0:.1f} ⊕ (основа пробки)")
     if not HID:
         VLs.dim((-fw / 2, ys, 0), (fw / 2, ys, 0), "h", off=-12, txt=f"{fw:.1f}")
         VLs.dim((fw / 2, ys, 0), (fw / 2, ys, v(p.FLANGE_T)), "v", off=4, txt=f"{v(p.FLANGE_T)}")
@@ -294,7 +295,7 @@ if v(p.FULL_LID_ON):   # v3.5: кришка на всю основу з Г-пр�
     DR.clip_begin(S, "cG", cg[0], cg[1], rg)
     k = 4.0
     VG = DR.View(S, "front", None, k)
-    u0, v0 = VG.uv((pr + 1.0, ys, 12.0))
+    u0, v0 = VG.uv((pr + 1.0, ys, 8.0 if HID else 12.0))
     VG.o = (cg[0] - k * u0, cg[1] + k * v0)
     vis, hid = DR.hlr(Ls, "front", False)
     for rings in DR.section_faces(Ls, (0, ys, 0), (0, 1, 0), "front"):
@@ -309,12 +310,12 @@ if v(p.FULL_LID_ON):   # v3.5: кришка на всю основу з Г-пр�
     VG.leader((pr + 1.0, ys, LT - 1.7), -8, -8, f"фаска {v(p.PLUG_CHAMF_R)}×{v(p.PLUG_CHAMF_H)}")
     if HID:   # v3.7: виносний елемент H — розріз по осі язичка (x = 0): язичок у виїмці задньої грані
         _t = P.lid_tab_dims()
-        asmH = cq.Compound.makeCompound([keep(s_, "x", _t["x"], +1) for s_ in (body, lid, oring)])
-        ch, rh = (86, 242), 30
+        asmH = keep(lid, "x", _t["x"], +1)   # лише кришка (стіна корпусу — розміром виїмки)
+        ch, rh = (86, 240), 32
         DR.clip_begin(S, "cH", ch[0], ch[1], rh)
-        kH = 4.0
+        kH = 3.0
         VHt = DR.View(S, "right", None, kH)
-        u0, v0 = VHt.uv((_t["x"], d["Ly1"] + 1.0, 6.0))
+        u0, v0 = VHt.uv((_t["x"], d["Ly1"] - 1.5, 7.0))
         VHt.o = (ch[0] - kH * u0, ch[1] + kH * v0)
         vis, hid = DR.hlr(asmH, "right", False)
         for rings in DR.section_faces(asmH, (_t["x"], 0, 0), (1, 0, 0), "right"):
@@ -322,7 +323,7 @@ if v(p.FULL_LID_ON):   # v3.5: кришка на всю основу з Г-пр�
             S.el.append(f'<path class="hatch" d="{dpath}" fill-rule="evenodd"/>')
         for pl in vis:
             S.poly([VHt.p(uu, vv) for uu, vv in pl], "v")
-        DR.clip_end(S, ch[0], ch[1], rh, f"H (4:1) — язичок у виїмці {v(p.RECESS_W):.0f} × {v(p.HOOK_H):.0f}")
+        DR.clip_end(S, ch[0], ch[1], rh, f"H (3:1) — язичок у виїмці {v(p.RECESS_W):.0f} × {v(p.HOOK_H):.0f} (переріз x = 0)")
         VHt.dim((_t["x"], _t["y_tip"] - 0.6, 0), (_t["x"], _t["y_tip"] - 0.6, _t["t_tip"]), "v", off=6, txt=f"{_t['t_tip']}")
         VHt.dim((_t["x"], _t["y_ramp0"] - 0.8, 0), (_t["x"], _t["y_ramp0"] - 0.8, _t["t_root"]), "v", off=-8, txt=f"{_t['t_root']}")
         VHt.dim((_t["x"], v(p.D) / 2, 0), (_t["x"], v(p.D) / 2, d["recess_top"]), "v", off=12, txt=f"{v(p.HOOK_H):.0f}")

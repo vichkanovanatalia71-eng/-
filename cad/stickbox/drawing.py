@@ -97,7 +97,19 @@ def section_faces(cut_shape, plane_point, normal, view):
                 pts = []
                 for e in w.Edges():
                     ps = e.positions(np.linspace(0, 1, max(2, int(e.Length() / 0.3) + 2)))
-                    pts += [(np.array([q.x, q.y, q.z]) @ X, np.array([q.x, q.y, q.z]) @ Y) for q in ps]
+                    seg = [(np.array([q.x, q.y, q.z]) @ X, np.array([q.x, q.y, q.z]) @ Y) for q in ps]
+                    if pts:   # ребра дроту можуть іти в протилежному напрямку — узгодити з кінцем попереднього
+                        d0 = (seg[0][0] - pts[-1][0]) ** 2 + (seg[0][1] - pts[-1][1]) ** 2
+                        d1 = (seg[-1][0] - pts[-1][0]) ** 2 + (seg[-1][1] - pts[-1][1]) ** 2
+                        if d1 < d0:
+                            seg = seg[::-1]
+                    elif len(w.Edges()) > 1:   # перше ребро: орієнтувати до спільної вершини з другим
+                        e2 = w.Edges()[1].positions([0.0, 1.0])
+                        e2 = [(np.array([q.x, q.y, q.z]) @ X, np.array([q.x, q.y, q.z]) @ Y) for q in e2]
+                        dd = lambda a_, b_: (a_[0] - b_[0]) ** 2 + (a_[1] - b_[1]) ** 2
+                        if min(dd(seg[0], q) for q in e2) < min(dd(seg[-1], q) for q in e2):
+                            seg = seg[::-1]
+                    pts += seg
                 rings.append(pts)
             polys.append(rings)
     return polys
