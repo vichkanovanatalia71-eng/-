@@ -190,6 +190,8 @@ def _cavity_tool_full():
 
 
 def recess_r():
+    if v(p.FULL_LID_ON) and v(p.LID_HIDDEN_ON):   # v3.7: виїмка 15 × 5
+        return v(p.NOTCH_R)
     return min(v(p.RECESS_R), v(p.HOOK_H) - 0.5) if v(p.FULL_LID_ON) else v(p.RECESS_R)
 
 
@@ -598,7 +600,7 @@ def body(product=True, with_slot=None, with_logo=None, with_cavity=True,
                         and all(abs(q.y - s_ * v(p.D) / 2) < 0.02 for q in pts)
                         and all(z_lo < q.z < 10 for q in pts))
             try:
-                s = fillet_edges(s, edges_where(s, on_recess), 1.5)
+                s = fillet_edges(s, edges_where(s, on_recess), 1.0 if lid_hidden() else 1.5)
             except Exception as ex:  # pragma: no cover
                 print("WARN recess fillet:", ex)
             # кромка «стеля виїмки / стінка порожнини»: по ній проходить ущільнювач (аудит C2) → R1.5
@@ -729,6 +731,47 @@ def _lid_tab(c_along, edge, sgn, axis, notch_w, z0, grind_allow, ref_c=None):
     return t
 
 
+def lid_hidden():
+    return bool(v(p.FULL_LID_ON)) and bool(v(p.LID_HIDDEN_ON))
+
+
+def lid_tab_dims():
+    """v3.7: язичок схованої кришки — від борту пробки крізь виїмку задньої стінки до LID_TAB_INSET від зовнішньої грані."""
+    tn = math.tan(math.radians(v(p.DRAFT_CAV)))
+    y_skirt = d["Ly1"] - v(p.PLUG_GAP)                 # зовнішня грань борту біля низу (задня сторона)
+    y_tip = v(p.D) / 2 - v(p.LID_TAB_INSET)
+    w = v(p.RECESS_W) - 2 * v(p.LID_TAB_GAP)
+    t_tip, t_root, l_tip = v(p.LID_TAB_TIP_T), v(p.LID_TAB_ROOT_T), v(p.LID_TAB_TIP_L)
+    y_ramp1 = y_tip - l_tip                              # кінець тонкої ділянки
+    y_ramp0 = y_ramp1 - (t_root - t_tip)                 # скіс 45° до товщини кореня
+    return dict(y_skirt=y_skirt, y_tip=y_tip, w=w, t_tip=t_tip, t_root=t_root, y_ramp0=y_ramp0, y_ramp1=y_ramp1,
+                len=y_tip - y_skirt, x=d["recess_x"])
+
+
+def _lid_tab_hidden(grind_allow=0.0):
+    t = lid_tab_dims()
+    zb = d["zb"]
+    y_in = t["y_skirt"] - 3.0                            # заходить у борт на 3 мм (злиття)
+    prof = (cq.Workplane("YZ", origin=(t["x"] - t["w"] / 2, 0, 0))
+            .moveTo(y_in, zb - grind_allow).lineTo(t["y_tip"], zb - grind_allow).lineTo(t["y_tip"], zb + t["t_tip"])
+            .lineTo(t["y_ramp1"], zb + t["t_tip"]).lineTo(t["y_ramp0"], zb + t["t_root"]).lineTo(y_in, zb + t["t_root"]).close())
+    tab = prof.extrude(t["w"]).val()
+    # кути торця в плані R LID_TAB_R, верхня кромка торця R0.8
+    vert = edges_where(tab, lambda e, pts: all(abs(q.y - t["y_tip"]) < 0.02 for q in pts)
+                       and abs(pts[0].z - pts[-1].z) > 0.5)
+    try:
+        tab = fillet_edges(tab, vert, v(p.LID_TAB_R))
+    except Exception as ex:  # pragma: no cover
+        print("WARN tab plan fillet:", ex)
+    topedge = edges_where(tab, lambda e, pts: all(abs(q.z - (zb + t["t_tip"])) < 0.02 for q in pts)
+                          and all(q.y > t["y_tip"] - v(p.LID_TAB_R) - 0.05 for q in pts))
+    try:
+        tab = fillet_edges(tab, topedge, 0.8)
+    except Exception as ex:  # pragma: no cover
+        print("WARN tab top fillet:", ex)
+    return tab
+
+
 def _lid_full(product=True, grind_allow=0.0):
     """v3.5: кришка на всю основу. Фланець = габарит дна мінус тіньовий зазор LID_GAP (корпус стоїть на ньому);
     пробка — профіль гнізда (v3.6: прямокутник R12; v3.5: Г) з радіальним зазором PLUG_GAP і тим самим ухилом;
@@ -737,28 +780,37 @@ def _lid_full(product=True, grind_allow=0.0):
     ft = v(p.FLANGE_T)
     tn = math.tan(math.radians(v(p.DRAFT_CAV)))
     op = lambda z: v(p.PLUG_GAP) + (z - zb) * tn                     # зміщення пробки від Г-профілю на висоті z
-    fl = prism_rrect(d["flange_w"], d["flange_d"], d["r_flange"], -grind_allow, ft)
+    hidden = lid_hidden()
     zt = zb + d["plug_h"]
     zc = zt - v(p.PLUG_CHAMF_H)
-    plug = S_loft(op(zb - EPS), zb - EPS, op(zc), zc)
     cap = S_loft(op(zc), zc, op(zc) + v(p.PLUG_CHAMF_R), zt)       # фаска верху борту (перекіс при знятті)
-    s = fl.fuse(plug).fuse(cap).clean()
+    if hidden:   # v3.7: без фланця — лоток у гнізді, низ урівень з низом корпусу; язичок у виїмці задньої грані
+        plug = S_loft(op(zb), zb - grind_allow, op(zc), zc)
+        s = plug.fuse(cap).fuse(_lid_tab_hidden(grind_allow)).clean()
+    else:
+        fl = prism_rrect(d["flange_w"], d["flange_d"], d["r_flange"], -grind_allow, ft)
+        plug = S_loft(op(zb - EPS), zb - EPS, op(zc), zc)
+        s = fl.fuse(plug).fuse(cap).clean()
     polyP = S_polygon(op(zb), zb)
     from shapely.geometry import Point as _Pt
     inside_plug = lambda q, m: polyP.buffer(m).contains(_Pt(q.x, q.y))
-    corner = edges_where(s, lambda e, pts: all(abs(q.z - ft) < 0.02 for q in pts) and all(inside_plug(q, 0.05) for q in pts))
+    corner = [] if hidden else edges_where(s, lambda e, pts: all(abs(q.z - ft) < 0.02 for q in pts) and all(inside_plug(q, 0.05) for q in pts))
     try:
         s = fillet_edges(s, corner, 0.5)
     except Exception as ex:  # pragma: no cover
         print("WARN lid corner fillet:", ex)
-    fl_top = edges_where(s, lambda e, pts: all(abs(q.z - ft) < 0.02 for q in pts) and not any(inside_plug(q, 1.0) for q in pts))
-    try:
-        s = fillet_edges(s, fl_top, 0.3)
-    except Exception as ex:  # pragma: no cover
-        print("WARN lid flange top fillet:", ex)
+    if not hidden:
+        fl_top = edges_where(s, lambda e, pts: all(abs(q.z - ft) < 0.02 for q in pts) and not any(inside_plug(q, 1.0) for q in pts))
+        try:
+            s = fillet_edges(s, fl_top, 0.3)
+        except Exception as ex:  # pragma: no cover
+            print("WARN lid flange top fillet:", ex)
     if product:
         bot = min(s.Faces(), key=lambda f: f.Center().z)
-        s = s.fillet(0.8, bot.Edges())
+        try:
+            s = s.fillet(0.8 if not hidden else 0.6, bot.Edges())
+        except Exception as ex:  # pragma: no cover
+            print("WARN lid bottom fillet:", ex)
     # канавка шнура: дно — вертикальне, на (зазор + глибина канавки) від Г-профілю на середині канавки
     g0, g1 = d["groove_z0"], d["groove_z1"]
     gz = (g0 + g1) / 2

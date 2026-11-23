@@ -485,6 +485,11 @@ def nfc_symbol():
     waves = MultiPolygon([pg for pg in parts])
     b = waves.bounds
     waves = affinity.translate(waves, -(b[0] + b[2]) / 2, -(b[1] + b[3]) / 2)
+    wb = waves.bounds
+    if not v(p.NFC_TEXT_ON):   # v3.7: лише хвилі, без слова «NFC»
+        info = dict(waves_w=round(wb[2] - wb[0], 2), waves_h=round(wb[3] - wb[1], 2), radii=[round(r, 2) for r in radii],
+                    text_track=None, text_gap_min=None, text_w=0.0, bounds=[round(x, 2) for x in wb])
+        return dict(waves=waves, text=[], info=info)
     # слово NFC: трекінг підбирається так, щоб перемички між літерами були ≥ NFC_GAP
     cap = v(p.NFC_TEXT_CAP)
     track = 0.0

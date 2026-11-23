@@ -26,8 +26,9 @@ def keep(shape, axis, val, side):
 
 GENERAL = [
     "Загальні допуски литих поверхонь: лінійні ±0.5 (до 120 мм), кутові ±0.5°; функціональні — див. позначення ⊕.",
-    (f"⊕ Функціональні розміри (±0.25; отвір ±0.2): {'гніздо пробки' if P.rect_lid() else 'Г-резервуар'} біля низу ({P.d['Lx1'] - P.d['Lx0']:.0f} × {P.d['Ly1'] - P.d['Ly0']:.1f}), "
-     f"фланець кришки {P.d['flange_w']:.0f} × {P.d['flange_d']:.0f}, кишеня девайса, отвір Ø8." if v(p.FULL_LID_ON) else
+    (f"⊕ Функціональні розміри (±0.25; отвір ±0.2): {'гніздо пробки' if P.rect_lid() else 'Г-резервуар'} біля низу ({P.d['Lx1'] - P.d['Lx0']:.0f} × {P.d['Ly1'] - P.d['Ly0']:.1f}), " +
+     (f"пробка кришки {P.d['Lx1'] - P.d['Lx0'] - 2 * v(p.PLUG_GAP):.1f} × {P.d['Ly1'] - P.d['Ly0'] - 2 * v(p.PLUG_GAP):.1f}" if P.lid_hidden() else
+      f"фланець кришки {P.d['flange_w']:.0f} × {P.d['flange_d']:.0f}") + ", кишеня девайса, отвір Ø8." if v(p.FULL_LID_ON) else
      f"⊕ Функціональні розміри (±0.25; отвір ±0.2): ребейт {P.d['reb']:.1f}, порожнина в зоні ущільнення {v(p.CAV):.1f}, кишеня девайса, отвір Ø8."),
     "Невказані радіуси литих ребер R0.5–1. Нижня (відкрита) грань — шліфування P120→P220, площинність 0.3, притуплення R≈1.",
 ]
@@ -61,7 +62,8 @@ VB = S.view(body, "back", (226, 225.5), 0.5, hidden=False)
 S.text((226, 174.5), "ВИГЛЯД ЗЗАДУ (1:2)", 3.6, weight="bold")
 rx = d["recess_x"]
 VB.dim((rx - v(p.RECESS_W) / 2, 45, 0), (rx + v(p.RECESS_W) / 2, 45, 0), "h", off=-5, txt=f"{v(p.RECESS_W):.0f}")
-VB.leader((rx, 45, d["recess_top"]), 14, -16, (f"виїмка для пальця {v(p.RECESS_W):.0f}×{v(p.HOOK_H):.0f} над фланцем" if v(p.FULL_LID_ON)
+VB.leader((rx, 45, d["recess_top"]), 14, -16, (f"виїмка {v(p.RECESS_W):.0f}×{v(p.HOOK_H):.0f}, язичок кришки" if P.lid_hidden() else
+                                                 f"виїмка для пальця {v(p.RECESS_W):.0f}×{v(p.HOOK_H):.0f} над фланцем" if v(p.FULL_LID_ON)
                                                  else f"виїмка кришки {v(p.RECESS_W):.0f}×{d['recess_top']:.1f}"))
 rcy_ = (d["rel_y0"] + d["rel_y1"]) / 2
 VR = S.view(body, "right", (322, 225.5), 0.5, hidden=False)
@@ -112,7 +114,9 @@ if v(p.FULL_LID_ON):
                 f"Г-резервуар: однаковий переріз від низу корпусу (z = {d['zb']:.0f}, верх фланця кришки) до стелі; ухил {v(p.DRAFT_CAV)}° (вихід сердечника); ") +
                f"купол стелі R{d['r_dome']:.0f} — стріла {v(p.DOME_SAG_FAR)} мм до найдальшого кута (відведення повітря).",
                f"Заходна фаска шнура {v(p.LEADIN_ANGLE):.0f}° × {v(p.LEADIN_LEN)} біля низу; кромку виїмки для пальця з боку резервуара притупити R≈1 (вручну).",
-               "Корпус стоїть на фланці кришки — кришка займає всю основу; розрізи через частину резервуара за кишенею девайса — аркуш 4."]
+               ("v3.7: стінки моноліту стоять на площині опори; кришка схована в гнізді (низ урівень), язичок — у виїмці 15 × 5 на задній грані; розрізи через кишеню девайса — аркуш 4."
+                if P.lid_hidden() else
+                "Корпус стоїть на фланці кришки — кришка займає всю основу; розрізи через частину резервуара за кишенею девайса — аркуш 4.")]
 else:
     _notes2 = None
 S = DR.Sheet("Корпус", "Деталь 01 — Розрізи A-A, C-C; виносні елементи E (4:1), F (5:1)", "декоративний бетон / GFRC-премікс",
@@ -134,7 +138,8 @@ else:
     VA.dim((xc - d["reb"] / 2, 0, 0), (xc + d["reb"] / 2, 0, 0), "h", off=-12, txt=f"{d['reb']:.1f} ⊕")
 VA.dim((-60, 0, 0), (-60, 0, d["z_ceil_c"]), "v", off=-8, txt=f"{d['z_ceil_c']:.0f} (стеля, центр)")
 VA.dim((xc + 14, 0, d["z_ceil_c"]), (xc + 14, 0, H), "v", off=6, txt=f"{v(p.T_TOP):.0f}")
-VA.dim((60, 0, 0), (60, 0, d["z_reb"]), "v", off=8, txt=(f"{d['zb']:.1f} (фланець кришки)" if FULL else f"{d['z_reb']:.1f} ⊕"))
+if not P.lid_hidden():
+    VA.dim((60, 0, 0), (60, 0, d["z_reb"]), "v", off=8, txt=(f"{d['zb']:.1f} (фланець кришки)" if FULL else f"{d['z_reb']:.1f} ⊕"))
 if FULL:
     _tn = math.tan(math.radians(v(p.DRAFT_CAV)))
     VA.dim((-60, 0, 30), (d["Lx0"] + (30 - d["zb"]) * _tn, 0, 30), "h", off=6, txt=f"{v(p.WALL_T):.0f}")
@@ -163,8 +168,9 @@ if v(p.WALL_ON) and not FULL:
     VC.dim((xc, -45, _zw), (xc, d["up_y0"] + (_zw - d["up_zt"]) * _tn, _zw), "h", off=0, txt=f"{v(p.WALL_FRONT_T)}")
     VC.dim((xc, 45, _zw), (xc, d["up_y1"] - (_zw - d["up_zt"]) * _tn, _zw), "h", off=0, txt=f"{v(p.WALL_T):.0f}")
 VC.dim((xc, 45, H), (xc, -45, H), "h", off=8, txt="90")
-VC.dim((xc, 45, d["zb"] if v(p.FULL_LID_ON) else 0), (xc, 45, d["recess_top"]), "v", off=8,
-       txt=(f"{v(p.HOOK_H):.0f} (виїмка)" if v(p.FULL_LID_ON) else f"{d['recess_top']:.1f} (виїмка)"))
+if not P.lid_hidden():   # v3.7: виїмка — на осі x = 0, поза розрізом C-C
+    VC.dim((xc, 45, d["zb"] if v(p.FULL_LID_ON) else 0), (xc, 45, d["recess_top"]), "v", off=8,
+           txt=(f"{v(p.HOOK_H):.0f} (виїмка)" if v(p.FULL_LID_ON) else f"{d['recess_top']:.1f} (виїмка)"))
 # виносний елемент E — воронка, 4:1
 ce, re = (330, 82), 42
 DR.clip_begin(S, "cE", ce[0], ce[1], re)
@@ -204,8 +210,12 @@ if FULL:   # v3.5: стінка 5 мм стоїть на фланці кришк
     x0 = d["Lx0"]
     gz = (d["groove_z0"] + d["groove_z1"]) / 2
     VF.dim((-60, 0, gz), (x0 + (gz - d["zb"]) * math.tan(math.radians(v(p.DRAFT_CAV))), 0, gz), "h", off=7, txt=f"{v(p.WALL_T):.0f}")
-    VF.dim((x0 - 2.0, 0, 0), (x0 - 2.0, 0, d["zb"]), "v", off=-6, txt=f"{v(p.FLANGE_T)}")
-    VF.dim((-60 + v(p.LID_GAP), 0, 1.0), (-60, 0, 1.0), "h", off=-4, txt=f"{v(p.LID_GAP)}")
+    if P.lid_hidden():   # v3.7: кришка без фланця, низ урівень з корпусом
+        VF.dim((x0 + v(p.PLUG_GAP) + 3.0, 0, 0), (x0 + v(p.PLUG_GAP) + 3.0, 0, d["groove_z0"]), "v", off=12, txt=f"{d['groove_z0']:.0f}")
+        VF.leader((x0 + v(p.PLUG_GAP) + 4.0, 0, 0.0), 30, 22, "низ кришки урівень з корпусом")
+    else:
+        VF.dim((x0 - 2.0, 0, 0), (x0 - 2.0, 0, d["zb"]), "v", off=-6, txt=f"{v(p.FLANGE_T)}")
+        VF.dim((-60 + v(p.LID_GAP), 0, 1.0), (-60, 0, 1.0), "h", off=-4, txt=f"{v(p.LID_GAP)}")
     VF.leader((x0 - 0.3, 0, d["zb"] + 1.0), 30, 8, f"фаска {v(p.LEADIN_ANGLE):.0f}°×{v(p.LEADIN_LEN)}")
     VF.leader((x0 + 1.4, 0, gz), 34, -24, f"шнур-губка Ø{v(p.ORING_CS):.0f}, стиснення {d['squeeze_pct']:.0f}%")
     VF.leader((x0 + 3.2, 0, d["groove_z0"] + 0.5), 34, 6, f"канавка {v(p.GROOVE_W)}×{d['groove_depth']:.1f}")
@@ -226,15 +236,23 @@ print("sheet 2")
 if v(p.FULL_LID_ON):   # v3.5: кришка на всю основу з Г-пробкою
     L = lid
     LT = d["lid_t"]
-    fw, fd = d["flange_w"], d["flange_d"]
+    HID = P.lid_hidden()
+    pw_, pd_ = d["Lx1"] - d["Lx0"] - 2 * v(p.PLUG_GAP), d["Ly1"] - d["Ly0"] - 2 * v(p.PLUG_GAP)
+    fw, fd = (pw_, pd_) if HID else (d["flange_w"], d["flange_d"])
+    r_fw = (v(p.CAV_R_OUT) - v(p.PLUG_GAP)) if HID else d["r_flange"]
+    ft_ = 0.0 if HID else v(p.FLANGE_T)
     tn = math.tan(math.radians(v(p.DRAFT_CAV)))
     RECT = P.rect_lid()
     _pn = "прямокутна пробка" if RECT else "Г-пробка"
     S = DR.Sheet("Кришка", f"Деталь 02 — Кришка: {_pn}, канавка шнура, лоток", "декоративний бетон / GFRC-премікс",
                  "1:1; 4:1", 3, NS, mass=(f"Маса ≈ {mass_lid:.3f} кг (ρ 2000)" if mass_lid else None),
-                 notes=["Видима (нижня) грань — відкрита грань лиття: шліфування P120→P220 з припуском 0.5; площинність 0.2. На ній стоїть увесь виріб.",
-                        f"Фланець — уся основа {fw:.0f} × {fd:.0f}, R{d['r_flange']:.1f}: на {v(p.LID_GAP)} мм менший за корпус з кожного боку "
-                        "(тіньова лінія); корпус стоїть на ньому торцями стінок.",
+                 notes=([f"v3.7: кришка схована в дні — без фланця; нижня грань (відкрита грань лиття, P120→P220, площинність 0.2) урівень з низом корпусу.",
+                         f"Язичок {v(p.RECESS_W) - 2 * v(p.LID_TAB_GAP):.0f} мм завширшки: {v(p.LID_TAB_TIP_T)} біля торця → {v(p.LID_TAB_ROOT_T)} біля кореня (скіс 45°), "
+                         f"торець на {v(p.LID_TAB_INSET)} усередині габариту; входить у виїмку {v(p.RECESS_W):.0f} × {v(p.HOOK_H):.0f} задньої грані — кришка стає лише язичком до виїмки."]
+                        if HID else
+                        ["Видима (нижня) грань — відкрита грань лиття: шліфування P120→P220 з припуском 0.5; площинність 0.2. На ній стоїть увесь виріб.",
+                         f"Фланець — уся основа {fw:.0f} × {fd:.0f}, R{d['r_flange']:.1f}: на {v(p.LID_GAP)} мм менший за корпус з кожного боку "
+                         "(тіньова лінія); корпус стоїть на ньому торцями стінок."]) + [
                         (f"Пробка — прямокутник {d['Lx1'] - d['Lx0'] - 2 * v(p.PLUG_GAP):.1f} × {d['Ly1'] - d['Ly0'] - 2 * v(p.PLUG_GAP):.1f} R{v(p.CAV_R_OUT) - v(p.PLUG_GAP):.1f} "
                          f"(гніздо корпусу мінус {v(p.PLUG_GAP)} на сторону), ухил {v(p.DRAFT_CAV)}°, висота {d['plug_h']:.0f}; " if RECT else
                          f"Г-пробка — профіль резервуара мінус {v(p.PLUG_GAP)} мм на сторону, ухил {v(p.DRAFT_CAV)}°, висота {d['plug_h']:.0f}; ") +
@@ -246,8 +264,12 @@ if v(p.FULL_LID_ON):   # v3.5: кришка на всю основу з Г-пр�
     VLt = S.view(L, "top", (88, 140), 1.0, label="ВИД ЗВЕРХУ (внутрішня сторона)")
     VLt.dim((-fw / 2, fd / 2, LT), (fw / 2, fd / 2, LT), "h", off=8, txt=f"{fw:.1f}")
     VLt.dim((fw / 2, -fd / 2, LT), (fw / 2, fd / 2, LT), "v", off=8, txt=f"{fd:.1f}")
-    VLt.leader((-fw / 2 + 4.0, -fd / 2 + 4.0, 0), 16, 14, f"R{d['r_flange']:.1f}")
-    if RECT:
+    VLt.leader((-fw / 2 + 4.0, -fd / 2 + 4.0, 0), 16, 14, f"R{r_fw:.1f}")
+    if HID:
+        _t = P.lid_tab_dims()
+        VLt.leader((_t["x"] + _t["w"] / 2 - 1.0, _t["y_tip"] - 1.0, 0), 22, -14, f"язичок {_t['w']:.0f} мм (у виїмку 15 × 5)")
+        ys = 0.0
+    elif RECT:
         _c = (v(p.CAV_R_OUT) - v(p.PLUG_GAP)) * (1 - 1 / math.sqrt(2))
         VLt.leader((d["Lx1"] - v(p.PLUG_GAP) - _c, d["Ly0"] + v(p.PLUG_GAP) + _c, LT), 16, 22,
                    f"пробка {d['Lx1'] - d['Lx0'] - 2 * v(p.PLUG_GAP):.1f} × {d['Ly1'] - d['Ly0'] - 2 * v(p.PLUG_GAP):.1f}, R{v(p.CAV_R_OUT) - v(p.PLUG_GAP):.1f}")
@@ -260,9 +282,10 @@ if v(p.FULL_LID_ON):   # v3.5: кришка на всю основу з Г-пр�
     VLs = S.view(Ls, "front", (290, 92), 1.0, label=f"РОЗРІЗ (y = {ys:.1f})", section=(Ls, (0, ys, 0), (0, 1, 0)))
     xp0, xp1 = d["Lx0"] + v(p.PLUG_GAP), d["Lx1"] - v(p.PLUG_GAP)
     VLs.dim((xp0, ys, d["zb"]), (xp1, ys, d["zb"]), "h", off=-22, txt=f"{xp1 - xp0:.1f} ⊕ (основа пробки)")
-    VLs.dim((-fw / 2, ys, 0), (fw / 2, ys, 0), "h", off=-12, txt=f"{fw:.1f}")
+    if not HID:
+        VLs.dim((-fw / 2, ys, 0), (fw / 2, ys, 0), "h", off=-12, txt=f"{fw:.1f}")
+        VLs.dim((fw / 2, ys, 0), (fw / 2, ys, v(p.FLANGE_T)), "v", off=4, txt=f"{v(p.FLANGE_T)}")
     VLs.dim((fw / 2, ys, 0), (fw / 2, ys, LT), "v", off=10, txt=f"{LT:.1f}")
-    VLs.dim((fw / 2, ys, 0), (fw / 2, ys, v(p.FLANGE_T)), "v", off=4, txt=f"{v(p.FLANGE_T)}")
     g0, g1 = d["groove_z0"], d["groove_z1"]
     gz = (g0 + g1) / 2
     gb = d["Lx0"] + (gz - d["zb"]) * tn + v(p.PLUG_GAP) + d["groove_depth"]     # дно канавки (ліва сторона)
@@ -282,8 +305,28 @@ if v(p.FULL_LID_ON):   # v3.5: кришка на всю основу з Г-пр�
     DR.clip_end(S, cg[0], cg[1], rg, "G (4:1) — канавка шнура (ліва сторона)")
     VG.dim((gb, ys, g0), (gb, ys, g1), "v", off=8, txt=f"{v(p.GROOVE_W)}")
     VG.dim((pr, ys, g1), (gb, ys, g1), "h", off=5, txt=f"{d['groove_depth']:.1f}")
-    VG.dim((pr - 1.5, ys, v(p.FLANGE_T)), (pr - 1.5, ys, g0), "v", off=-10, txt=f"{g0 - v(p.FLANGE_T):.1f}")
+    VG.dim((pr - 1.5, ys, ft_), (pr - 1.5, ys, g0), "v", off=-10, txt=f"{g0 - ft_:.1f}")
     VG.leader((pr + 1.0, ys, LT - 1.7), -8, -8, f"фаска {v(p.PLUG_CHAMF_R)}×{v(p.PLUG_CHAMF_H)}")
+    if HID:   # v3.7: виносний елемент H — розріз по осі язичка (x = 0): язичок у виїмці задньої грані
+        _t = P.lid_tab_dims()
+        asmH = cq.Compound.makeCompound([keep(s_, "x", _t["x"], +1) for s_ in (body, lid, oring)])
+        ch, rh = (86, 242), 30
+        DR.clip_begin(S, "cH", ch[0], ch[1], rh)
+        kH = 4.0
+        VHt = DR.View(S, "right", None, kH)
+        u0, v0 = VHt.uv((_t["x"], d["Ly1"] + 1.0, 6.0))
+        VHt.o = (ch[0] - kH * u0, ch[1] + kH * v0)
+        vis, hid = DR.hlr(asmH, "right", False)
+        for rings in DR.section_faces(asmH, (_t["x"], 0, 0), (1, 0, 0), "right"):
+            dpath = "".join("M " + " L ".join(f"{VHt.p(uu, vv)[0]:.3f},{VHt.p(uu, vv)[1]:.3f}" for uu, vv in ring) + " Z " for ring in rings)
+            S.el.append(f'<path class="hatch" d="{dpath}" fill-rule="evenodd"/>')
+        for pl in vis:
+            S.poly([VHt.p(uu, vv) for uu, vv in pl], "v")
+        DR.clip_end(S, ch[0], ch[1], rh, f"H (4:1) — язичок у виїмці {v(p.RECESS_W):.0f} × {v(p.HOOK_H):.0f}")
+        VHt.dim((_t["x"], _t["y_tip"] - 0.6, 0), (_t["x"], _t["y_tip"] - 0.6, _t["t_tip"]), "v", off=6, txt=f"{_t['t_tip']}")
+        VHt.dim((_t["x"], _t["y_ramp0"] - 0.8, 0), (_t["x"], _t["y_ramp0"] - 0.8, _t["t_root"]), "v", off=-8, txt=f"{_t['t_root']}")
+        VHt.dim((_t["x"], v(p.D) / 2, 0), (_t["x"], v(p.D) / 2, d["recess_top"]), "v", off=12, txt=f"{v(p.HOOK_H):.0f}")
+
 else:
     L = lid.translate(Vector(-xc, 0, -v(p.LID_RECESS)))
     LT = d["lid_t"]
@@ -338,7 +381,10 @@ if not P.has_relief_lid():
     _n4 = [f"04: підкладка (овал) {fx:.1f} × {fy:.1f} × {v(p.LINER_FLOOR):.1f} мм, вирубка; клеїти на чисте загерметизоване дно кишені.",
            "Г-резервуар: однаковий переріз до стелі — частина за кишенею девайса з'єднана з основною по всій висоті; "
            "порогу, рампи й порожнини полегшення немає.",
-           *([f"v3.6: кришка — уся основа; пробка й шнур Ø{v(p.ORING_CS):.0f} — прямокутник R{v(p.CAV_R_OUT):.0f} по стінках {v(p.WALL_T):.0f} (ліва, права) / {v(p.WALL_FRONT_T)} (фронт, зад) мм — кришку можна ставити будь-яким боком.",
+           *([(f"v3.7: кришка схована в дні (без фланця, низ урівень з корпусом, висота {d['plug_h']:.0f}); пробка й шнур Ø{v(p.ORING_CS):.0f} — прямокутник R{v(p.CAV_R_OUT):.0f}; "
+                f"язичок у виїмці {v(p.RECESS_W):.0f} × {v(p.HOOK_H):.0f} на задній грані, шнур — над виїмкою (z {d['groove_z0']:.0f}–{d['groove_z1']:.0f})."
+                if P.lid_hidden() else
+                f"v3.6: кришка — уся основа; пробка й шнур Ø{v(p.ORING_CS):.0f} — прямокутник R{v(p.CAV_R_OUT):.0f} по стінках {v(p.WALL_T):.0f} (ліва, права) / {v(p.WALL_FRONT_T)} (фронт, зад) мм — кришку можна ставити будь-яким боком."),
               f"Низ колонки тримача піднято до z = {d.get('z_sock', 0):.0f} (над пробкою, зазор {v(p.SOCK_TOP_GAP)}), фаска {v(p.COL_CHAMF):.0f}×45°; "
               f"дно кишені z = {d['pocket_floor']:.1f} (бетон {d.get('col_slab', 0):.1f}); девайс виступає на {v(p.DEV_PROTRUDE):.0f} мм."]
              if RECT else
@@ -622,7 +668,7 @@ if v(p.NFC_ON):
 ag = sum(g.area for _, g in wm[:5]) + nfc_t
 at = sum(g.area for _, g in wm[5:]) + (swo.area if swo is not None else 0.0) + nfc_w
 dep = v(p.LOGO_DEPTH)
-rows7 = [("RAL 7016 темно-сірий", "S T + стік-I + C K" + (" + «NFC»" if v(p.NFC_ON) else ""), f"{ag:.0f}", f"{ag * dep / 1000:.2f}"),
+rows7 = [("RAL 7016 темно-сірий", "S T + стік-I + C K" + (" + «NFC»" if (v(p.NFC_ON) and v(p.NFC_TEXT_ON)) else ""), f"{ag:.0f}", f"{ag * dep / 1000:.2f}"),
          ("Бірюзовий RAL 5018 / еталон", "хвиля + B O X" + (" + дуги NFC" if v(p.NFC_ON) else ""), f"{at:.0f}", f"{at * dep / 1000:.2f}"),
          ("Разом", "маски 07 / 08 у exports/", f"{ag + at:.0f}", f"{(ag + at) * dep / 1000:.2f}")]
 DR.table(S, 236, 186, ["Колір", "Елементи", "Площа, мм²", "Об'єм, мл"], rows7, [44, 56, 22, 22], size=2.6)

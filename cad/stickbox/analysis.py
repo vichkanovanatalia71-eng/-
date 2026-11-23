@@ -353,6 +353,22 @@ def lid_hook_check(F=30.0):
     M = F * arm
     sigma = 6 * M / (b * t * t)
     out = dict(F_N=F, contact_width_mm=b, arm_mm=arm, sigma_MPa=sigma)
+    if P.lid_hidden():   # v3.7: язичок схованої кришки — консоль від борту пробки; тонкий біля торця, скіс 45° до кореня
+        t = P.lid_tab_dims()
+        b_t = t["w"]
+        yF = t["y_tip"] - 1.0                       # сила пальця — ≈1 мм від торця
+        worst = (0.0, None)
+        import numpy as _np
+        for y in _np.linspace(t["y_skirt"], yF, 60):
+            th = t["t_tip"] if y >= t["y_ramp1"] else (t["t_root"] if y <= t["y_ramp0"] else
+                                                       t["t_tip"] + (t["y_ramp1"] - y))
+            sg = 6 * F * (yF - y) / (b_t * th * th)
+            if sg > worst[0]:
+                worst = (sg, y)
+        out = dict(F_N=F, tab_w_mm=b_t, tab_len_mm=t["len"], tab_t_tip_mm=t["t_tip"], tab_t_root_mm=t["t_root"],
+                   tab_sigma_MPa=worst[0], tab_sigma_at_y_mm=worst[1], sigma_MPa=worst[0],
+                   finger_gap_above_tab_mm=d["recess_top"] - d["zb"] - t["t_tip"], notch_w_mm=v(p.RECESS_W), notch_h_mm=v(p.HOOK_H))
+        return out
     if v(p.LID_TAB_ON):   # v2.9: язичок — консоль від кромки фланця, сила на кінці (запас)
         L = v(p.D) / 2 - v(p.LID_TAB_INSET) - d["flange"] / 2
         bt, tt = v(p.RECESS_W) - 2 * v(p.LID_TAB_GAP), v(p.LID_TAB_T)
@@ -487,9 +503,14 @@ def lid_tilt_check(angles=(1, 3, 5, 7, 8, 10, 12)):
     xc, yb, zp = d["cav_xc"], -s_ * d["flange"] / 2, d["z_reb"]
     if v(p.FULL_LID_ON):   # v3.5: упор — передня верхня кромка фланця під передньою стінкою корпусу
         yb, zp = -s_ * d["flange_d"] / 2, v(p.FLANGE_T)
+    if P.lid_hidden():     # v3.7: фланця (упору) немає — кришка вільна; заклинювання визначає діагональ перерізу:
+        # поворот навколо осі через центр перерізу пробки (x = 0, y — середина гнізда, z — середина висоти)
+        yb, zp, xc = (d["Ly0"] + d["Ly1"]) / 2, (d["zb"] + d["z_plug_top"]) / 2, 0.0
     out = []
     for a in angles:
         l = lid.rotate(Vector(xc - 50, yb, zp), Vector(xc + 50, yb, zp), -s_ * a)
+        if P.lid_hidden():   # кришка опускається разом із поворотом: передня частина не піднімається над вихідним верхом
+            l = l.translate(Vector(0, 0, -((d["Ly1"] - d["Ly0"]) / 2) * math.sin(math.radians(a))))
         out.append(dict(angle_deg=a, interference_mm3=l.intersect(body).Volume(),
                         pull_edge_drop_mm=v(p.LID_RECESS) - l.BoundingBox().zmin))
     return out
