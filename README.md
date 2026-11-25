@@ -52,8 +52,10 @@ cad/                      параметрична модель (Python, CadQuer
   cost.py                 калькулятор собівартості  ·  render/  рендер-конвеєр (three.js + Chromium)
 exports/step|stl|3mf|glb  деталі виробу + збірка (STEP зі збіркою, назвами, кольорами)
 tooling/step|stl|3mf      оснащення T01–T10 (T02, T09 — розбірні каркаси з 2 половин), T13, T14, T17 (STL/3MF уже орієнтовані для друку)
+tooling/print/            столи для слайсера 256 × 256 (Bambu / Orca): P1–P5 — FDM PETG, R1–R2 — смола, README
 drawings/                 7 аркушів A3 (SVG) + зведений PDF (аркуш 07 — артворк напису зі знаком-I, схема фарбування)
 renders/                  фотореалістичні рендери, розрізи, оснащення, варіанти CMF
+renders/video/            анімація виготовлення (MP4, 1280 × 720) — запис сторінки viewer/process.html
 reports/                  analysis.json, casting_verification.json, test_results.json, geometry_protocol.md, capacity_sim*.json, independent_audit.md
 docs/                     документація (нижче)
 ```
@@ -89,7 +91,8 @@ cd cad
 /opt/cadenv/bin/python make_reports.py     # протокол + специфікація
 /opt/cadenv/bin/python cost.py             # собівартість
 /opt/cadenv/bin/python render_prep.py      # GLB для рендерів (оснащення, розрізи, стіки)
-/opt/cadenv/bin/python make_viewer_glb.py  # модель для веб-переглядача viewer/
+/opt/cadenv/bin/python make_viewer_glb.py  # модель для веб-переглядача viewer/ (і для анімації виготовлення)
+/opt/cadenv/bin/python make_tooling_plates.py  # столи для слайсера: tooling/print/*.3mf
 /opt/cadenv/bin/python -m stickbox.capacity_sim ../reports/capacity_sim.json   # симуляція (~12 хв)
 cd render && npm i three@0.160.0 && node render.js glb/shots.json ../../renders && node svg2pdf.js ../../drawings ../../drawings/STICKBOX_01_Monolith_drawings_A3.pdf
 cd .. && /opt/cadenv/bin/python run_tests.py   # віртуальне лиття + усі перевірки (~10 хв), код 1 при FAIL
@@ -113,6 +116,9 @@ cd .. && /opt/cadenv/bin/python run_tests.py   # віртуальне лиття
 ## Інтерактивний 3D-перегляд
 
 `viewer/index.html` — інтерактивний симулятор моделі (three.js): обертання, знімання кришки анімацією, розріз зі стіками
-з фізичної симуляції, розбирання на деталі, варіанти CMF. Модель — `viewer/stickbox.glb.b64.txt` (GLB у base64,
+з фізичної симуляції, розбирання на деталі, варіанти CMF, форми для лиття корпусу й кришки (каркас, силікон, сердечник, виливок).
+`viewer/process.html` — анімація виготовлення (19 етапів: каркас → силікон → сердечник → бетон → розпалублення →
+форма кришки → доводка → збирання), з розрізом і рівнями заливки; відео — `renders/video/` (запис: `cad/render/record_process.js`,
+потрібен three@0.147.0, шлях — змінна `THREE_DIR`). Модель — `viewer/stickbox.glb.b64.txt` (GLB у base64,
 згенерований з CAD). Для локального перегляду відкрийте папку через будь-який статичний вебсервер
 (`python3 -m http.server` у `viewer/`).

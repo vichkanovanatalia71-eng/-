@@ -70,6 +70,7 @@ section { display: flex; flex-direction: column; gap: 10px; }
   font: 600 13px var(--font-body); padding: 9px 12px; cursor: pointer;
 }
 .secondary:hover { background: var(--chip); }
+a.secondary { display: flex; align-items: center; justify-content: center; gap: 8px; text-decoration: none; text-align: center; }
 .primary:disabled { opacity: .45; cursor: not-allowed; }
 button:focus-visible, input:focus-visible, label:focus-within { outline: 2px solid var(--accent); outline-offset: 2px; }
 .row { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }
@@ -167,7 +168,9 @@ dd { margin: 0; font-family: var(--font-mono); font-size: 12px; font-variant-num
 
     <section aria-labelledby="l-mold">
       <span class="label" id="l-mold">Форма для лиття</span>
+      <a class="secondary" href="process.html">▶ Анімація виготовлення: від каркаса до готового виробу</a>
       <label class="toggle"><span>Каркас силіконової форми корпусу<small>Розбірний каркас T02a + T02b на плиті T03 навколо майстер-моделі T01. Силікон 15 мм з боків і зверху, 12 мм біля ключів</small></span><input type="checkbox" id="tMold"></label>
+      <label class="toggle"><span>Форма кришки (окремо)<small>Кришка заливається в окрему форму: майстер T08 на плиті T10, каркас T09a + T09b (2 болти M4), силікон T16 ≈0.33 л — 14 мм з боків, 12 мм зверху</small></span><input type="checkbox" id="tMoldLid"></label>
       <div class="range">
         <input type="range" id="moldOpen" min="0" max="100" value="0" step="1" aria-label="Розкрити каркас" disabled>
         <output id="moldOut" for="moldOpen">0%</output>
@@ -267,6 +270,7 @@ dd { margin: 0; font-family: var(--font-mono); font-size: 12px; font-variant-num
   const clipPlane = new THREE.Plane(new THREE.Vector3(0, 0, -1), 0);
   function concrete(hex) {
     const m = new THREE.MeshStandardMaterial({ color: new THREE.Color(hex), roughness: 0.86, metalness: 0, side: THREE.DoubleSide });
+    m.extensions = { fragDepth: true };
     m.userData.cut = { value: new THREE.Color(hex).multiplyScalar(0.78) };
     m.onBeforeCompile = (sh) => {
       sh.uniforms.uCut = m.userData.cut;
@@ -289,17 +293,17 @@ vec2 speck(vec3 p, float s){ vec3 q=p/s; vec3 i=floor(q); float b=9.0; float id=
     vec2 s1 = speck(P, 0.55); float r1 = 0.12 + 0.10*fract(s1.y*7.3);
     if (s1.x < r1 && s1.y < 0.42) diffuseColor.rgb = mix(diffuseColor.rgb, vec3(0.30,0.25,0.21), 0.85);
     else if (s1.x < r1*0.8 && s1.y > 0.88) diffuseColor.rgb = mix(diffuseColor.rgb, vec3(0.98,0.97,0.94), 0.8); }`)
-        .replace('#include <dithering_fragment>', '#include <dithering_fragment>\n if (!gl_FrontFacing) gl_FragColor = vec4(uCut, 1.0);');
+        .replace('#include <dithering_fragment>', '#include <dithering_fragment>\n if (!gl_FrontFacing) gl_FragColor = vec4(uCut, 1.0);\n gl_FragDepthEXT = gl_FrontFacing ? gl_FragCoord.z : gl_FragCoord.z - 2.0e-5;');
     };
     return m;
   }
   function flatCut(mat, cutHex) {
-    mat.side = THREE.DoubleSide;
+    mat.side = THREE.DoubleSide; mat.extensions = { fragDepth: true };
     mat.userData.cut = { value: new THREE.Color(cutHex) };
     mat.onBeforeCompile = (sh) => {
       sh.uniforms.uCut = mat.userData.cut;
       sh.fragmentShader = sh.fragmentShader.replace('#include <common>', '#include <common>\nuniform vec3 uCut;')
-        .replace('#include <dithering_fragment>', '#include <dithering_fragment>\n if (!gl_FrontFacing) gl_FragColor = vec4(uCut, 1.0);');
+        .replace('#include <dithering_fragment>', '#include <dithering_fragment>\n if (!gl_FrontFacing) gl_FragColor = vec4(uCut, 1.0);\n gl_FragDepthEXT = gl_FrontFacing ? gl_FragCoord.z : gl_FragCoord.z - 2.0e-5;');
     };
     return mat;
   }
@@ -341,7 +345,18 @@ vec2 speck(vec3 p, float s){ vec3 q=p/s; vec3 i=floor(q); float b=9.0; float id=
   Object.assign(M.mold_core, { polygonOffset: true, polygonOffsetFactor: -1, polygonOffsetUnits: -1 });
   M.mold_spine = flatCut(new THREE.MeshStandardMaterial({ color: new THREE.Color('#9c6b3c').convertSRGBToLinear(), roughness: 0.6 }), '#6d4826');
   M.mold_cast = flatCut(new THREE.MeshStandardMaterial({ color: new THREE.Color('#cfc9bf').convertSRGBToLinear(), roughness: 0.8 }), '#8f8a82');
-  const MOLD = ['mold_frame_front', 'mold_frame_back', 'mold_silicone', 'mold_master', 'mold_plate', 'mold_stiff', 'mold_core', 'mold_spine', 'mold_cast'];
+  M.mold_bolts = flatCut(new THREE.MeshStandardMaterial({ color: '#a7adb3', roughness: 0.35, metalness: 0.8 }), '#6f757b');
+  // форма кришки (окрема): власні матеріали — своя площина перерізу
+  M.lmold_frame_front = flatCut(new THREE.MeshStandardMaterial({ color: new THREE.Color('#f0a040').convertSRGBToLinear(), roughness: 0.6 }), '#b87425');
+  M.lmold_frame_back = M.lmold_frame_front;
+  M.lmold_silicone = flatCut(new THREE.MeshPhysicalMaterial({ color: new THREE.Color('#4fb3a1').convertSRGBToLinear(), roughness: 0.45 }), '#2c8a79');
+  Object.assign(M.lmold_silicone, { polygonOffset: true, polygonOffsetFactor: -2, polygonOffsetUnits: -2 });
+  M.lmold_master = flatCut(new THREE.MeshStandardMaterial({ color: new THREE.Color('#e4e3df').convertSRGBToLinear(), roughness: 0.55 }), '#a9a8a3');
+  M.lmold_plate = flatCut(new THREE.MeshStandardMaterial({ color: new THREE.Color('#8c949c').convertSRGBToLinear(), roughness: 0.6 }), '#5e656c');
+  M.lmold_cast = flatCut(new THREE.MeshStandardMaterial({ color: new THREE.Color('#cfc9bf').convertSRGBToLinear(), roughness: 0.8 }), '#8f8a82');
+  M.lmold_bolts = flatCut(new THREE.MeshStandardMaterial({ color: '#a7adb3', roughness: 0.35, metalness: 0.8 }), '#6f757b');
+  const MOLD = ['mold_frame_front', 'mold_frame_back', 'mold_silicone', 'mold_master', 'mold_plate', 'mold_stiff', 'mold_core', 'mold_spine', 'mold_cast', 'mold_bolts'];
+  const LMOLD = ['lmold_frame_front', 'lmold_frame_back', 'lmold_silicone', 'lmold_master', 'lmold_plate', 'lmold_cast', 'lmold_bolts'];
   const logoBare = concrete(CMF[0].concrete);
   Object.values(M).forEach((m) => { if (m) m.envMapIntensity = 0.45; });
   logoBare.envMapIntensity = 0.45;
@@ -356,6 +371,9 @@ vec2 speck(vec3 p, float s){ vec3 q=p/s; vec3 i=floor(q); float b=9.0; float id=
   const moldG = new THREE.Group();     // оснащення: плита на столі (піднята на товщину плити)
   moldG.position.y = 6.5; moldG.visible = false;
   scene.add(moldG);
+  const lidMoldG = new THREE.Group();  // форма кришки: плита T10 на столі
+  lidMoldG.position.y = 5.5; lidMoldG.visible = false;
+  scene.add(lidMoldG);
   const parts = {};
 
   // стіки з симуляції (координати моделі, Z-вгору → обгортка повертає у Y-вгору)
@@ -386,6 +404,7 @@ vec2 speck(vec3 p, float s){ vec3 q=p/s; vec3 i=floor(q); float b=9.0; float id=
     ['body', 'felt', 'rlid', 'rseal', 'logo_stick', 'logo_box', 'nfc_tag', 'device', 'ctrl_led', 'ctrl_btn'].forEach((n) => parts[n] && bodyG.add(parts[n]));
     ['lid', 'oring'].forEach((n) => parts[n] && lidG.add(parts[n]));
     MOLD.forEach((n) => parts[n] && moldG.add(parts[n]));
+    LMOLD.forEach((n) => parts[n] && lidMoldG.add(parts[n]));
     Object.keys(parts).forEach((n) => parts[n].userData.base = parts[n].position.clone());
     $('loading').hidden = true;
     applyLogo(); applyCut(); update();
@@ -444,6 +463,10 @@ vec2 speck(vec3 p, float s){ vec3 q=p/s; vec3 i=floor(q); float b=9.0; float id=
     const o = smooth(0, 1, S.mold) * 70;
     if (parts.mold_frame_front) parts.mold_frame_front.position.z = parts.mold_frame_front.userData.base.z + o;
     if (parts.mold_frame_back) parts.mold_frame_back.position.z = parts.mold_frame_back.userData.base.z - o;
+    if (parts.lmold_frame_front) parts.lmold_frame_front.position.z = parts.lmold_frame_front.userData.base.z + o;
+    if (parts.lmold_frame_back) parts.lmold_frame_back.position.z = parts.lmold_frame_back.userData.base.z - o;
+    if (parts.mold_bolts) parts.mold_bolts.visible = S.mold < 0.01;
+    if (parts.lmold_bolts) parts.lmold_bolts.visible = S.mold < 0.01;
     const mp = Math.round(S.mold * 100);
     $('moldOut').value = mp + '%';
     if (document.activeElement !== $('moldOpen')) $('moldOpen').value = mp;
@@ -485,9 +508,18 @@ vec2 speck(vec3 p, float s){ vec3 q=p/s; vec3 i=floor(q); float b=9.0; float id=
   const clipCast = new THREE.Plane(new THREE.Vector3(0, 0, -1), 20.5 * 1.002);   // лишається CAD y ≥ −20.5 (вісь кишені), видно спереду
   function applyMold() {
     const on = $('tMold').checked;
-    product.visible = !on; moldG.visible = on;
+    const lidM = on && $('tMoldLid').checked;
+    product.visible = !on; moldG.visible = on && !lidM; lidMoldG.visible = lidM;
     ['moldOpen', 'tMoldSil', 'tMoldCut', 'tMoldCast'].forEach((id) => { $(id).disabled = !on; });
     const cast = on && $('tMoldCast').checked;
+    {   // форма кришки: майстер/плита — для силікону; у режимі лиття — виливок кришки
+      const cutL = on && $('tMoldCut').checked, silL = $('tMoldSil').checked;
+      if (parts.lmold_silicone) parts.lmold_silicone.visible = silL;
+      if (parts.lmold_master) parts.lmold_master.visible = !cast && !(cutL && silL);
+      if (parts.lmold_plate) parts.lmold_plate.visible = !cast;
+      if (parts.lmold_cast) parts.lmold_cast.visible = cast;
+      LMOLD.forEach((n) => { if (M[n]) { M[n].clippingPlanes = cutL ? [clipMold] : []; M[n].needsUpdate = true; } });
+    }
     if (parts.mold_silicone) parts.mold_silicone.visible = $('tMoldSil').checked;
     const cut = on && $('tMoldCut').checked;
     // у перерізі майстер-модель ховаємо: видно порожнину силіконового блока і його товщину
@@ -497,7 +529,10 @@ vec2 speck(vec3 p, float s){ vec3 q=p/s; vec3 i=floor(q); float b=9.0; float id=
     moldG.position.y = cast ? 16.5 : 6.5;   // міст сердечника — під торцем каркаса
     MOLD.forEach((n) => { if (M[n]) { M[n].clippingPlanes = cut ? [cast ? clipCast : clipMold] : []; M[n].needsUpdate = true; } });
   }
-  function moldView() { return $('tMoldCut').checked ? ($('tMoldCast').checked ? 'castCut' : 'moldCut') : 'mold'; }
+  function moldView() {
+    if ($('tMoldLid').checked) return $('tMoldCut').checked ? 'moldLidCut' : 'moldLid';
+    return $('tMoldCut').checked ? ($('tMoldCast').checked ? 'castCut' : 'moldCut') : 'mold';
+  }
   $('tMold').addEventListener('change', (e) => {
     applyMold();
     if (e.target.checked) { setView(moldView()); }
@@ -507,6 +542,7 @@ vec2 speck(vec3 p, float s){ vec3 q=p/s; vec3 i=floor(q); float b=9.0; float id=
   $('tMoldSil').addEventListener('change', applyMold);
   $('tMoldCut').addEventListener('change', () => { applyMold(); setView(moldView()); });
   $('tMoldCast').addEventListener('change', () => { applyMold(); setView(moldView()); });
+  $('tMoldLid').addEventListener('change', () => { if ($('tMoldLid').checked) $('tMold').checked = true; applyMold(); setView(moldView()); });
 
   function applyCut() {
     const on = $('cutToggle').checked;
@@ -539,6 +575,8 @@ vec2 speck(vec3 p, float s){ vec3 q=p/s; vec3 i=floor(q); float b=9.0; float id=
     mold: { pos: [-330, 280, 400], tgt: [0, 55, 0] },
     moldCut: { pos: [430, 140, 60], tgt: [0, 60, 0] },
     castCut: { pos: [40, 110, 430], tgt: [0, 58, 0] },
+    moldLid: { pos: [-250, 230, 320], tgt: [0, 12, 0] },
+    moldLidCut: { pos: [330, 120, 50], tgt: [0, 14, 0] },
   };
   function setView(name) {
     const v = VIEWS[name];
@@ -553,7 +591,7 @@ vec2 speck(vec3 p, float s){ vec3 q=p/s; vec3 i=floor(q); float b=9.0; float id=
   $('resetBtn').addEventListener('click', () => {
     $('cutToggle').checked = false; $('cutSlider').value = 0; applyCut();
     $('tExplode').checked = false; animateTo('explode', 0); animateTo('lid', 0); animateTo('rl', 0);
-    $('tMold').checked = false; $('tMoldCut').checked = false; $('tMoldCast').checked = false; $('tMoldSil').checked = true; animateTo('mold', 0); applyMold();
+    $('tMold').checked = false; $('tMoldLid').checked = false; $('tMoldCut').checked = false; $('tMoldCast').checked = false; $('tMoldSil').checked = true; animateTo('mold', 0); applyMold();
     $('autoRot').checked = false; controls.autoRotate = false;
     setView('iso');
   });

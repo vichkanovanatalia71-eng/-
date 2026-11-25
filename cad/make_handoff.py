@@ -94,6 +94,13 @@ def build_zip():
                     z.write(src, f"{folder}/{n}.{ext}")
                 elif ext == "step":
                     missing.append(src)
+        plates = os.path.join(ROOT, "tooling", "print")            # столи для слайсера (make_tooling_plates.py)
+        if os.path.isdir(plates):
+            for fn in sorted(os.listdir(plates)):
+                if fn.endswith((".3mf", ".md")):
+                    z.write(os.path.join(plates, fn), f"06_print_plates_3MF/{fn}")
+        else:
+            missing.append(plates)
         for n in TOOL_REF:
             src = os.path.join(ROOT, "tooling", "step", f"{n}.step")
             if os.path.exists(src):

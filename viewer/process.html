@@ -1,0 +1,673 @@
+<!doctype html>
+<html lang="uk">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>STICKBOX 01 Виготовлення</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Sora:wght@500;600&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap">
+<style>
+/* Layout: the process animation fills the stage; a quiet column on the right holds playback and the chapter list. */
+:root {
+  --bg: #efe9e0; --stage: #e6ddd0; --panel: #f8f4ee; --ink: #24211d; --muted: #6e665b; --line: #ddd3c5;
+  --accent: #1d8a75; --accent-ink: #ffffff; --chip: #ebe3d7; --cap: rgba(248, 244, 238, 0.9);
+  --font-display: "Sora", "Inter", system-ui, sans-serif;
+  --font-body: "Inter", system-ui, -apple-system, "Segoe UI", sans-serif;
+  --font-mono: "JetBrains Mono", ui-monospace, "SFMono-Regular", Menlo, monospace;
+  --radius: 10px;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #1b1a18; --stage: #23211e; --panel: #201f1c; --ink: #ece6dc; --muted: #a59c8f; --line: #38342f;
+    --accent: #40b59d; --accent-ink: #0f1513; --chip: #2c2925; --cap: rgba(32, 31, 28, 0.88); color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #1b1a18; --stage: #23211e; --panel: #201f1c; --ink: #ece6dc; --muted: #a59c8f; --line: #38342f;
+  --accent: #40b59d; --accent-ink: #0f1513; --chip: #2c2925; --cap: rgba(32, 31, 28, 0.88); color-scheme: dark;
+}
+* { box-sizing: border-box; }
+html, body { height: 100%; margin: 0; }
+body { background: var(--bg); color: var(--ink); font-family: var(--font-body); font-size: 14px; }
+.app { display: grid; grid-template-columns: minmax(0, 1fr) 340px; height: 100%; }
+.stage { position: relative; background: var(--stage); min-height: 0; overflow: hidden; }
+.stage canvas { display: block; width: 100%; height: 100%; touch-action: none; }
+.badge { position: absolute; top: 14px; left: max(16px, env(safe-area-inset-left, 0px)); font-family: var(--font-mono);
+  font-size: 11.5px; letter-spacing: .04em; color: var(--muted); }
+.cap { position: absolute; left: max(16px, env(safe-area-inset-left, 0px)); right: 16px; bottom: 26px; display: flex; gap: 12px;
+  align-items: flex-start; max-width: 640px; background: var(--cap); border: 1px solid var(--line); border-radius: 12px;
+  padding: 12px 14px; backdrop-filter: blur(6px); }
+.cap .num { flex: none; width: 30px; height: 30px; border-radius: 50%; background: var(--accent); color: var(--accent-ink);
+  display: grid; place-items: center; font: 600 13px var(--font-mono); }
+.cap b { display: block; font: 600 16px var(--font-display); letter-spacing: -.01em; }
+.cap small { display: block; color: var(--muted); font-size: 13px; line-height: 1.45; margin-top: 3px; }
+.prog { position: absolute; left: 0; right: 0; bottom: 0; height: 4px; background: color-mix(in srgb, var(--line) 70%, transparent); }
+.prog i { display: block; height: 100%; width: 0; background: var(--accent); }
+.loading { position: absolute; inset: 0; display: grid; place-items: center; color: var(--muted); font-size: 13px; background: var(--stage); }
+.loading[hidden] { display: none !important; }
+.bar { width: 180px; height: 3px; background: var(--line); border-radius: 3px; overflow: hidden; margin-top: 10px; }
+.bar i { display: block; height: 100%; width: 0; background: var(--accent); }
+.panel { background: var(--panel); border-left: 1px solid var(--line); overflow-y: auto; min-width: 0;
+  padding-block: 20px 28px; padding-left: max(18px, env(safe-area-inset-left, 0px)); padding-right: max(18px, env(safe-area-inset-right, 0px));
+  display: flex; flex-direction: column; gap: 18px; }
+header h1 { font-family: var(--font-display); font-weight: 600; font-size: 20px; margin: 0; letter-spacing: -.01em; text-wrap: balance; }
+header p { margin: 4px 0 0; color: var(--muted); font-size: 12.5px; line-height: 1.45; }
+section { display: flex; flex-direction: column; gap: 10px; }
+.label { font-size: 11px; font-weight: 600; letter-spacing: .09em; text-transform: uppercase; color: var(--muted); }
+.primary { appearance: none; border: 0; border-radius: var(--radius); background: var(--accent); color: var(--accent-ink);
+  font: 600 14px var(--font-body); padding: 11px 14px; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 8px; }
+.primary:hover { filter: brightness(1.06); }
+button:focus-visible, input:focus-visible, a:focus-visible, label:focus-within { outline: 2px solid var(--accent); outline-offset: 2px; }
+.row { display: flex; gap: 8px; align-items: center; }
+.row .primary { flex: 1; }
+.time { font-family: var(--font-mono); font-size: 12px; color: var(--muted); font-variant-numeric: tabular-nums; min-width: 11ch; text-align: right; }
+input[type=range] { width: 100%; accent-color: var(--accent); }
+.seg { display: grid; grid-template-columns: repeat(3, 1fr); gap: 4px; background: var(--chip); padding: 4px; border-radius: var(--radius); }
+.seg button { appearance: none; border: 0; background: transparent; color: var(--ink); font: 500 12.5px var(--font-body); padding: 7px 4px; border-radius: 7px; cursor: pointer; }
+.seg button[aria-pressed="true"] { background: var(--panel); box-shadow: 0 1px 2px rgba(0,0,0,.12); }
+.toggle { display: flex; align-items: center; justify-content: space-between; gap: 10px; padding: 4px 0; cursor: pointer; }
+.toggle span small { display: block; color: var(--muted); font-size: 11.5px; }
+.toggle input { width: 18px; height: 18px; accent-color: var(--accent); flex: none; }
+ol.chapters { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 2px; }
+ol.chapters button { appearance: none; width: 100%; text-align: left; border: 0; background: transparent; color: var(--ink);
+  font: 500 13px var(--font-body); padding: 7px 8px; border-radius: 8px; cursor: pointer; display: grid; grid-template-columns: 26px 1fr auto; gap: 6px; align-items: baseline; }
+ol.chapters button:hover { background: var(--chip); }
+ol.chapters button[aria-current="step"] { background: var(--chip); box-shadow: inset 3px 0 0 var(--accent); }
+ol.chapters .n { font: 500 11.5px var(--font-mono); color: var(--muted); }
+ol.chapters .t { font: 400 11px var(--font-mono); color: var(--muted); font-variant-numeric: tabular-nums; }
+.note { color: var(--muted); font-size: 12px; line-height: 1.5; margin: 0; }
+a.link { color: var(--accent); font-weight: 600; text-decoration: none; }
+a.link:hover { text-decoration: underline; }
+@media (max-width: 860px) {
+  html, body { height: auto; }
+  .app { grid-template-columns: 1fr; height: auto; }
+  .stage { height: 62vh; min-height: 360px; }
+  .panel { border-left: 0; border-top: 1px solid var(--line); overflow: visible; }
+  .cap { bottom: 18px; padding: 10px 12px; }
+  .cap b { font-size: 14.5px; }
+  .cap small { font-size: 12px; }
+}
+/* запис відео: лише сцена й підпис, фіксований кадр */
+body.rec .app { display: block; }
+body.rec .panel { display: none; }
+body.rec .stage { position: fixed; inset: 0; }
+body.rec .cap { left: 36px; bottom: 40px; max-width: 760px; padding: 16px 18px; }
+body.rec .cap .num { width: 38px; height: 38px; font-size: 15px; }
+body.rec .cap b { font-size: 22px; }
+body.rec .cap small { font-size: 16px; }
+body.rec .badge { top: 22px; left: 36px; font-size: 14px; }
+body.rec .prog { height: 6px; }
+</style>
+</head>
+<body>
+<div class="app">
+  <main class="stage" id="stage" aria-label="Анімація виготовлення STICKBOX 01">
+    <div class="badge">STICKBOX 01 · виготовлення · v3.7.1</div>
+    <div class="cap" id="cap" aria-live="polite"><span class="num" id="capNum">1</span><div><b id="capTitle"></b><small id="capText"></small></div></div>
+    <div class="prog" aria-hidden="true"><i id="progBar"></i></div>
+    <div class="loading" id="loading"><div>Завантаження моделі…<div class="bar"><i id="bar"></i></div></div></div>
+  </main>
+  <aside class="panel">
+    <header>
+      <h1>Як виготовляють STICKBOX 01</h1>
+      <p>Від майстер-моделі до готового виробу: силіконові форми корпусу й кришки, сердечник, лиття бетону, розпалублення, доводка і збирання. Усі деталі — з CAD-моделей оснащення v3.7.1.</p>
+    </header>
+    <section aria-labelledby="l-play">
+      <span class="label" id="l-play">Відтворення</span>
+      <div class="row">
+        <button class="primary" id="playBtn" type="button" aria-pressed="true">Пауза</button>
+        <span class="time" id="timeOut">0:00 / 0:00</span>
+      </div>
+      <input type="range" id="scrub" min="0" max="100" step="0.05" value="0" aria-label="Позиція анімації">
+      <div class="seg" role="group" aria-label="Швидкість">
+        <button type="button" data-speed="0.5" aria-pressed="false">0.5×</button>
+        <button type="button" data-speed="1" aria-pressed="true">1×</button>
+        <button type="button" data-speed="2" aria-pressed="false">2×</button>
+      </div>
+      <label class="toggle"><span>Вільна камера<small>Обертати сцену мишею або пальцем; інакше камера йде за процесом</small></span><input type="checkbox" id="tFree"></label>
+    </section>
+    <section aria-labelledby="l-ch">
+      <span class="label" id="l-ch">Етапи</span>
+      <ol class="chapters" id="chapters"></ol>
+    </section>
+    <section>
+      <p class="note">Розріз показує, що всередині: сердечник формує резервуар і гніздо кришки, силіконовий «палець» — кишеню девайса. Тривалість полімеризації й тверднення скорочено.</p>
+      <a class="link" href="index.html">← До 3D-переглядача виробу і форм</a>
+    </section>
+  </aside>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/three@0.147.0/build/three.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/three@0.147.0/examples/js/controls/OrbitControls.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/three@0.147.0/examples/js/loaders/GLTFLoader.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/three@0.147.0/examples/js/environments/RoomEnvironment.js"></script>
+<script>
+(function () {
+  const Q = new URLSearchParams(location.search);
+  const REC = Q.has('record');
+  if (REC) { document.documentElement.dataset.theme = 'light'; document.body.classList.add('rec'); }
+  const $ = (id) => document.getElementById(id);
+  const reduceMotion = !REC && window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  const stage = $('stage');
+  const K = 1.002;                       // масштаб оснащення (компенсація усадки)
+
+  // ---------------------------------------------------------------- етапи (час, назва, пояснення)
+  const CH = [
+    [0.0, 'Плита T03 і майстер-модель T01', 'Майстер — точна копія корпусу (друк смолою), стоїть на 3 штифтах плити.'],
+    [4.2, 'Розбірний каркас T02a + T02b', 'Половини сходяться шпунтом у паз і стягуються 6 болтами M4. Ключі всередині тримають силіконовий блок.'],
+    [8.4, 'Ребро «пальця» T04 і тримач T17', 'Ребро армує силіконовий «палець», який сформує кишеню девайса.'],
+    [11.4, 'Заливка силікону', 'Платиновий силікон Shore A 25–30, ≈0.92 л: 15 мм з боків і над майстром.'],
+    [18.5, 'Полімеризація, виймання майстра', 'Силіконовий блок лишається в каркасі. Каркас перевертають отвором догори і ставлять на дошку-основу.'],
+    [26.6, 'Сердечник: силіконова чашка T07', 'Хребет із мостом T05 — у форму T06, ≈0.33 л силікону. Чашка сформує резервуар і гніздо кришки.'],
+    [37.4, 'Бетон: перша порція', 'Форму й сердечник обмазують розчином без фібри (проти раковин), заливають ≈60% і вібрують.'],
+    [43.6, 'Сердечник — у форму', 'Міст лягає на вушки каркаса; 4 шпильки M5 з баранцями тримають його проти виштовхування (≈15 Н).'],
+    [47.6, 'Доливання до площини', 'Бетон проходить стінки 5 мм; площину загладжують шпателем (припуск 0.5 мм на шліфування).'],
+    [51.4, 'Тверднення', '18–24 год при 20–23 °C під плівкою.'],
+    [53.0, 'Розпалублення корпусу', 'Баранці й міст із хребтом → силіконова чашка → болти → половини каркаса → виріб знімають із «пальця».'],
+    [63.4, 'Корпус', 'Резервуар 514 мл і кишеня девайса глибиною 75.5 мм — від сердечника і «пальця».'],
+    [66.0, 'Форма кришки — окремо', 'Майстер T08 на плиті T10, каркас T09a + T09b, 2 болти M4.'],
+    [71.6, 'Силікон форми кришки', '≈0.33 л. Валик силікону сформує канавку для шнура.'],
+    [76.2, 'Бетон у форму кришки', 'Форму перевертають; бетон без сердечника, відкрита грань — низ кришки.'],
+    [84.2, 'Розпалублення кришки', 'Каркас розкривають; силікон пружний — валик виходить із канавки.'],
+    [89.0, 'Доводка', 'Шліфування низу на склі (P120 → P220), притуплення кромок, просочення, 2 шари лаку, фарба в заглиблення напису.'],
+    [93.0, 'Збирання', 'Шнур Ø4 (338 мм) — у канавку кришки, повсть — на дно кишені, кришка — язичком у виїмку.'],
+    [100.6, 'STICKBOX 01 Monolith', 'Девайс — у тримач. Готово.'],
+  ];
+  const TOTAL = 115.0;
+
+  // ---------------------------------------------------------------- renderer / scene
+  const renderer = new THREE.WebGLRenderer({ antialias: true, preserveDrawingBuffer: REC });
+  renderer.setPixelRatio(REC ? 1 : Math.min(window.devicePixelRatio || 1, 2));
+  renderer.outputEncoding = THREE.sRGBEncoding;
+  renderer.toneMapping = THREE.ACESFilmicToneMapping;
+  renderer.toneMappingExposure = 0.85;
+  renderer.shadowMap.enabled = true;
+  renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+  renderer.localClippingEnabled = true;
+  stage.prepend(renderer.domElement);
+  const scene = new THREE.Scene();
+  const pmrem = new THREE.PMREMGenerator(renderer);
+  scene.environment = pmrem.fromScene(new THREE.RoomEnvironment(), 0.04).texture;
+  const camera = new THREE.PerspectiveCamera(30, 16 / 9, 5, 8000);
+  const controls = new THREE.OrbitControls(camera, renderer.domElement);
+  controls.enabled = false; controls.enableDamping = false;
+
+  const key = new THREE.DirectionalLight(0xfff3e4, 1.15);
+  key.castShadow = true;
+  key.shadow.mapSize.set(2048, 2048);
+  Object.assign(key.shadow.camera, { left: -300, right: 300, top: 300, bottom: -300, near: 10, far: 1600 });
+  key.shadow.radius = 4; key.shadow.bias = -0.0004; key.shadow.normalBias = 0.6;
+  scene.add(key, key.target);
+  const fill = new THREE.DirectionalLight(0xe6efff, 0.32);
+  scene.add(fill, fill.target);
+  const ground = new THREE.Mesh(new THREE.PlaneGeometry(6000, 6000), new THREE.ShadowMaterial({ opacity: 0.18 }));
+  ground.rotation.x = -Math.PI / 2; ground.receiveShadow = true;
+  scene.add(ground);
+  function cssVar(n) { return getComputedStyle(document.documentElement).getPropertyValue(n).trim(); }
+  function applyTheme() { scene.background = new THREE.Color(cssVar('--stage') || '#e6ddd0'); }
+  applyTheme();
+  if (window.matchMedia) window.matchMedia('(prefers-color-scheme: dark)').addEventListener?.('change', applyTheme);
+
+  // ---------------------------------------------------------------- площини: розріз і рівні рідин (світові координати)
+  const OFF = 1e5;
+  const cutPlane = new THREE.Plane(new THREE.Vector3(0, 0, -1), OFF);   // лишається z ≤ c (переріз по осі кишені, видно спереду)
+  const CUT_Z = 20.5 * K;
+  const lvl = {};
+  ['sil', 'core', 'c1', 'c2', 'lsil', 'lc'].forEach((k) => { lvl[k] = new THREE.Plane(new THREE.Vector3(0, -1, 0), -OFF); });
+
+  // ---------------------------------------------------------------- матеріали
+  function flatCut(mat, cutHex) {
+    mat.side = THREE.DoubleSide; mat.clipShadows = true; mat.extensions = { fragDepth: true };
+    mat.userData.cut = { value: new THREE.Color(cutHex) };
+    mat.onBeforeCompile = (sh) => {
+      sh.uniforms.uCut = mat.userData.cut;
+      sh.fragmentShader = sh.fragmentShader.replace('#include <common>', '#include <common>\nuniform vec3 uCut;')
+        .replace('#include <dithering_fragment>', '#include <dithering_fragment>\n if (!gl_FrontFacing) gl_FragColor = vec4(uCut, 1.0);\n gl_FragDepthEXT = gl_FrontFacing ? gl_FragCoord.z : gl_FragCoord.z - 2.0e-5;');
+    };
+    return mat;
+  }
+  const lin = (h) => new THREE.Color(h).convertSRGBToLinear();
+  function std(hex, cutHex, rough = 0.6, metal = 0, phys = false) {
+    const M_ = phys ? THREE.MeshPhysicalMaterial : THREE.MeshStandardMaterial;
+    return flatCut(new M_({ color: lin(hex), roughness: rough, metalness: metal }), cutHex);
+  }
+  function concrete(hex) {
+    const m = new THREE.MeshStandardMaterial({ color: new THREE.Color(hex), roughness: 0.86, metalness: 0, side: THREE.DoubleSide });
+    m.clipShadows = true; m.extensions = { fragDepth: true };
+    m.userData.cut = { value: new THREE.Color(hex).multiplyScalar(0.78) };
+    m.onBeforeCompile = (sh) => {
+      sh.uniforms.uCut = m.userData.cut;
+      sh.vertexShader = sh.vertexShader.replace('#include <common>', '#include <common>\nvarying vec3 vObj;')
+        .replace('#include <begin_vertex>', '#include <begin_vertex>\nvObj = position;');
+      sh.fragmentShader = sh.fragmentShader.replace('#include <common>', `#include <common>
+varying vec3 vObj; uniform vec3 uCut;
+float h31(vec3 p){ p = fract(p*0.1031); p += dot(p, p.yzx+33.33); return fract((p.x+p.y)*p.z); }
+float vnoise(vec3 p){ vec3 i=floor(p), f=fract(p); f=f*f*(3.0-2.0*f);
+  return mix(mix(mix(h31(i),h31(i+vec3(1,0,0)),f.x),mix(h31(i+vec3(0,1,0)),h31(i+vec3(1,1,0)),f.x),f.y),
+             mix(mix(h31(i+vec3(0,0,1)),h31(i+vec3(1,0,1)),f.x),mix(h31(i+vec3(0,1,1)),h31(i+vec3(1,1,1)),f.x),f.y),f.z); }`)
+        .replace('#include <color_fragment>', `#include <color_fragment>
+  { float mott = vnoise(vObj*0.08)*0.6 + vnoise(vObj*0.35)*0.4; diffuseColor.rgb *= 0.93 + 0.12*mott; }`)
+        .replace('#include <dithering_fragment>', '#include <dithering_fragment>\n if (!gl_FrontFacing) gl_FragColor = vec4(uCut, 1.0);\n gl_FragDepthEXT = gl_FrontFacing ? gl_FragCoord.z : gl_FragCoord.z - 2.0e-5;');
+    };
+    return m;
+  }
+  const C_PRINT = '#f0a040', C_PRINT_CUT = '#b87425';
+  const MAT = {
+    mold_plate: () => std('#8c949c', '#5e656c'),
+    mold_master: () => std('#e4e3df', '#a9a8a3', 0.55),
+    mold_frame_front: () => std(C_PRINT, C_PRINT_CUT), mold_frame_back: () => std(C_PRINT, C_PRINT_CUT),
+    mold_bolts: () => std('#a7adb3', '#6f757b', 0.35, 0.8),
+    mold_stiff: () => std('#d9862e', '#9c5d1c'),
+    mold_holder: () => std(C_PRINT, C_PRINT_CUT),
+    mold_silicone: () => std('#4fb3a1', '#2c8a79', 0.45, 0, true),
+    mold_board: () => std('#d6b88a', '#a88a5e', 0.8),
+    mold_rods: () => std('#a7adb3', '#6f757b', 0.35, 0.8), mold_nuts_bridge: () => std('#a7adb3', '#6f757b', 0.35, 0.8),
+    mold_nuts_board: () => std('#a7adb3', '#6f757b', 0.35, 0.8),
+    mold_coremold: () => std('#b7c2cb', '#7f8b95', 0.5),
+    mold_spine: () => std('#9c6b3c', '#6d4826'),
+    mold_core: () => std('#a58bd6', '#7559ad', 0.45, 0, true),
+    mold_cast: () => std('#a99c88', '#857867', 0.4),
+    lmold_plate: () => std('#8c949c', '#5e656c'),
+    lmold_master: () => std('#e4e3df', '#a9a8a3', 0.55),
+    lmold_frame_front: () => std(C_PRINT, C_PRINT_CUT), lmold_frame_back: () => std(C_PRINT, C_PRINT_CUT),
+    lmold_bolts: () => std('#a7adb3', '#6f757b', 0.35, 0.8),
+    lmold_silicone: () => std('#4fb3a1', '#2c8a79', 0.45, 0, true),
+    lmold_cast: () => std('#a99c88', '#857867', 0.4),
+    body: () => concrete('#c2ad92'), lid: () => concrete('#c2ad92'),
+    oring: () => std('#1f9a83', '#167a68', 0.55, 0, true),
+    felt: () => std('#3d3b38', '#2a2927', 1.0),
+    nfc_tag: () => std('#eceae4', '#b87333', 0.45),
+    logo_stick: () => new THREE.MeshStandardMaterial({ color: lin('#383e42'), roughness: 0.8 }),
+    logo_box: () => new THREE.MeshStandardMaterial({ color: lin('#058b8c'), roughness: 0.8 }),
+    device: () => std('#9a7050', '#5c4330', 0.32, 0.85, true),
+    ctrl_led: () => new THREE.MeshStandardMaterial({ color: '#e9eef1', roughness: 0.35, emissive: new THREE.Color('#cfe6ff'), emissiveIntensity: 0.35 }),
+    ctrl_btn: () => new THREE.MeshStandardMaterial({ color: lin('#2b2d30'), roughness: 0.5 }),
+  };
+  for (const k of Object.keys(MAT)) {          // як у переглядачі: оточення ×0.45 (девайс — метал, ×1.0)
+    const f0 = MAT[k];
+    MAT[k] = () => { const m = f0(); m.envMapIntensity = k === 'device' ? 1.0 : 0.45; return m; };
+  }
+  const env45 = (m) => { m.envMapIntensity = 0.45; return m; };
+  const LIQ_SIL = () => env45(std('#5cc2ae', '#3a9c89', 0.25, 0, true));
+  const LIQ_CON = () => env45(std('#a3927c', '#7e6f5c', 0.3));
+
+  // ---------------------------------------------------------------- групи з точкою перевертання (обертання навколо осі Z сцени)
+  function pg(h) {
+    const outer = new THREE.Group(), inner = new THREE.Group();
+    inner.position.y = -h; outer.add(inner); scene.add(outer);
+    return { outer, inner, h };
+  }
+  function place(g, dx, dy, dz, rz) { g.outer.position.set(dx, dy + g.h, dz); g.outer.rotation.set(0, 0, rz); }
+  const PG = new THREE.Group(); scene.add(PG);                 // плита + майстер корпусу (заливка силікону)
+  const BM = pg(64.1);                                         // каркас, силікон, ребро, болти, бетон, шпильки
+  const BD = pg(64.1);                                         // дошка-основа (у положенні лиття)
+  const CG = pg(64.1);                                         // форма сердечника T06, хребет T05, чашка T07
+  const LP = new THREE.Group(); scene.add(LP);                 // плита + майстер кришки
+  const LM = pg(13.0);                                         // форма кришки
+  const PB = pg(64.1);                                         // готовий корпус
+  const PL = pg(13.0);                                         // готова кришка
+  const DV = new THREE.Group(); scene.add(DV);                 // девайс
+
+  // струмінь заливки
+  const stream = new THREE.Mesh(new THREE.CylinderGeometry(2.4, 2.4, 1, 14), LIQ_SIL());
+  stream.castShadow = false; scene.add(stream); stream.visible = false;
+  const streamMat = { sil: stream.material, con: LIQ_CON() };
+
+  const O = {};    // меші за назвами
+  function addTo(group, name, mesh, planes) {
+    mesh.material.clippingPlanes = planes;
+    mesh.castShadow = true; mesh.receiveShadow = true;
+    group.add(mesh); O[name] = mesh; mesh.userData.base = mesh.position.clone();
+    return mesh;
+  }
+
+  // ---------------------------------------------------------------- утиліти часу
+  const clamp = (x, a, b) => Math.max(a, Math.min(b, x));
+  const sm = (u) => u * u * (3 - 2 * u);
+  const seg = (t, a, b) => sm(clamp((t - a) / (b - a), 0, 1));
+  const lerp = (a, b, u) => a + (b - a) * u;
+  const vis = (name, on) => { if (O[name]) O[name].visible = on; };
+  const off = (name, x = 0, y = 0, z = 0) => { const m = O[name]; if (!m) return; m.position.set(m.userData.base.x + x, m.userData.base.y + y, m.userData.base.z + z); };
+  const arc = (u, h) => Math.sin(Math.PI * u) * h;
+
+  // ---------------------------------------------------------------- камера: ключові кадри [t, pos, target]
+  const CAM = [
+    [0.0, [-250, 210, 360], [0, 45, 0]],
+    [4.0, [-300, 250, 420], [0, 55, 0]],
+    [11.0, [-300, 260, 430], [0, 60, 0]],
+    [12.6, [40, 160, 480], [0, 62, 0]],
+    [19.6, [40, 160, 480], [0, 62, 0]],
+    [21.0, [-360, 330, 520], [0, 110, 0]],
+    [23.8, [-430, 400, 620], [0, 140, 0]],
+    [25.6, [-400, 340, 560], [0, 110, 0]],
+    [26.6, [-330, 280, 480], [0, 85, 0]],
+    [28.0, [150, 190, 380], [260, 50, 0]],
+    [30.4, [285, 150, 400], [260, 52, 0]],
+    [33.8, [285, 150, 400], [260, 60, 0]],
+    [35.4, [180, 260, 430], [180, 110, 0]],
+    [37.4, [-150, 330, 520], [0, 120, 0]],
+    [38.8, [30, 175, 520], [0, 85, 0]],
+    [52.6, [30, 175, 520], [0, 85, 0]],
+    [54.6, [-280, 300, 500], [0, 110, 0]],
+    [61.0, [-280, 290, 500], [0, 100, 0]],
+    [63.4, [-200, 230, 430], [0, 80, 0]],
+    [66.0, [-230, 190, 380], [0, 50, 0]],
+    [67.6, [-430, 280, 380], [-260, 15, 0]],
+    [71.4, [-430, 280, 380], [-260, 15, 0]],
+    [72.4, [-250, 110, 290], [-260, 16, 0]],
+    [76.0, [-250, 110, 290], [-260, 16, 0]],
+    [77.4, [-490, 340, 470], [-260, 75, 0]],
+    [79.6, [-490, 340, 470], [-260, 85, 0]],
+    [80.6, [-450, 270, 410], [-260, 35, 0]],
+    [81.4, [-250, 115, 290], [-260, 18, 0]],
+    [86.6, [-250, 125, 300], [-260, 25, 0]],
+    [89.0, [-330, 230, 420], [-140, 40, 40]],
+    [91.0, [-230, 170, 380], [0, 45, 40]],
+    [95.8, [-230, 160, 380], [0, 50, 40]],
+    [97.0, [-260, 110, 360], [0, 40, 40]],
+    [100.4, [-260, 120, 360], [0, 45, 30]],
+    [102.6, [-250, 210, 360], [0, 60, 0]],
+  ];
+  const _p = new THREE.Vector3(), _t = new THREE.Vector3();
+  function camAt(t) {
+    if (t >= 102.6) {             // фінальний оберт навколо виробу: повне коло, кінець — знову спереду-зліва
+      const u = sm(clamp((t - 102.6) / (TOTAL - 102.6), 0, 1));
+      const a0 = Math.atan2(360, -250), a = a0 + u * 2 * Math.PI;
+      const r = Math.hypot(250, 360) - Math.sin(Math.PI * u) * 50;
+      _p.set(r * Math.cos(a), 210 - Math.sin(Math.PI * u) * 50, r * Math.sin(a)); _t.set(0, 62, 0);
+      return;
+    }
+    let i = 0;
+    while (i < CAM.length - 2 && CAM[i + 1][0] <= t) i++;
+    const [t0, p0, g0] = CAM[i], [t1, p1, g1] = CAM[i + 1];
+    const u = sm(clamp((t - t0) / (t1 - t0), 0, 1));
+    _p.set(lerp(p0[0], p1[0], u), lerp(p0[1], p1[1], u), lerp(p0[2], p1[2], u));
+    _t.set(lerp(g0[0], g1[0], u), lerp(g0[1], g1[1], u), lerp(g0[2], g1[2], u));
+  }
+
+  // ---------------------------------------------------------------- стан сцени в момент t (детерміновано)
+  function setStream(on, kind, x, z, level) {
+    stream.visible = on;
+    if (!on) return;
+    stream.material = streamMat[kind];
+    const top = level + 420;
+    stream.scale.set(1, top - level, 1);
+    stream.position.set(x, (top + level) / 2, z);
+  }
+  function cutAmount(t) {
+    // розріз: увімкнення «шторкою» спереду назад, вимкнення — навпаки
+    const on = [[11.4, 12.6, 20.0, 21.0], [37.6, 38.8, 64.6, 66.0], [27.6, 28.8, 35.0, 35.6], [71.4, 72.4, 88.4, 89.4]];
+    let c = 0;
+    for (const [a, b, e, f] of on) {
+      if (t >= a && t <= f) c = Math.max(c, Math.min(seg(t, a, b), 1 - seg(t, e, f)));
+    }
+    return c;
+  }
+
+  function setTime(t) {
+    // --- розріз
+    const ca = cutAmount(t);
+    cutPlane.constant = ca > 0.001 ? lerp(260, CUT_Z, ca) : OFF;
+
+    // ================= Акт 1: силіконова форма корпусу =================
+    const plateY = arc(0, 0) + lerp(70, 0, seg(t, 0.4, 2.0));
+    PG.position.set(lerp(0, -340, seg(t, 22.6, 23.8)), 6.5, 0);
+    PG.visible = t >= 0.4 && t < 23.8;
+    off('mold_plate', 0, plateY, 0);
+    off('mold_master', 0, lerp(140, 0, seg(t, 2.0, 4.0)), 0);
+    vis('mold_master', t >= 2.0);
+
+    // каркас: перед (+Z) і зад (−Z) сходяться; у кінці — розходяться
+    const fIn = seg(t, 4.2, 7.0), fOut = seg(t, 59.2, 61.0);
+    off('mold_frame_front', 0, 0, lerp(150, 0, fIn) + 130 * fOut);
+    off('mold_frame_back', 0, 0, -lerp(150, 0, fIn) - 130 * fOut);
+    vis('mold_frame_front', t >= 4.2 && t < 61.0); vis('mold_frame_back', t >= 4.2 && t < 61.0);
+    off('mold_bolts', 0, 0, lerp(45, 0, seg(t, 7.0, 8.2)) + 60 * seg(t, 58.4, 59.2));
+    vis('mold_bolts', t >= 7.0 && t < 59.2);
+    // ребро «пальця» і тримач
+    vis('mold_stiff', t >= 8.4 && t < 63.0);
+    off('mold_holder', 0, lerp(110, 0, seg(t, 10.0, 11.2)) + 160 * seg(t, 19.8, 21.0), 0);
+    vis('mold_holder', t >= 10.0 && t < 21.0);
+    // силікон: рівень від плити до верху каркаса
+    const silU = seg(t, 12.8, 18.5);
+    lvl.sil.constant = t < 12.8 ? -OFF : (t < 18.5 ? lerp(6.0, 116.9, silU) : OFF);
+    vis('mold_silicone', t >= 12.8 && t < 63.0);
+    // каркас із силіконом: підйом → перевертання → на дошку
+    const lift = seg(t, 21.0, 22.6), flip = seg(t, 23.8, 26.6);
+    const dyS = 6.5 + 100 * lift;                    // положення заливки силікону
+    const dyF = lerp(dyS, 0, seg(t, 25.4, 26.6));    // опускання на дошку
+    let bmDy = t < 23.8 ? dyS : dyF;
+    bmDy += t >= 23.8 && t < 26.6 ? arc(flip, 30) : 0;
+    let shake = 0;
+    if ((t > 42.6 && t < 43.6) || (t > 50.6 && t < 51.4)) shake = 0.9 * Math.sin(t * 2 * Math.PI * 23);
+    place(BM, shake, bmDy, 0, Math.PI * flip);
+    // дошка-основа: виїжджає зліва під час перевертання; після розпалублення — геть
+    place(BD, lerp(-360, 0, seg(t, 23.8, 25.6)) + 360 * seg(t, 61.0, 62.6), 0, 0, Math.PI);
+    BD.outer.visible = t >= 23.8 && t < 62.6;
+
+    // ================= Акт 2: сердечник (станція праворуч) =================
+    const toA = seg(t, 35.2, 37.4), down = seg(t, 43.6, 46.6);
+    const cgLift = 120 * seg(t, 33.8, 35.2);
+    const cgDx = lerp(260, 0, toA);
+    const cgDy = t < 35.2 ? -35 + cgLift : lerp(-35 + 120, 150, toA) * (1 - down) + 0 * down;
+    place(CG, cgDx + (t > 43.6 ? shake : 0), cgDy, 0, Math.PI);
+    CG.outer.visible = t >= 27.4 && t < 58.4;
+    // T06 лишається на столі, поки сердечник піднімають (компенсує підйом групи), потім від'їжджає праворуч
+    off('mold_coremold', -300 * seg(t, 34.6, 35.4), lerp(-110, 0, seg(t, 27.4, 28.6)) + cgLift, 0);   // −Y виробу = вгору після перевертання
+    vis('mold_coremold', t >= 27.4 && t < 35.4);
+    off('mold_spine', 0, lerp(-110, 0, seg(t, 28.6, 30.4)) - 260 * seg(t, 54.6, 56.4), 0);
+    vis('mold_spine', t >= 28.6 && t < 56.4);
+    off('mold_core', 0, -260 * seg(t, 56.4, 58.4), 0);
+    vis('mold_core', t >= 30.6 && t < 58.4);
+    lvl.core.constant = t < 30.6 ? -OFF : (t < 33.6 ? lerp(3.5, 98.5, seg(t, 30.6, 33.6)) : OFF);
+
+    // ================= Акт 3: бетон у форму корпусу =================
+    off('mold_rods', 0, lerp(-170, 0, seg(t, 37.4, 38.6)) - 230 * seg(t, 53.4, 54.6), 0);
+    vis('mold_rods', t >= 37.4 && t < 54.6);
+    off('mold_nuts_board', 0, 0, 0); vis('mold_nuts_board', t >= 38.0 && t < 53.4);
+    off('mold_nuts_bridge', 0, lerp(-40, 0, seg(t, 46.6, 47.4)) - 60 * seg(t, 53.0, 53.8), 0);
+    vis('mold_nuts_bridge', t >= 46.6 && t < 53.8);
+    // рідкий бетон: спершу — форма порожнини (майстер), після сердечника — фактичний виливок
+    const L60 = 33.0 + 0.6 * 95.7, Ld = 104.0, Lfull = 129.0;
+    const c1 = t < 38.8 ? -OFF : (t < 43.6 ? lerp(33.0, L60, seg(t, 38.8, 42.6)) : lerp(L60, Ld, seg(t, 43.6, 46.6)));
+    lvl.c1.constant = c1;
+    vis('liq_c1', t >= 38.8 && t < 47.6);
+    lvl.c2.constant = t < 47.6 ? -OFF : (t < 50.6 ? lerp(Ld, Lfull, seg(t, 47.6, 50.6)) : OFF);
+    vis('mold_cast', t >= 47.6 && t < 63.4);
+    off('mold_cast', 0, -90 * seg(t, 60.8, 62.6), 0);                // виріб знімають із «пальця» (кишеня 75.5) — угору
+    // силіконовий блок і ребро — геть разом із дошкою
+    const sx = 360 * seg(t, 61.0, 62.6);
+    off('mold_silicone', sx, 0, 0); off('mold_stiff', sx, t < 8.4 ? 170 : lerp(170, 0, seg(t, 8.4, 10.0)), 0);
+
+    // ================= Акт 4: виріб =================
+    const bf = seg(t, 63.4, 66.0);
+    const pbUp = seg(t, 95.8, 97.0) - seg(t, 99.2, 100.4);
+    place(PB, 0, lerp(90, 0, bf) + arc(bf, 60) + 40 * pbUp, 0, Math.PI * (1 + bf));
+    PB.outer.visible = t >= 63.4;
+    vis('logo_stick', t >= 91.0); vis('logo_box', t >= 91.0);
+    off('felt', 0, lerp(80, 0, seg(t, 94.6, 95.8)), 0); vis('felt', t >= 94.6);
+    vis('nfc_tag', t >= 91.0);
+
+    // ================= Акт 5: форма кришки (станція ліворуч) =================
+    LP.position.set(-260 - 300 * seg(t, 77.4, 78.4), 5.5, 0);
+    LP.visible = t >= 66.6 && t < 78.4;
+    off('lmold_plate', 0, lerp(70, 0, seg(t, 66.6, 67.8)), 0);
+    off('lmold_master', 0, lerp(90, 0, seg(t, 67.8, 69.0)), 0); vis('lmold_master', t >= 67.8);
+    const lfIn = seg(t, 69.0, 70.8), lfOut = seg(t, 84.8, 86.2);
+    off('lmold_frame_front', 0, 0, lerp(105, 0, lfIn) + 110 * lfOut);
+    off('lmold_frame_back', 0, 0, -lerp(105, 0, lfIn) - 110 * lfOut);
+    vis('lmold_frame_front', t >= 69.0 && t < 86.2); vis('lmold_frame_back', t >= 69.0 && t < 86.2);
+    off('lmold_bolts', 0, 0, lerp(40, 0, seg(t, 70.8, 71.6)) + 50 * seg(t, 84.2, 84.8));
+    vis('lmold_bolts', t >= 70.8 && t < 84.8);
+    lvl.lsil.constant = t < 72.4 ? -OFF : (t < 75.4 ? lerp(5.0, 31.6, seg(t, 72.4, 75.4)) : OFF);
+    vis('lmold_silicone', t >= 72.4 && t < 87.6);
+    const llift = seg(t, 76.2, 77.4), lflip = seg(t, 78.4, 80.6);
+    const lDyS = 5.5 + 70 * llift;
+    let lmDy = t < 78.4 ? lDyS : lerp(lDyS, 0, seg(t, 79.6, 80.6)) + arc(lflip, 20);
+    place(LM, 0, lmDy, 0, Math.PI * lflip);
+    LM.outer.position.x = -260;
+    off('lmold_silicone', 300 * seg(t, 86.2, 87.6), 0, 0);
+    lvl.lc.constant = t < 80.8 ? -OFF : (t < 83.2 ? lerp(11.5, 26.6, seg(t, 80.8, 83.2)) : OFF);
+    off('lmold_cast', 0, -40 * seg(t, 85.6, 86.6), 0);
+    vis('lmold_cast', t >= 80.8 && t < 87.6);
+    // готова кришка: перевертається і їде до корпусу
+    const lf2 = seg(t, 87.6, 90.0);
+    const lUp2 = seg(t, 97.0, 99.2);
+    const lidSlide = seg(t, 96.0, 97.0);
+    let plx = lerp(-260, 0, lf2), plz = lerp(0, 120, lf2) * (1 - lidSlide);
+    let ply = lerp(40, 0, lf2) + arc(lf2, 40) + 40 * lUp2 - 40 * seg(t, 99.2, 100.4);
+    place(PL, plx, ply, plz, Math.PI * (1 + lf2));
+    PL.outer.visible = t >= 87.6;
+    off('oring', 0, lerp(45, 0, seg(t, 93.0, 94.6)), 0); vis('oring', t >= 93.0);
+
+    // ================= Акт 6: девайс =================
+    DV.position.set(0, lerp(170, 0, seg(t, 100.6, 102.6)), 0);
+    DV.visible = t >= 100.6;
+
+    // ================= струмінь =================
+    if (t >= 12.8 && t < 18.3) setStream(true, 'sil', -67.5, 0, lvl.sil.constant);
+    else if (t >= 30.6 && t < 33.4) setStream(true, 'sil', 260 - 22, 0, lvl.core.constant);
+    else if (t >= 38.8 && t < 42.4) setStream(true, 'con', 15, 0, lvl.c1.constant);
+    else if (t >= 47.6 && t < 50.4) setStream(true, 'con', -57.5, 6, lvl.c2.constant);
+    else if (t >= 72.4 && t < 75.2) setStream(true, 'sil', -260 - 61, 0, lvl.lsil.constant);
+    else if (t >= 80.8 && t < 83.0) setStream(true, 'con', -260, 0, lvl.lc.constant);
+    else setStream(false);
+
+    // ================= камера, світло, підпис =================
+    if (!controls.enabled) { camAt(t); camera.position.copy(_p); controls.target.copy(_t); camera.lookAt(_t); }
+    const tg = controls.target;
+    key.target.position.copy(tg); key.position.set(tg.x - 220, tg.y + 420, tg.z + 260);
+    fill.target.position.copy(tg); fill.position.set(tg.x + 300, tg.y + 160, tg.z - 220);
+    let ci = 0; while (ci < CH.length - 1 && CH[ci + 1][0] <= t) ci++;
+    if (ci !== curCh) setChapter(ci);
+    $('progBar').style.width = (100 * t / TOTAL).toFixed(2) + '%';
+  }
+
+  // ---------------------------------------------------------------- підписи й список етапів
+  let curCh = -1;
+  const list = $('chapters');
+  const fmt = (s) => `${Math.floor(s / 60)}:${String(Math.floor(s % 60)).padStart(2, '0')}`;
+  CH.forEach(([t0, title], i) => {
+    const li = document.createElement('li');
+    const b = document.createElement('button');
+    b.type = 'button';
+    b.innerHTML = `<span class="n">${i + 1}</span><span></span><span class="t">${fmt(t0)}</span>`;
+    b.children[1].textContent = title;
+    b.addEventListener('click', () => { T = t0 + 0.01; if (!playing) frame(); });
+    li.appendChild(b); list.appendChild(li);
+  });
+  function setChapter(i) {
+    curCh = i;
+    $('capNum').textContent = String(i + 1);
+    $('capTitle').textContent = CH[i][1];
+    $('capText').textContent = CH[i][2];
+    list.querySelectorAll('button').forEach((b, j) => { if (j === i) b.setAttribute('aria-current', 'step'); else b.removeAttribute('aria-current'); });
+  }
+
+  // ---------------------------------------------------------------- завантаження моделі
+  const loader = new THREE.GLTFLoader();
+  const HOME = {   // куди класти кожен вузол GLB
+    mold_plate: [PG, ['cut']], mold_master: [PG, ['cut']],
+    mold_frame_front: [BM, ['cut']], mold_frame_back: [BM, ['cut']], mold_bolts: [BM, ['cut']], mold_stiff: [BM, ['cut']],
+    mold_holder: [BM, ['cut']], mold_silicone: [BM, ['cut', 'sil']], mold_cast: [BM, ['cut', 'c2']],
+    mold_rods: [BM, ['cut']], mold_nuts_bridge: [BM, ['cut']], mold_nuts_board: [BM, ['cut']],
+    mold_board: [BD, ['cut']],
+    mold_coremold: [CG, ['cut']], mold_spine: [CG, ['cut']], mold_core: [CG, ['cut', 'core']],
+    lmold_plate: [LP, ['cut']], lmold_master: [LP, ['cut']],
+    lmold_frame_front: [LM, ['cut']], lmold_frame_back: [LM, ['cut']], lmold_bolts: [LM, ['cut']],
+    lmold_silicone: [LM, ['cut', 'lsil']], lmold_cast: [LM, ['cut', 'lc']],
+    body: [PB, ['cut']], felt: [PB, ['cut']], nfc_tag: [PB, ['cut']], logo_stick: [PB, ['cut']], logo_box: [PB, ['cut']],
+    lid: [PL, ['cut']], oring: [PL, ['cut']],
+    device: [DV, []], ctrl_led: [DV, []], ctrl_btn: [DV, []],
+  };
+  const planesOf = (keys) => keys.map((k) => (k === 'cut' ? cutPlane : lvl[k]));
+  function onModel(gltf) {
+    const meshes = [];
+    gltf.scene.traverse((o) => { if (o.isMesh) meshes.push(o); });
+    for (const o of meshes) {
+      const name = o.name.replace(/_\d+$/, '');
+      const home = HOME[name];
+      if (!home) continue;
+      o.geometry.computeVertexNormals();
+      o.material = MAT[name]();
+      o.parent && o.parent.remove(o);
+      const grp = home[0].inner || home[0];
+      addTo(grp, name, o, planesOf(home[1]));
+      if (name === 'mold_master') {   // друга копія — рідкий бетон до введення сердечника (форма порожнини = майстер)
+        const l = new THREE.Mesh(o.geometry, LIQ_CON());
+        addTo(BM.inner, 'liq_c1', l, [cutPlane, lvl.c1]);
+      }
+    }
+    // рідкий силікон і бетон — «мокрий» вигляд під час заливки
+    O.mold_silicone.userData.liquid = true;
+    $('loading').hidden = true;
+    resize();
+    window.__ready = true;
+    frame();
+  }
+  function fail() { $('loading').firstElementChild.textContent = 'Не вдалося завантажити модель. Оновіть сторінку.'; }
+  (async () => {
+    try {
+      const res = await fetch('stickbox.glb.b64.txt');
+      if (!res.ok) throw new Error(res.status);
+      const total = +res.headers.get('Content-Length') || 8270000;
+      const reader = res.body.getReader(); const chunks = []; let got = 0;
+      for (;;) { const { done, value } = await reader.read(); if (done) break; chunks.push(value); got += value.length; $('bar').style.width = Math.min(100, 100 * got / total).toFixed(0) + '%'; }
+      const text = new TextDecoder().decode(chunks.length === 1 ? chunks[0] : await new Blob(chunks).arrayBuffer());
+      const bin = atob(text.trim()); const buf = new Uint8Array(bin.length);
+      for (let i = 0; i < bin.length; i++) buf[i] = bin.charCodeAt(i);
+      loader.parse(buf.buffer, '', onModel, fail);
+    } catch (e) { fail(); }
+  })();
+
+  // ---------------------------------------------------------------- відтворення
+  let T = 0, playing = !REC && !reduceMotion, speed = 1, last = performance.now();
+  function resize() {
+    const w = stage.clientWidth, h = stage.clientHeight;
+    renderer.setSize(w, h, false);
+    camera.aspect = w / Math.max(h, 1);
+    camera.fov = camera.aspect < 1.2 ? 40 : 30;
+    camera.updateProjectionMatrix();
+  }
+  window.addEventListener('resize', resize);
+  function frame() {
+    setTime(T);
+    renderer.render(scene, camera);
+    $('scrub').value = String(T);
+    $('timeOut').textContent = `${fmt(T)} / ${fmt(TOTAL)}`;
+  }
+  function loop(now) {
+    const dt = Math.min(0.1, (now - last) / 1000); last = now;
+    if (window.__ready && !REC) {
+      if (playing) { T += dt * speed; if (T > TOTAL) T = 0; }
+      if (controls.enabled) controls.update();
+      frame();
+    }
+    requestAnimationFrame(loop);
+  }
+  if (!REC) requestAnimationFrame(loop);
+  $('scrub').max = String(TOTAL);
+  $('scrub').addEventListener('input', (e) => { T = parseFloat(e.target.value); frame(); });
+  function setPlaying(p) {
+    playing = p;
+    $('playBtn').textContent = p ? 'Пауза' : 'Відтворити';
+    $('playBtn').setAttribute('aria-pressed', String(p));
+  }
+  setPlaying(playing);
+  $('playBtn').addEventListener('click', () => { if (!playing && T >= TOTAL - 0.05) T = 0; setPlaying(!playing); });
+  document.querySelectorAll('.seg button').forEach((b) => b.addEventListener('click', () => {
+    speed = parseFloat(b.dataset.speed);
+    document.querySelectorAll('.seg button').forEach((x) => x.setAttribute('aria-pressed', String(x === b)));
+  }));
+  $('tFree').addEventListener('change', (e) => { controls.enabled = e.target.checked; });
+  document.addEventListener('keydown', (e) => {
+    if (e.target.tagName === 'INPUT' && e.target.type === 'range') return;
+    if (e.code === 'Space') { e.preventDefault(); setPlaying(!playing); }
+  });
+  // запис відео: детермінований кадр за часом
+  window.renderAt = (t) => { T = t; resize(); frame(); return true; };
+  window.TOTAL = TOTAL;
+})();
+</script>
+</body>
+</html>

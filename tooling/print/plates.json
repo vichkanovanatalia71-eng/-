@@ -1,0 +1,128 @@
+[
+ {
+  "file": "STICKBOX_01_v3.7.1_P1_body_frame_T02a_T02b.3mf",
+  "title": "Каркас форми корпусу: половини T02a + T02b (друк стоячи, нескошеним обручем на столі)",
+  "material": "PETG",
+  "parts": [
+   "T02a_body_frame_front",
+   "T02b_body_frame_back"
+  ],
+  "objects_in_file": 2,
+  "layout_mm": [
+   184.2,
+   157.7
+  ],
+  "max_height_mm": 110.7,
+  "fits_256": true,
+  "watertight": true,
+  "size_mb": 0.18
+ },
+ {
+  "file": "STICKBOX_01_v3.7.1_P2_body_plate_T03_stiffener_T04.3mf",
+  "title": "Плита заливки силікону T03 + ребро «пальця» T04",
+  "material": "PETG",
+  "parts": [
+   "T03_body_base_plate",
+   "T04_finger_stiffener"
+  ],
+  "objects_in_file": 2,
+  "layout_mm": [
+   216.2,
+   158.2
+  ],
+  "max_height_mm": 86.2,
+  "fits_256": true,
+  "watertight": true,
+  "size_mb": 0.11
+ },
+ {
+  "file": "STICKBOX_01_v3.7.1_P3_core_spine_bridge_T05_holder_T17.3mf",
+  "title": "Хребет із мостом сердечника T05 + тримач ребра T17",
+  "material": "PETG",
+  "parts": [
+   "T05_core_spine_bridge",
+   "T17_stiffener_holder"
+  ],
+  "objects_in_file": 2,
+  "layout_mm": [
+   227.4,
+   136.0
+  ],
+  "max_height_mm": 85.7,
+  "fits_256": true,
+  "watertight": true,
+  "size_mb": 0.27
+ },
+ {
+  "file": "STICKBOX_01_v3.7.1_P4_lid_frame_T09a_T09b.3mf",
+  "title": "Каркас форми кришки: половини T09a + T09b",
+  "material": "PETG",
+  "parts": [
+   "T09a_lid_frame_front",
+   "T09b_lid_frame_back"
+  ],
+  "objects_in_file": 2,
+  "layout_mm": [
+   170.4,
+   148.5
+  ],
+  "max_height_mm": 26.5,
+  "fits_256": true,
+  "watertight": true,
+  "size_mb": 0.1
+ },
+ {
+  "file": "STICKBOX_01_v3.7.1_P5_lid_plate_T10.3mf",
+  "title": "Плита заливки силікону форми кришки T10",
+  "material": "PETG",
+  "parts": [
+   "T10_lid_base_plate"
+  ],
+  "objects_in_file": 1,
+  "layout_mm": [
+   174.4,
+   149.0
+  ],
+  "max_height_mm": 13.0,
+  "fits_256": true,
+  "watertight": true,
+  "size_mb": 0.06
+ },
+ {
+  "file": "STICKBOX_01_v3.7.1_R1_masters_T01_T08_gauges_T13_T14.3mf",
+  "title": "Майстер-моделі корпусу T01 і кришки T08 + калібри T13, T14",
+  "material": "смола",
+  "parts": [
+   "T01_body_master",
+   "T08_lid_master",
+   "T13_gauge_hole_go_7p90",
+   "T14_gauge_stick_heets"
+  ],
+  "objects_in_file": 4,
+  "layout_mm": [
+   238.7,
+   112.2
+  ],
+  "max_height_mm": 95.7,
+  "fits_256": true,
+  "watertight": true,
+  "size_mb": 2.4
+ },
+ {
+  "file": "STICKBOX_01_v3.7.1_R2_core_mold_T06.3mf",
+  "title": "Форма силіконової чашки сердечника T06",
+  "material": "смола",
+  "parts": [
+   "T06_core_mold"
+  ],
+  "objects_in_file": 1,
+  "layout_mm": [
+   139.2,
+   101.2
+  ],
+  "max_height_mm": 102.7,
+  "fits_256": true,
+  "watertight": true,
+  "size_mb": 0.32
+ }
+]
