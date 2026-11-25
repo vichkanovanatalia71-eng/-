@@ -18,6 +18,10 @@ fr_f, fr_b = MO.frame_halves("body")
 L += [('mold_frame_front', fr_f, 'print', (0.08, 0.25)), ('mold_frame_back', fr_b, 'print', (0.08, 0.25)),
       ('mold_silicone', MO.mold_silicone("body"), 'silicone', (0.08, 0.25)), ('mold_master', MO.body_master(), 'master', (0.08, 0.25)),
       ('mold_plate', MO.body_base_plate(), 'print', (0.1, 0.3)), ('mold_stiff', MO.finger_stiffener(), 'print', (0.1, 0.3))]
+# v3.7.1: лиття бетону — сердечник T07 на хребті T05 і віртуальний виливок (бетон між файлами оснащення, stickbox/casting_check)
+from stickbox import casting_check as CC
+L += [('mold_core', CC.tool("T07"), 'silicone', (0.08, 0.25)), ('mold_spine', CC.tool("T05"), 'print', (0.1, 0.3)),
+      ('mold_cast', CC.cast_body()[0][0], 'body', (0.06, 0.2))]
 X.export_glb(L, out, tol=0.06, ang=0.2)
 b = open(out, 'rb').read()
 open(os.path.join(ROOT, 'viewer', 'stickbox.glb.b64.txt'), 'w').write(base64.b64encode(b).decode())

@@ -817,7 +817,7 @@
 <text class="t" x="353.000" y="244.000" font-size="3.2" text-anchor="start" font-weight="normal">Масштаб 1:1; 4:1; 5:1</text>
 <text class="t" x="353.000" y="254.000" font-size="3.2" text-anchor="start" font-weight="normal">Аркуш 2 / 7</text>
 <text class="t" x="353.000" y="264.000" font-size="3.2" text-anchor="start" font-weight="normal">Формат A3</text>
-<text class="t" x="233.000" y="283.000" font-size="2.8" text-anchor="start" font-weight="normal">Ревізія v3.7 (кришка схована в дні, язичок 15 × 5, кришка 14 мм; виступ девайса 48; знак NFC без напису) · 1-й кут (ISO E)</text>
+<text class="t" x="233.000" y="283.000" font-size="2.8" text-anchor="start" font-weight="normal">Ревізія v3.7.1 (кришка схована в дні, язичок 15 × 5, кришка 14 мм; виступ девайса 48; v3.7.1 — гніздо стику отвору за віртуальним литтям) · 1-й кут (ISO E)</text>
 <text class="t" x="233.000" y="289.000" font-size="2.6" text-anchor="start" font-weight="normal">Згенеровано з параметричної CAD-моделі; перед виробництвом — перевірка прототипу</text>
 <text class="t" x="25.000" y="12.000" font-size="2.9" text-anchor="start" font-weight="normal">Розріз A-A — по осі воронки (y = 0). Розріз C-C — по осі воронки (x = -15.0).</text>
 <text class="t" x="25.000" y="16.600" font-size="2.9" text-anchor="start" font-weight="normal">Внизу — прямокутне гніздо пробки 110 × 79.5 R12 від z = 0 до низу колонки тримача z = 14 (фаска 2×45°); вище — Г-резервуар того самого контуру стінок до стелі; ухил 0.75° (вихід сердечника); купол стелі R1625 — стріла 2.0 мм до найдальшого кута (відведення повітря).</text>

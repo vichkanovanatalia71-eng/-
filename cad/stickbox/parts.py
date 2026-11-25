@@ -428,9 +428,13 @@ def _funnel_tool(with_flare=True, pin_extra=0.0):
     r_fl = v(p.FLARE_D) / 2
     k1, k2 = 0.55 * (r_f - r_h), 0.45 * fd
     a = math.radians(30.0)  # вхід у горло під 30° до вертикалі
-    prof = (cq.Workplane("XZ")
-            .moveTo(0, z_step - pin_extra)
-            .lineTo(r_h, z_step - pin_extra)
+    wp = cq.Workplane("XZ").moveTo(0, z_step - pin_extra)
+    if pin_extra > 0:   # v3.7.1: заходна фаска — на кінці шпильки форми (схована в гнізді сердечника), не на вході гнізда
+        c_ = min(SOCKET_LEAD, pin_extra / 2)
+        wp = wp.lineTo(r_h - c_, z_step - pin_extra).lineTo(r_h, z_step - pin_extra + c_)
+    else:
+        wp = wp.lineTo(r_h, z_step - pin_extra)
+    prof = (wp
             .lineTo(r_h, z_t)
             .bezier([(r_h, z_t), (r_h + k2 * math.sin(a), z_t + k2 * math.cos(a)), (r_f - k1, H), (r_f, H)],
                     includeCurrent=False)
@@ -460,15 +464,21 @@ def flare_boss(preload=0.3):
     prof = (cq.Workplane("XZ").moveTo(0, z_low).lineTo(r_low, z_low).lineTo(r_step, z_step)
             .lineTo(0, z_step).close())
     boss = prof.revolve(360, (0, 0, 0), (0, 1, 0)).val()
-    # гніздо телескопічного стику: шпилька форми Ø8 заходить на SOCKET_DEPTH (аудит C3)
-    rs = v(p.HOLE_D) / 2 - 0.05
-    sock = (cq.Workplane("XZ").moveTo(0, z_step - SOCKET_DEPTH).lineTo(rs, z_step - SOCKET_DEPTH)
-            .lineTo(rs, z_step - 0.6).lineTo(rs + 0.6, z_step + 0.01).lineTo(0, z_step + 0.01).close()
-            .revolve(360, (0, 0, 0), (0, 1, 0)).val())
-    return boss.cut(sock).translate(Vector(d["cav_xc"], 0, 0))
+    return boss.translate(Vector(d["cav_xc"], 0, 0)).cut(socket_tool())
 
 
 SOCKET_DEPTH = 3.0
+SOCKET_LEAD = 0.6
+
+
+def socket_tool():
+    """Гніздо телескопічного стику в сердечнику: шпилька форми Ø8 заходить на SOCKET_DEPTH (аудит C3), гніздо Ø7.9.
+    v3.7.1 (віртуальне лиття): 1) гніздо вирізається ОСТАННІМ кроком сердечника (раніше купол резервуара заповнював його
+    на 2 з 3 мм — шпилька впиралася б у сердечник з перекриттям 2.45 мм); 2) без фаски на вході: фаска Ø9.1 була ширша
+    за уступ розтруба Ø8.6 — бетон затікав у кільцеву щілину і давав «перо» 0.55 мм під отвором."""
+    z_step = d["z_ceil_c"] + v(p.FLARE_H)
+    rs = v(p.HOLE_D) / 2 - 0.05
+    return cq.Solid.makeCylinder(rs, SOCKET_DEPTH + 0.5, Vector(d["cav_xc"], 0, z_step - SOCKET_DEPTH))
 
 
 def _pocket_tool():
@@ -785,7 +795,7 @@ def _lid_full(product=True, grind_allow=0.0):
     zc = zt - v(p.PLUG_CHAMF_H)
     cap = S_loft(op(zc), zc, op(zc) + v(p.PLUG_CHAMF_R), zt)       # фаска верху борту (перекіс при знятті)
     if hidden:   # v3.7: без фланця — лоток у гнізді, низ урівень з низом корпусу; язичок у виїмці задньої грані
-        plug = S_loft(op(zb), zb - grind_allow, op(zc), zc)
+        plug = S_loft(op(zb - grind_allow), zb - grind_allow, op(zc), zc)   # v3.7.1: ухил продовжено на припуск (без зламу 6 мкм)
         s = plug.fuse(cap).fuse(_lid_tab_hidden(grind_allow)).clean()
     else:
         fl = prism_rrect(d["flange_w"], d["flange_d"], d["r_flange"], -grind_allow, ft)

@@ -111,7 +111,7 @@ dd { margin: 0; font-family: var(--font-mono); font-size: 12px; font-variant-num
 
 <div class="app">
   <div class="stage" id="stage">
-    <div class="badge">ревізія v3.7 · розміри в мм · модель з CAD</div>
+    <div class="badge">ревізія v3.7.1 · розміри в мм · модель з CAD</div>
     <div class="loading" id="loading"><div>Завантаження моделі…<div class="bar"><i id="bar"></i></div></div></div>
     <div class="hint" id="hint">Перетягніть — обертати · колесо або два пальці — масштаб · права кнопка — зсув</div>
   </div>
@@ -173,8 +173,9 @@ dd { margin: 0; font-family: var(--font-mono); font-size: 12px; font-variant-num
         <output id="moldOut" for="moldOpen">0%</output>
         <small>Розкрити каркас: половини розходяться вздовж роз'єму, ключі виходять із пазів силікону.</small>
       </div>
-      <label class="toggle"><span>Силіконовий блок<small>Бірюзовий — силікон, сірий — майстер-модель, оранжевий — друковане оснащення</small></span><input type="checkbox" id="tMoldSil" checked disabled></label>
-      <label class="toggle"><span>Переріз по осі форми<small>Видно рівну товщину силікону і ключі каркаса</small></span><input type="checkbox" id="tMoldCut" disabled></label>
+      <label class="toggle"><span>Силіконовий блок<small>Бірюзовий — силікон, сірий — майстер-модель, оранжевий — друковане оснащення, фіолетовий — сердечник</small></span><input type="checkbox" id="tMoldSil" checked disabled></label>
+      <label class="toggle"><span>Лиття бетону: сердечник і виливок<small>Замість майстра — сердечник T07 (фіолетовий силікон) на хребті T05 (коричневий) і віртуальний виливок (світло-сірий бетон): бетон, що заповнює простір між файлами оснащення. Резервуар формує сердечник, кишеню девайса — «палець» силікону. Під час лиття форма перевернута догори дном; тут показано в положенні виробу</small></span><input type="checkbox" id="tMoldCast" disabled></label>
+      <label class="toggle"><span>Переріз по осі форми<small>Без виливка — по x = 0: рівна товщина силікону і ключі. З виливком — по осі кишені (y = −20.5): видно резервуар, кишеню і гніздо кришки</small></span><input type="checkbox" id="tMoldCut" disabled></label>
     </section>
 
     <section aria-labelledby="l-cmf">
@@ -335,7 +336,12 @@ vec2 speck(vec3 p, float s){ vec3 q=p/s; vec3 i=floor(q); float b=9.0; float id=
   M.mold_master = flatCut(new THREE.MeshStandardMaterial({ color: new THREE.Color('#e4e3df').convertSRGBToLinear(), roughness: 0.55 }), '#a9a8a3');
   M.mold_plate = flatCut(new THREE.MeshStandardMaterial({ color: new THREE.Color('#8c949c').convertSRGBToLinear(), roughness: 0.6 }), '#5e656c');
   M.mold_stiff = flatCut(new THREE.MeshStandardMaterial({ color: new THREE.Color('#d9862e').convertSRGBToLinear(), roughness: 0.6 }), '#9c5d1c');
-  const MOLD = ['mold_frame_front', 'mold_frame_back', 'mold_silicone', 'mold_master', 'mold_plate', 'mold_stiff'];
+  // лиття бетону: силіконова чашка сердечника T07, хребет T05, віртуальний виливок (бетон між файлами оснащення)
+  M.mold_core = flatCut(new THREE.MeshPhysicalMaterial({ color: new THREE.Color('#a58bd6').convertSRGBToLinear(), roughness: 0.45 }), '#7559ad');
+  Object.assign(M.mold_core, { polygonOffset: true, polygonOffsetFactor: -1, polygonOffsetUnits: -1 });
+  M.mold_spine = flatCut(new THREE.MeshStandardMaterial({ color: new THREE.Color('#9c6b3c').convertSRGBToLinear(), roughness: 0.6 }), '#6d4826');
+  M.mold_cast = flatCut(new THREE.MeshStandardMaterial({ color: new THREE.Color('#cfc9bf').convertSRGBToLinear(), roughness: 0.8 }), '#8f8a82');
+  const MOLD = ['mold_frame_front', 'mold_frame_back', 'mold_silicone', 'mold_master', 'mold_plate', 'mold_stiff', 'mold_core', 'mold_spine', 'mold_cast'];
   const logoBare = concrete(CMF[0].concrete);
   Object.values(M).forEach((m) => { if (m) m.envMapIntensity = 0.45; });
   logoBare.envMapIntensity = 0.45;
@@ -476,24 +482,31 @@ vec2 speck(vec3 p, float s){ vec3 q=p/s; vec3 i=floor(q); float b=9.0; float id=
 
   // ---------- режим «Форма для лиття» ----------
   const clipMold = new THREE.Plane(new THREE.Vector3(-1, 0, 0), 0);   // лишається x ≤ 0, видно переріз з боку +x
+  const clipCast = new THREE.Plane(new THREE.Vector3(0, 0, -1), 20.5 * 1.002);   // лишається CAD y ≥ −20.5 (вісь кишені), видно спереду
   function applyMold() {
     const on = $('tMold').checked;
     product.visible = !on; moldG.visible = on;
-    ['moldOpen', 'tMoldSil', 'tMoldCut'].forEach((id) => { $(id).disabled = !on; });
+    ['moldOpen', 'tMoldSil', 'tMoldCut', 'tMoldCast'].forEach((id) => { $(id).disabled = !on; });
+    const cast = on && $('tMoldCast').checked;
     if (parts.mold_silicone) parts.mold_silicone.visible = $('tMoldSil').checked;
     const cut = on && $('tMoldCut').checked;
     // у перерізі майстер-модель ховаємо: видно порожнину силіконового блока і його товщину
-    if (parts.mold_master) parts.mold_master.visible = !(cut && $('tMoldSil').checked);
-    MOLD.forEach((n) => { if (M[n]) { M[n].clippingPlanes = cut ? [clipMold] : []; M[n].needsUpdate = true; } });
+    if (parts.mold_master) parts.mold_master.visible = !cast && !(cut && $('tMoldSil').checked);
+    if (parts.mold_plate) parts.mold_plate.visible = !cast;
+    ['mold_core', 'mold_spine', 'mold_cast'].forEach((n) => { if (parts[n]) parts[n].visible = cast; });
+    moldG.position.y = cast ? 16.5 : 6.5;   // міст сердечника — під торцем каркаса
+    MOLD.forEach((n) => { if (M[n]) { M[n].clippingPlanes = cut ? [cast ? clipCast : clipMold] : []; M[n].needsUpdate = true; } });
   }
+  function moldView() { return $('tMoldCut').checked ? ($('tMoldCast').checked ? 'castCut' : 'moldCut') : 'mold'; }
   $('tMold').addEventListener('change', (e) => {
     applyMold();
-    if (e.target.checked) { setView($('tMoldCut').checked ? 'moldCut' : 'mold'); }
+    if (e.target.checked) { setView(moldView()); }
     else { animateTo('mold', 0); setView('iso'); }
   });
   $('moldOpen').addEventListener('input', (e) => { S.mold = S.moldTarget = e.target.value / 100; update(); });
   $('tMoldSil').addEventListener('change', applyMold);
-  $('tMoldCut').addEventListener('change', (e) => { applyMold(); setView(e.target.checked ? 'moldCut' : 'mold'); });
+  $('tMoldCut').addEventListener('change', () => { applyMold(); setView(moldView()); });
+  $('tMoldCast').addEventListener('change', () => { applyMold(); setView(moldView()); });
 
   function applyCut() {
     const on = $('cutToggle').checked;
@@ -525,6 +538,7 @@ vec2 speck(vec3 p, float s){ vec3 q=p/s; vec3 i=floor(q); float b=9.0; float id=
     bottom: { pos: [0, -360, 0.5], tgt: [0, 40, 0] },
     mold: { pos: [-330, 280, 400], tgt: [0, 55, 0] },
     moldCut: { pos: [430, 140, 60], tgt: [0, 60, 0] },
+    castCut: { pos: [40, 110, 430], tgt: [0, 58, 0] },
   };
   function setView(name) {
     const v = VIEWS[name];
@@ -539,7 +553,7 @@ vec2 speck(vec3 p, float s){ vec3 q=p/s; vec3 i=floor(q); float b=9.0; float id=
   $('resetBtn').addEventListener('click', () => {
     $('cutToggle').checked = false; $('cutSlider').value = 0; applyCut();
     $('tExplode').checked = false; animateTo('explode', 0); animateTo('lid', 0); animateTo('rl', 0);
-    $('tMold').checked = false; $('tMoldCut').checked = false; $('tMoldSil').checked = true; animateTo('mold', 0); applyMold();
+    $('tMold').checked = false; $('tMoldCut').checked = false; $('tMoldCast').checked = false; $('tMoldSil').checked = true; animateTo('mold', 0); applyMold();
     $('autoRot').checked = false; controls.autoRotate = false;
     setView('iso');
   });

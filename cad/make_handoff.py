@@ -1,7 +1,7 @@
 """Пакет для виробника силіконових форм: ТЗ (PDF) + оснащення (STEP/STL/3MF) + довідкові файли → ZIP.
 
 Запуск: python make_handoff.py   (після build_all.py, make_drawings.py і рендерів)
-Результат: handoff/STICKBOX_01_v3.7_molds_handoff.zip і handoff/00_TZ_silicone_molds_v3.7.pdf
+Результат: handoff/STICKBOX_01_v3.7.1_molds_handoff.zip і handoff/00_TZ_silicone_molds_v3.7.1.pdf
 """
 import os
 import sys
@@ -11,10 +11,11 @@ import markdown
 
 ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
 OUT = os.path.join(ROOT, "handoff")
-REV = "v3.7"
+REV = "v3.7.1"
 ZIP = os.path.join(OUT, f"STICKBOX_01_{REV}_molds_handoff.zip")
 PDF = os.path.join(OUT, f"00_TZ_silicone_molds_{REV}.pdf")
 PDF_FRAME = os.path.join(OUT, f"01_mold_frame_calc_{REV}.pdf")   # розбірний каркас: розрахунок і використання
+PDF_TESTS = os.path.join(OUT, f"02_virtual_casting_tests_{REV}.pdf")   # віртуальне лиття: перевірка файлів оснащення
 
 TOOL = ["T01_body_master", "T02a_body_frame_front", "T02b_body_frame_back", "T03_body_base_plate", "T04_finger_stiffener",
         "T05_core_spine_bridge", "T06_core_mold", "T07_ref_cast_part_core_silicone", "T08_lid_master",
@@ -25,7 +26,8 @@ PRODUCT = ["exports/step/00_STICKBOX_01_Monolith_assembly.step", "exports/step/0
            "exports/step/02_lid_concrete.step", "drawings/STICKBOX_01_Monolith_drawings_A3.pdf"]
 RENDERS = ["20_tooling_body_casting_section.png", "21_tooling_body_exploded.png", "22_tooling_lid_section.png",
            "01_hero_front_left.png", "07_exploded.png", "13_lid_oring.png", "26_lid_tab_back.png", "27_notch_tab_from_below.png",
-           "28_mold_frame_open_pour.png", "29_mold_frame_section_x0.png"]
+           "28_mold_frame_open_pour.png", "29_mold_frame_section_x0.png",
+           "34_virtual_casting_sections.png", "35_cast_vs_design.png", "36_joint_details.png", "37_lid_casting.png"]
 
 CSS = """
 @page { size: A4; margin: 16mm 15mm 16mm 15mm; }
@@ -43,6 +45,7 @@ th { background: #eef4f3; font-weight: bold; }
 code { font-family: 'DejaVu Sans Mono', monospace; font-size: 8.6pt; background: #f2f2f2; padding: 0 2pt; }
 hr { border: 0; border-top: 0.6pt solid #bbb; margin: 8pt 0; }
 strong { color: #000; }
+img { max-width: 100%; display: block; margin: 6pt auto; break-inside: avoid; }
 """
 
 
@@ -83,6 +86,7 @@ def build_zip():
     with zipfile.ZipFile(ZIP, "w", compression=zipfile.ZIP_DEFLATED, compresslevel=9) as z:
         z.write(PDF, os.path.basename(PDF))
         z.write(PDF_FRAME, os.path.basename(PDF_FRAME))
+        z.write(PDF_TESTS, os.path.basename(PDF_TESTS))
         for n in TOOL:
             for ext, folder in (("step", "01_tooling_STEP"), ("stl", "02_tooling_print_STL"), ("3mf", "03_tooling_print_3MF")):
                 src = os.path.join(ROOT, "tooling", ext, f"{n}.{ext}")
@@ -117,6 +121,7 @@ if __name__ == "__main__":
     os.makedirs(OUT, exist_ok=True)
     build_pdf()
     build_pdf("14_mold_frame.md", PDF_FRAME, "Розбірний каркас форм")
+    build_pdf("15_virtual_casting_tests.md", PDF_TESTS, "Віртуальне лиття і перевірки")
     build_zip()
     with zipfile.ZipFile(ZIP) as z:
         n, size = len(z.infolist()), sum(i.file_size for i in z.infolist())

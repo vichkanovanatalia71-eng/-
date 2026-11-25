@@ -1,0 +1,1479 @@
+{
+ "assembly": {
+  "valid": {
+   "T15": true,
+   "T07": true,
+   "T05": true,
+   "T04": true,
+   "T02a": true,
+   "T02b": true,
+   "T01": true,
+   "T16": true,
+   "T09a": true,
+   "T09b": true,
+   "T08": true
+  },
+  "core_outer_contacts": [
+   {
+    "volume_mm3": 82.024,
+    "where": "виїмка язичка кришки (задня грань)",
+    "bbox": [
+     -7.52,
+     7.51,
+     45.09,
+     46.09,
+     -0.5,
+     5.01
+    ]
+   },
+   {
+    "volume_mm3": 3.046,
+    "where": "стик шпильки отвору Ø8 з гніздом сердечника (розтруб)",
+    "bbox": [
+     -19.04,
+     -11.02,
+     -4.01,
+     4.01,
+     84.72,
+     87.17
+    ]
+   }
+  ],
+  "core_outer_unexpected": [],
+  "overlap_mm3": {
+   "spine_outer": 0,
+   "spine_stiffener": 0,
+   "stiffener_core": 0,
+   "spine_core": 0,
+   "frames_outer": 0,
+   "frames_spine": 0
+  },
+  "bridge_to_frame_gap_mm": 0.0,
+  "rod_holes": {
+   "bridge": [
+    [
+     -74.043,
+     -59.013
+    ],
+    [
+     -74.043,
+     59.013
+    ],
+    [
+     74.043,
+     -59.013
+    ],
+    [
+     74.043,
+     59.013
+    ]
+   ],
+   "frame": [
+    [
+     -74.043,
+     -59.013
+    ],
+    [
+     -74.043,
+     59.013
+    ],
+    [
+     74.043,
+     -59.013
+    ],
+    [
+     74.043,
+     59.013
+    ]
+   ],
+   "max_misalignment_mm": 0.0
+  }
+ },
+ "body_casting": {
+  "concrete_solids": 1,
+  "concrete_volumes_mm3": [
+   330894.11
+  ],
+  "sealed_voids": [
+   {
+    "volume_mm3": 3.601,
+    "where": "стик шпильки отвору Ø8 з гніздом сердечника (розтруб)",
+    "bbox": [
+     -18.99,
+     -11.07,
+     -3.96,
+     3.96,
+     84.17,
+     84.72
+    ],
+    "overlap_with_product_mm3": 0
+   }
+  ],
+  "non_concrete_voids": [
+   {
+    "volume_mm3": 24.13,
+    "bbox": [
+     39.08,
+     42.28,
+     -40.14,
+     -36.94,
+     107.19,
+     110.19
+    ]
+   },
+   {
+    "volume_mm3": 24.13,
+    "bbox": [
+     39.08,
+     42.28,
+     -4.14,
+     -0.94,
+     107.19,
+     110.19
+    ]
+   }
+  ],
+  "cast_volume_mm3": 330982.78,
+  "design_volume_mm3": 330977.94,
+  "extra_concrete_vs_design": {
+   "total_mm3": 5.487,
+   "pieces": [
+    {
+     "volume_mm3": 5.487,
+     "where": "виїмка язичка кришки (задня грань)",
+     "bbox": [
+      -8.52,
+      8.52,
+      44.09,
+      45.09,
+      -0.5,
+      6.01
+     ],
+     "size": [
+      17.03,
+      1.0,
+      6.51
+     ]
+    }
+   ]
+  },
+  "missing_concrete_vs_design": {
+   "total_mm3": 0,
+   "pieces": []
+  },
+  "finished": {
+   "volume_ml": 328.282,
+   "design_volume_ml": 328.277,
+   "valid": true,
+   "bbox": [
+    -60.0,
+    60.0,
+    -45.0,
+    45.0,
+    -0.0,
+    95.0
+   ],
+   "design_bbox": [
+    -60.0,
+    60.0,
+    -45.0,
+    45.0,
+    -0.0,
+    95.0
+   ],
+   "extra": {
+    "total_mm3": 5.239,
+    "pieces": [
+     {
+      "volume_mm3": 5.239,
+      "where": "виїмка язичка кришки (задня грань)",
+      "bbox": [
+       -8.5,
+       8.5,
+       44.0,
+       45.0,
+       0.0,
+       6.0
+      ],
+      "size": [
+       17.0,
+       1.0,
+       6.0
+      ]
+     }
+    ]
+   },
+   "missing": {
+    "total_mm3": 0,
+    "pieces": []
+   }
+  }
+ },
+ "lid_casting": {
+  "concrete_solids": 1,
+  "cast_volume_mm3": 58058.48,
+  "design_volume_mm3": 58036.03,
+  "extra_vs_design": {
+   "total_mm3": 0,
+   "pieces": []
+  },
+  "missing_vs_design": {
+   "total_mm3": 0,
+   "pieces": []
+  },
+  "finished": {
+   "volume_ml": 53.528,
+   "design_volume_ml": 53.478,
+   "valid": true,
+   "extra": {
+    "total_mm3": 28.659,
+    "pieces": [
+     {
+      "volume_mm3": 28.659,
+      "where": "низ (відкрита грань, шліфування)",
+      "bbox": [
+       -54.1,
+       54.1,
+       -38.6,
+       44.2,
+       -0.0,
+       0.61
+      ],
+      "size": [
+       108.2,
+       82.8,
+       0.61
+      ]
+     }
+    ]
+   },
+   "missing": {
+    "total_mm3": 0,
+    "pieces": []
+   }
+  },
+  "demold": {
+   "T16": {
+    "faces": 80864,
+    "area_mm2": 16501.2,
+    "blocked_faces": 44118,
+    "blocked_area_mm2": 2970.337,
+    "blocked_by_zone": {
+     "гніздо кришки": 2844.98,
+     "виїмка язичка кришки (задня грань)": 0.0
+    },
+    "blocked_in_cord_groove_mm2": 2970.34,
+    "blocked_elsewhere_mm2": 0.0
+   }
+  },
+  "air_traps": [
+   {
+    "area_mm2": 401.6,
+    "where": "гніздо кришки",
+    "z_product": [
+     11.0,
+     11.0
+    ],
+    "x": [
+     -53.2,
+     53.2
+    ],
+    "y": [
+     -37.7,
+     38.2
+    ],
+    "slope_deg_min": 0.0,
+    "slope_deg_mean": 0.0,
+    "formed_by": "T16"
+   },
+   {
+    "area_mm2": 9.5,
+    "where": "гніздо кришки",
+    "z_product": [
+     10.99,
+     11.0
+    ],
+    "x": [
+     -14.3,
+     14.3
+    ],
+    "y": [
+     -36.9,
+     -36.8
+    ],
+    "slope_deg_min": 1.13,
+    "slope_deg_mean": 7.87,
+    "formed_by": "T16"
+   },
+   {
+    "area_mm2": 9.5,
+    "where": "гніздо кришки",
+    "z_product": [
+     10.99,
+     11.0
+    ],
+    "x": [
+     -14.3,
+     14.3
+    ],
+    "y": [
+     37.3,
+     37.4
+    ],
+    "slope_deg_min": 1.13,
+    "slope_deg_mean": 7.87,
+    "formed_by": "T16"
+   },
+   {
+    "area_mm2": 9.5,
+    "where": "гніздо кришки",
+    "z_product": [
+     11.0,
+     11.01
+    ],
+    "x": [
+     -14.3,
+     14.3
+    ],
+    "y": [
+     -38.2,
+     -38.1
+    ],
+    "slope_deg_min": 1.13,
+    "slope_deg_mean": 7.94,
+    "formed_by": "T16"
+   },
+   {
+    "area_mm2": 9.5,
+    "where": "гніздо кришки",
+    "z_product": [
+     11.0,
+     11.01
+    ],
+    "x": [
+     -14.3,
+     14.3
+    ],
+    "y": [
+     38.6,
+     38.7
+    ],
+    "slope_deg_min": 1.13,
+    "slope_deg_mean": 7.94,
+    "formed_by": "T16"
+   },
+   {
+    "area_mm2": 6.2,
+    "where": "гніздо кришки",
+    "z_product": [
+     11.0,
+     11.01
+    ],
+    "x": [
+     53.6,
+     53.7
+    ],
+    "y": [
+     -9.0,
+     9.5
+    ],
+    "slope_deg_min": 1.13,
+    "slope_deg_mean": 7.94,
+    "formed_by": "T16"
+   },
+   {
+    "area_mm2": 6.2,
+    "where": "гніздо кришки",
+    "z_product": [
+     11.0,
+     11.01
+    ],
+    "x": [
+     -53.7,
+     -53.6
+    ],
+    "y": [
+     -9.0,
+     9.5
+    ],
+    "slope_deg_min": 1.13,
+    "slope_deg_mean": 7.94,
+    "formed_by": "T16"
+   },
+   {
+    "area_mm2": 6.1,
+    "where": "гніздо кришки",
+    "z_product": [
+     10.99,
+     11.0
+    ],
+    "x": [
+     -52.4,
+     -52.3
+    ],
+    "y": [
+     -9.0,
+     9.5
+    ],
+    "slope_deg_min": 1.13,
+    "slope_deg_mean": 7.87,
+    "formed_by": "T16"
+   },
+   {
+    "area_mm2": 6.1,
+    "where": "гніздо кришки",
+    "z_product": [
+     10.99,
+     11.0
+    ],
+    "x": [
+     52.3,
+     52.4
+    ],
+    "y": [
+     -9.0,
+     9.5
+    ],
+    "slope_deg_min": 1.13,
+    "slope_deg_mean": 7.87,
+    "formed_by": "T16"
+   }
+  ]
+ },
+ "deviation_body": {
+  "cast_to_design": {
+   "samples": 30000,
+   "max_mm": 0.3792,
+   "p99_mm": 0.0,
+   "p999_mm": 0.0036,
+   "share_over_0p05": 0.00027,
+   "clusters_over_0p05": {
+    "виїмка язичка кришки (задня грань)": {
+     "points": 8,
+     "max_mm": 0.379
+    }
+   }
+  },
+  "design_to_cast": {
+   "samples": 30000,
+   "max_mm": 0.2159,
+   "p99_mm": 0.0,
+   "p999_mm": 0.0046,
+   "share_over_0p05": 0.00027,
+   "clusters_over_0p05": {
+    "виїмка язичка кришки (задня грань)": {
+     "points": 8,
+     "max_mm": 0.216
+    }
+   }
+  }
+ },
+ "deviation_lid": {
+  "cast_to_design": {
+   "samples": 30000,
+   "max_mm": 0.2536,
+   "p99_mm": 0.0579,
+   "p999_mm": 0.228,
+   "share_over_0p05": 0.01043,
+   "clusters_over_0p05": {
+    "низ (відкрита грань, шліфування)": {
+     "points": 287,
+     "max_mm": 0.254
+    },
+    "виїмка язичка кришки (задня грань)": {
+     "points": 26,
+     "max_mm": 0.245
+    }
+   }
+  },
+  "design_to_cast": {
+   "samples": 30000,
+   "max_mm": 0.1781,
+   "p99_mm": 0.0164,
+   "p999_mm": 0.1557,
+   "share_over_0p05": 0.0067,
+   "clusters_over_0p05": {
+    "низ (відкрита грань, шліфування)": {
+     "points": 189,
+     "max_mm": 0.178
+    },
+    "виїмка язичка кришки (задня грань)": {
+     "points": 12,
+     "max_mm": 0.16
+    }
+   }
+  }
+ },
+ "measure": {
+  "socket": [
+   {
+    "z": 0.5,
+    "width_x": 111.936,
+    "depth_y": 81.436
+   },
+   {
+    "z": 5.5,
+    "width_x": 109.856,
+    "depth_y": 79.356
+   },
+   {
+    "z": 8.5,
+    "width_x": 109.777,
+    "depth_y": 79.277
+   },
+   {
+    "z": 13.5,
+    "width_x": 109.647,
+    "depth_y": 79.147
+   }
+  ],
+  "socket_roof_z": 14.5,
+  "socket_design": {
+   "width_x": 110.0,
+   "depth_y": 79.5,
+   "roof_z": 14.5
+  },
+  "reservoir": {
+   "ceiling_z_at_hole_axis_edge": 85.934,
+   "ceiling_z_main": 85.784,
+   "ceiling_z_arm": 84.914,
+   "width_x_main_z50": 84.002,
+   "depth_y_main_z50": 78.191,
+   "design_ceiling_c": 86.0,
+   "design_ceiling_edge": 84.0
+  },
+  "pocket": {
+   "floor_z": 19.5,
+   "depth": 75.5,
+   "design_floor_z": 19.5,
+   "design_depth": 75.5,
+   "widths": [
+    {
+     "z": 22.5,
+     "x": 17.535,
+     "y_back_half": 15.865,
+     "y_front_half_at_x5p5": 13.927
+    },
+    {
+     "z": 57.25,
+     "x": 18.141,
+     "y_back_half": 16.168,
+     "y_front_half_at_x5p5": 14.309
+    },
+    {
+     "z": 92.0,
+     "x": 18.748,
+     "y_back_half": 16.472,
+     "y_front_half_at_x5p5": 14.69
+    }
+   ],
+   "design": {
+    "x_top": 18.8,
+    "y_top": 33.0,
+    "floor_inset": 0.659
+   }
+  },
+  "hole": {
+   "z": 88.0,
+   "diameters": [
+    8.0,
+    8.0,
+    8.0,
+    8.0
+   ],
+   "design": 8.0,
+   "straight_from_z": 87.0,
+   "straight_to_z": 89.0
+  },
+  "hole_exit_profile": [
+   {
+    "z": 87.3,
+    "radius": 4.0
+   },
+   {
+    "z": 87.05,
+    "radius": 4.0
+   },
+   {
+    "z": 86.95,
+    "radius": 4.35
+   },
+   {
+    "z": 86.8,
+    "radius": 4.5
+   },
+   {
+    "z": 86.6,
+    "radius": 4.7
+   },
+   {
+    "z": 86.4,
+    "radius": 4.9
+   },
+   {
+    "z": 86.1,
+    "radius": 5.2
+   }
+  ],
+  "slot": {
+   "z": 85.0,
+   "width": 8.0,
+   "design": 8.0
+  },
+  "notch": {
+   "width": 15.0,
+   "top_z": 5.0,
+   "design_width": 15.0,
+   "design_top": 5.0
+  },
+  "height": 95.0,
+  "footprint": [
+   120.0,
+   90.0
+  ]
+ },
+ "reservoir_ml": {
+  "cast": 514.214,
+  "design": 514.214
+ },
+ "water_fill_ml": {
+  "cast": 583.684,
+  "design": 583.729
+ },
+ "fit": {
+  "device": {
+   "interference_mm3": 0,
+   "min_clearance_mm": 0.602,
+   "protrusion_mm": 48.1,
+   "design_protrusion_mm": 48.1,
+   "felt_interference_mm3": 0,
+   "device_on_felt_gap_mm": 0.0,
+   "corner_R7.0": {
+    "interference_mm3": 0,
+    "min_clearance_mm": 0.105
+   },
+   "corner_R7.5": {
+    "interference_mm3": 0,
+    "min_clearance_mm": 0.312
+   }
+  },
+  "lid": {
+   "interference_mm3": 0,
+   "min_clearance_mm": 0.382,
+   "lid_bottom_z": -0.0,
+   "body_bottom_z": 0.0,
+   "lid_top_z": 14.0
+  },
+  "tab": {
+   "side_gap_left": 1.01,
+   "side_gap_right": 1.01,
+   "top_gap_tip": 2.49,
+   "tip_inset_from_back_face": 0.8
+  },
+  "seal": {
+   "gland_depth_min": 2.9,
+   "gland_depth_max": 2.9,
+   "squeeze_pct_min": 27.5,
+   "squeeze_pct_max": 27.5,
+   "design_gland": 2.9,
+   "design_squeeze_pct": 27.5,
+   "samples": 149,
+   "oring_vs_body_overlap_mm3": 0,
+   "oring_vs_lid_overlap_mm3": 0
+  }
+ },
+ "forming": {
+  "T15": 54173.1,
+  "T07": 37566.8,
+  "T05": 0.0,
+  "T04": 0.0,
+  "open": 1394.0
+ },
+ "forming_T04_min_dist_mm": 4.491,
+ "demold_body": {
+  "T15": {
+   "faces": 104207,
+   "area_mm2": 54173.1,
+   "blocked_faces": 18505,
+   "blocked_area_mm2": 706.255,
+   "blocked_by_zone": {
+    "напис STICKBOX (фронт)": 688.5,
+    "верхня грань (знак NFC / кромки)": 0.0,
+    "стик шпильки отвору Ø8 з гніздом сердечника (розтруб)": 0.3
+   }
+  },
+  "T07": {
+   "faces": 23097,
+   "area_mm2": 37566.8,
+   "blocked_faces": 0,
+   "blocked_area_mm2": 0.0,
+   "blocked_by_zone": {}
+  },
+  "T15_front_peel": {
+   "faces": 27486,
+   "area_mm2": 8403.3,
+   "blocked_area_mm2": 0.006
+  }
+ },
+ "air_traps_body": [
+  {
+   "area_mm2": 4515.3,
+   "where": "купол резервуара",
+   "z_product": [
+    84.51,
+    85.99
+   ],
+   "x": [
+    -48.0,
+    48.2
+   ],
+   "y": [
+    -32.6,
+    33.1
+   ],
+   "slope_deg_min": 0.26,
+   "slope_deg_mean": 1.26,
+   "formed_by": "T07"
+  },
+  {
+   "area_mm2": 1054.5,
+   "where": "низ колонки тримача (стеля гнізда кришки, z 14.5)",
+   "z_product": [
+    14.5,
+    14.5
+   ],
+   "x": [
+    27.0,
+    54.7
+   ],
+   "y": [
+    -39.3,
+    -1.7
+   ],
+   "slope_deg_min": 0.0,
+   "slope_deg_mean": 0.0,
+   "formed_by": "T07"
+  },
+  {
+   "area_mm2": 542.7,
+   "where": "торець кишені NFC-мітки (стеля над міткою)",
+   "z_product": [
+    89.0,
+    89.0
+   ],
+   "x": [
+    -45.1,
+    -18.9
+   ],
+   "y": [
+    -28.1,
+    -1.9
+   ],
+   "slope_deg_min": 0.0,
+   "slope_deg_mean": 0.0,
+   "formed_by": "T07"
+  },
+  {
+   "area_mm2": 124.2,
+   "where": "кромка купола біля стінки (R стелі)",
+   "z_product": [
+    84.48,
+    85.59
+   ],
+   "x": [
+    -42.7,
+    42.9
+   ],
+   "y": [
+    33.3,
+    34.6
+   ],
+   "slope_deg_min": 0.39,
+   "slope_deg_mean": 7.53,
+   "formed_by": "T07"
+  },
+  {
+   "area_mm2": 88.8,
+   "where": "кромка купола біля стінки (R стелі)",
+   "z_product": [
+    85.24,
+    85.5
+   ],
+   "x": [
+    -42.7,
+    12.9
+   ],
+   "y": [
+    -34.1,
+    -32.8
+   ],
+   "slope_deg_min": 0.54,
+   "slope_deg_mean": 8.94,
+   "formed_by": "T07"
+  },
+  {
+   "area_mm2": 87.7,
+   "where": "кромка купола біля стінки (R стелі)",
+   "z_product": [
+    85.24,
+    85.49
+   ],
+   "x": [
+    -49.6,
+    -48.3
+   ],
+   "y": [
+    -27.2,
+    27.7
+   ],
+   "slope_deg_min": 0.46,
+   "slope_deg_mean": 8.85,
+   "formed_by": "T07"
+  },
+  {
+   "area_mm2": 60.8,
+   "where": "стеля виїмки язичка (z 5)",
+   "z_product": [
+    5.0,
+    5.0
+   ],
+   "x": [
+    -2.0,
+    2.0
+   ],
+   "y": [
+    41.6,
+    43.3
+   ],
+   "slope_deg_min": 0.0,
+   "slope_deg_mean": 0.0,
+   "formed_by": "T07"
+  },
+  {
+   "area_mm2": 33.4,
+   "where": "кромка купола біля стінки (R стелі)",
+   "z_product": [
+    85.08,
+    85.64
+   ],
+   "x": [
+    18.3,
+    33.1
+   ],
+   "y": [
+    -7.8,
+    7.1
+   ],
+   "slope_deg_min": 1.79,
+   "slope_deg_mean": 7.85,
+   "formed_by": "T07"
+  },
+  {
+   "area_mm2": 32.0,
+   "where": "кромка купола біля стінки (R стелі)",
+   "z_product": [
+    85.23,
+    85.62
+   ],
+   "x": [
+    18.5,
+    19.8
+   ],
+   "y": [
+    -27.4,
+    -8.0
+   ],
+   "slope_deg_min": 3.8,
+   "slope_deg_mean": 8.58,
+   "formed_by": "T07"
+  },
+  {
+   "area_mm2": 20.0,
+   "where": "кромка купола біля стінки (R стелі)",
+   "z_product": [
+    84.44,
+    84.65
+   ],
+   "x": [
+    48.3,
+    49.4
+   ],
+   "y": [
+    17.4,
+    22.7
+   ],
+   "slope_deg_min": 3.15,
+   "slope_deg_mean": 8.36,
+   "formed_by": "T07"
+  },
+  {
+   "area_mm2": 16.2,
+   "where": "кромка купола біля стінки (R стелі)",
+   "z_product": [
+    84.85,
+    85.16
+   ],
+   "x": [
+    36.5,
+    39.8
+   ],
+   "y": [
+    5.6,
+    7.1
+   ],
+   "slope_deg_min": 1.95,
+   "slope_deg_mean": 8.01,
+   "formed_by": "T07"
+  },
+  {
+   "area_mm2": 13.5,
+   "where": "кромка купола біля стінки (R стелі)",
+   "z_product": [
+    85.21,
+    85.43
+   ],
+   "x": [
+    -49.4,
+    -43.0
+   ],
+   "y": [
+    -33.9,
+    -27.5
+   ],
+   "slope_deg_min": 2.01,
+   "slope_deg_mean": 8.77,
+   "formed_by": "T07"
+  },
+  {
+   "area_mm2": 13.5,
+   "where": "кромка купола біля стінки (R стелі)",
+   "z_product": [
+    85.21,
+    85.43
+   ],
+   "x": [
+    13.3,
+    19.6
+   ],
+   "y": [
+    -33.9,
+    -27.6
+   ],
+   "slope_deg_min": 2.02,
+   "slope_deg_mean": 8.82,
+   "formed_by": "T07"
+  },
+  {
+   "area_mm2": 13.3,
+   "where": "кромка купола біля стінки (R стелі)",
+   "z_product": [
+    84.55,
+    84.94
+   ],
+   "x": [
+    43.1,
+    49.3
+   ],
+   "y": [
+    5.7,
+    12.1
+   ],
+   "slope_deg_min": 2.12,
+   "slope_deg_mean": 8.65,
+   "formed_by": "T07"
+  },
+  {
+   "area_mm2": 13.2,
+   "where": "кромка купола біля стінки (R стелі)",
+   "z_product": [
+    85.2,
+    85.42
+   ],
+   "x": [
+    -49.2,
+    -43.0
+   ],
+   "y": [
+    28.1,
+    34.4
+   ],
+   "slope_deg_min": 2.02,
+   "slope_deg_mean": 8.64,
+   "formed_by": "T07"
+  },
+  {
+   "area_mm2": 12.6,
+   "where": "кромка купола біля стінки (R стелі)",
+   "z_product": [
+    84.32,
+    84.62
+   ],
+   "x": [
+    43.2,
+    49.3
+   ],
+   "y": [
+    27.9,
+    34.2
+   ],
+   "slope_deg_min": 2.71,
+   "slope_deg_mean": 9.08,
+   "formed_by": "T07"
+  },
+  {
+   "area_mm2": 7.8,
+   "where": "напис STICKBOX (уступи літер)",
+   "z_product": [
+    44.5,
+    44.5
+   ],
+   "x": [
+    -28.1,
+    -25.5
+   ],
+   "y": [
+    -44.7,
+    -44.3
+   ],
+   "slope_deg_min": 0.0,
+   "slope_deg_mean": 0.0,
+   "formed_by": "T15"
+  },
+  {
+   "area_mm2": 7.8,
+   "where": "стик шпильки отвору Ø8 з гніздом сердечника (розтруб)",
+   "z_product": [
+    87.0,
+    87.0
+   ],
+   "x": [
+    -19.2,
+    -10.8
+   ],
+   "y": [
+    -4.2,
+    4.2
+   ],
+   "slope_deg_min": 0.0,
+   "slope_deg_mean": 0.0,
+   "formed_by": "T07"
+  },
+  {
+   "area_mm2": 5.8,
+   "where": "напис STICKBOX (уступи літер)",
+   "z_product": [
+    47.42,
+    48.19
+   ],
+   "x": [
+    -17.7,
+    -12.2
+   ],
+   "y": [
+    -45.0,
+    -44.0
+   ],
+   "slope_deg_min": 4.28,
+   "slope_deg_mean": 8.24,
+   "formed_by": "T15"
+  },
+  {
+   "area_mm2": 5.8,
+   "where": "напис STICKBOX (уступи літер)",
+   "z_product": [
+    44.34,
+    44.5
+   ],
+   "x": [
+    9.4,
+    15.1
+   ],
+   "y": [
+    -45.0,
+    -44.0
+   ],
+   "slope_deg_min": 0.0,
+   "slope_deg_mean": 1.49,
+   "formed_by": "T15"
+  },
+  {
+   "area_mm2": 3.3,
+   "where": "напис STICKBOX (уступи літер)",
+   "z_product": [
+    44.43,
+    44.65
+   ],
+   "x": [
+    -36.7,
+    -33.4
+   ],
+   "y": [
+    -45.0,
+    -44.0
+   ],
+   "slope_deg_min": 0.39,
+   "slope_deg_mean": 6.81,
+   "formed_by": "T15"
+  },
+  {
+   "area_mm2": 3.1,
+   "where": "напис STICKBOX (уступи літер)",
+   "z_product": [
+    37.07,
+    37.14
+   ],
+   "x": [
+    11.3,
+    14.5
+   ],
+   "y": [
+    -45.0,
+    -44.0
+   ],
+   "slope_deg_min": 0.0,
+   "slope_deg_mean": 1.27,
+   "formed_by": "T15"
+  }
+ ],
+ "uplift": {
+  "core_displaced_ml": 644.8,
+  "core_uplift_N": 14.5,
+  "per_rod_N": 3.6,
+  "rods": "4 × M5 (переріз за різьбою 14.2 мм², клас 4.6: Rm 400 МПа → ≈5.7 кН на шпильку)",
+  "finger_uplift_N": 0.88,
+  "rho_kg_m3": 2300.0
+ },
+ "shift": {
+  "cases": [
+   {
+    "shift": [
+     0,
+     0,
+     0
+    ],
+    "min_gap_mm": 3.92,
+    "at": [
+     56.1,
+     25.7,
+     0.3
+    ],
+    "where": "низ (відкрита грань, шліфування)",
+    "lead_in_zone": true,
+    "min_gap_above_lead_in_mm": 4.851,
+    "at_above": [
+     -22.0,
+     -6.5,
+     88.8
+    ],
+    "where_above": "верхня плита: край кишені NFC-мітки ↔ воронка"
+   },
+   {
+    "shift": [
+     0.3,
+     0.0,
+     0.0
+    ],
+    "min_gap_mm": 3.62,
+    "at": [
+     56.4,
+     25.7,
+     0.3
+    ],
+    "where": "низ (відкрита грань, шліфування)",
+    "lead_in_zone": true,
+    "min_gap_above_lead_in_mm": 4.738,
+    "at_above": [
+     55.3,
+     -7.7,
+     2.8
+    ],
+    "where_above": "гніздо кришки"
+   },
+   {
+    "shift": [
+     0.212,
+     0.212,
+     0.0
+    ],
+    "min_gap_mm": 3.705,
+    "at": [
+     56.3,
+     9.8,
+     0.3
+    ],
+    "where": "низ (відкрита грань, шліфування)",
+    "lead_in_zone": true,
+    "min_gap_above_lead_in_mm": 4.727,
+    "at_above": [
+     -22.0,
+     -6.0,
+     88.6
+    ],
+    "where_above": "верхня плита: край кишені NFC-мітки ↔ воронка"
+   },
+   {
+    "shift": [
+     0.0,
+     0.3,
+     0.0
+    ],
+    "min_gap_mm": 3.636,
+    "at": [
+     -38.8,
+     41.4,
+     0.3
+    ],
+    "where": "низ (відкрита грань, шліфування)",
+    "lead_in_zone": true,
+    "min_gap_above_lead_in_mm": 4.685,
+    "at_above": [
+     -22.0,
+     -6.2,
+     88.8
+    ],
+    "where_above": "верхня плита: край кишені NFC-мітки ↔ воронка"
+   },
+   {
+    "shift": [
+     -0.212,
+     0.212,
+     0.0
+    ],
+    "min_gap_mm": 3.721,
+    "at": [
+     -39.0,
+     41.3,
+     0.3
+    ],
+    "where": "низ (відкрита грань, шліфування)",
+    "lead_in_zone": true,
+    "min_gap_above_lead_in_mm": 4.825,
+    "at_above": [
+     -55.2,
+     -18.7,
+     2.7
+    ],
+    "where_above": "гніздо кришки"
+   },
+   {
+    "shift": [
+     -0.3,
+     0.0,
+     0.0
+    ],
+    "min_gap_mm": 3.638,
+    "at": [
+     -56.4,
+     -3.1,
+     0.3
+    ],
+    "where": "низ (відкрита грань, шліфування)",
+    "lead_in_zone": true,
+    "min_gap_above_lead_in_mm": 4.738,
+    "at_above": [
+     -55.3,
+     -18.5,
+     2.8
+    ],
+    "where_above": "гніздо кришки"
+   },
+   {
+    "shift": [
+     -0.212,
+     -0.212,
+     0.0
+    ],
+    "min_gap_mm": 3.721,
+    "at": [
+     -56.3,
+     10.9,
+     0.3
+    ],
+    "where": "низ (відкрита грань, шліфування)",
+    "lead_in_zone": true,
+    "min_gap_above_lead_in_mm": 4.754,
+    "at_above": [
+     7.5,
+     -39.2,
+     35.6
+    ],
+    "where_above": "резервуар / стінки"
+   },
+   {
+    "shift": [
+     -0.0,
+     -0.3,
+     0.0
+    ],
+    "min_gap_mm": 3.923,
+    "at": [
+     56.1,
+     9.3,
+     0.3
+    ],
+    "where": "низ (відкрита грань, шліфування)",
+    "lead_in_zone": true,
+    "min_gap_above_lead_in_mm": 4.667,
+    "at_above": [
+     -36.2,
+     -39.3,
+     35.6
+    ],
+    "where_above": "резервуар / стінки"
+   },
+   {
+    "shift": [
+     0.212,
+     -0.212,
+     0.0
+    ],
+    "min_gap_mm": 3.713,
+    "at": [
+     56.3,
+     25.5,
+     0.3
+    ],
+    "where": "низ (відкрита грань, шліфування)",
+    "lead_in_zone": true,
+    "min_gap_above_lead_in_mm": 4.755,
+    "at_above": [
+     -36.2,
+     -39.2,
+     35.6
+    ],
+    "where_above": "резервуар / стінки"
+   }
+  ],
+  "worst_min_gap_mm": 3.62,
+  "worst_above_lead_in_mm": 4.667,
+  "tab_preload_at_worst_mm": 0.7
+ },
+ "measure_design": {
+  "socket": [
+   {
+    "z": 0.5,
+    "width_x": 111.936,
+    "depth_y": 81.436
+   },
+   {
+    "z": 5.5,
+    "width_x": 109.856,
+    "depth_y": 79.356
+   },
+   {
+    "z": 8.5,
+    "width_x": 109.777,
+    "depth_y": 79.277
+   },
+   {
+    "z": 13.5,
+    "width_x": 109.647,
+    "depth_y": 79.147
+   }
+  ],
+  "socket_roof_z": 14.5,
+  "socket_design": {
+   "width_x": 110.0,
+   "depth_y": 79.5,
+   "roof_z": 14.5
+  },
+  "reservoir": {
+   "ceiling_z_at_hole_axis_edge": 85.934,
+   "ceiling_z_main": 85.784,
+   "ceiling_z_arm": 84.914,
+   "width_x_main_z50": 84.002,
+   "depth_y_main_z50": 78.191,
+   "design_ceiling_c": 86.0,
+   "design_ceiling_edge": 84.0
+  },
+  "pocket": {
+   "floor_z": 19.5,
+   "depth": 75.5,
+   "design_floor_z": 19.5,
+   "design_depth": 75.5,
+   "widths": [
+    {
+     "z": 22.5,
+     "x": 17.535,
+     "y_back_half": 15.865,
+     "y_front_half_at_x5p5": 13.927
+    },
+    {
+     "z": 57.25,
+     "x": 18.141,
+     "y_back_half": 16.168,
+     "y_front_half_at_x5p5": 14.309
+    },
+    {
+     "z": 92.0,
+     "x": 18.748,
+     "y_back_half": 16.472,
+     "y_front_half_at_x5p5": 14.69
+    }
+   ],
+   "design": {
+    "x_top": 18.8,
+    "y_top": 33.0,
+    "floor_inset": 0.659
+   }
+  },
+  "hole": {
+   "z": 88.0,
+   "diameters": [
+    8.0,
+    8.0,
+    8.0,
+    8.0
+   ],
+   "design": 8.0,
+   "straight_from_z": 87.0,
+   "straight_to_z": 89.0
+  },
+  "hole_exit_profile": [
+   {
+    "z": 87.3,
+    "radius": 4.0
+   },
+   {
+    "z": 87.05,
+    "radius": 4.0
+   },
+   {
+    "z": 86.95,
+    "radius": 4.35
+   },
+   {
+    "z": 86.8,
+    "radius": 4.5
+   },
+   {
+    "z": 86.6,
+    "radius": 4.7
+   },
+   {
+    "z": 86.4,
+    "radius": 4.9
+   },
+   {
+    "z": 86.1,
+    "radius": 5.2
+   }
+  ],
+  "slot": {
+   "z": 85.0,
+   "width": 8.0,
+   "design": 8.0
+  },
+  "notch": {
+   "width": 15.0,
+   "top_z": 5.0,
+   "design_width": 15.0,
+   "design_top": 5.0
+  },
+  "height": 95.0,
+  "footprint": [
+   120.0,
+   90.0
+  ]
+ }
+}

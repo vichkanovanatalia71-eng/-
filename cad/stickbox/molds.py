@@ -370,6 +370,8 @@ def core_outer(neck=BRIDGE_RAISE):
     core = core.fuse(neck_s)
     if v(p.RELIEF_ON):
         core = core.fuse(relief_core_outer(neck))
+    # v3.7.1: гніздо телескопічного стику — останнім кроком (купол резервуара не повинен його заповнювати)
+    core = core.cut(P.socket_tool())
     return core.clean()
 
 
