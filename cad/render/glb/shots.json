@@ -984,5 +984,96 @@
    -300
   ],
   "ground": true
+ },
+ {
+  "concrete": "#c2ad92",
+  "exposure": 0.9,
+  "envIntensity": 0.8,
+  "bg": "#eadfd1",
+  "glb": "mold_frame.glb",
+  "out": "28_mold_frame_open_pour.png",
+  "w": 1800,
+  "h": 1250,
+  "cam": {
+   "pos": [
+    -260,
+    230,
+    300
+   ],
+   "target": [
+    0,
+    40,
+    0
+   ],
+   "fov": 32
+  },
+  "keyPos": [
+   -200,
+   400,
+   300
+  ],
+  "nodes": {
+   "frame_front": {
+    "offset": [
+     0,
+     0,
+     55
+    ]
+   },
+   "frame_back": {
+    "offset": [
+     0,
+     0,
+     -55
+    ]
+   },
+   "silicone": {
+    "visible": false
+   }
+  },
+  "defaultMaterial": {
+   "frame_front": "print",
+   "frame_back": "print",
+   "silicone": "silicone",
+   "master": "master",
+   "plate": "print_grey",
+   "stiff": "print"
+  }
+ },
+ {
+  "concrete": "#c2ad92",
+  "exposure": 0.9,
+  "envIntensity": 0.8,
+  "bg": "#eadfd1",
+  "glb": "mold_frame_section.glb",
+  "out": "29_mold_frame_section_x0.png",
+  "w": 1800,
+  "h": 1250,
+  "cam": {
+   "pos": [
+    -300,
+    120,
+    120
+   ],
+   "target": [
+    20,
+    50,
+    0
+   ],
+   "fov": 32
+  },
+  "keyPos": [
+   -300,
+   300,
+   150
+  ],
+  "defaultMaterial": {
+   "frame_front": "print",
+   "frame_back": "print",
+   "silicone": "silicone",
+   "master": "master",
+   "plate": "print_grey",
+   "stiff": "print"
+  }
  }
 ]

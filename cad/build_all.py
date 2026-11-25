@@ -74,16 +74,16 @@ def main():
     # ---------------- оснащення ----------------
     T = M.all_tooling()
     print_orient = {
-        "body_master": lambda s: s, "body_sleeve": lambda s: s, "body_base_plate": lambda s: s,
+        "body_master": lambda s: s, "body_frame_front": lambda s: s, "body_frame_back": lambda s: s, "body_base_plate": lambda s: s,
         "finger_stiffener": flip, "stiffener_holder": flip, "core_silicone": lambda s: s, "core_spine_bridge": lambda s: s,
-        "core_mold": flip, "lid_master": lambda s: s, "lid_sleeve": lambda s: s, "lid_base_plate": lambda s: s,
+        "core_mold": flip, "lid_master": lambda s: s, "lid_frame_front": lambda s: s, "lid_frame_back": lambda s: s, "lid_base_plate": lambda s: s,
         "rlid_master": lambda s: s, "rlid_sleeve": lambda s: s, "rlid_base_plate": lambda s: s,
         "gauge_hole_go_7p90": lambda s: s, "gauge_stick_heets": lambda s: s,
     }
     numbering = {
-        "body_master": "T01", "body_sleeve": "T02", "body_base_plate": "T03", "finger_stiffener": "T04",
+        "body_master": "T01", "body_frame_front": "T02a", "body_frame_back": "T02b", "body_base_plate": "T03", "finger_stiffener": "T04",
         "core_spine_bridge": "T05", "core_mold": "T06", "core_silicone": "T07_ref_cast_part",
-        "lid_master": "T08", "lid_sleeve": "T09", "lid_base_plate": "T10",
+        "lid_master": "T08", "lid_frame_front": "T09a", "lid_frame_back": "T09b", "lid_base_plate": "T10",
         "rlid_master": "T18", "rlid_sleeve": "T19", "rlid_base_plate": "T20",
         "gauge_hole_go_7p90": "T13", "gauge_stick_heets": "T14", "stiffener_holder": "T17",
     }
@@ -98,12 +98,9 @@ def main():
         tool_info[name] = dict(valid=sh.isValid(), volume_ml=sh.Volume() / 1000,
                                print_bbox_mm=[round(bb.xlen, 1), round(bb.ylen, 1), round(bb.zlen, 1)])
     # силікон зовнішньої форми та форми кришки (об'єм заливки)
-    ix0, ix1, iy0, iy1, z0, z1 = M._sleeve_dims()
-    sleeve_in = M._rrp(((ix0 + ix1) / 2, (iy0 + iy1) / 2), ix1 - ix0, iy1 - iy0, 6, z0, z1 - z0)
-    sil_body = sleeve_in.cut(T["body_master"]).cut(T["finger_stiffener"])
-    lx0, lx1, ly0, ly1, lz0, lz1 = M._lid_sleeve_dims()
-    lid_in = M._rrp(((lx0 + lx1) / 2, (ly0 + ly1) / 2), lx1 - lx0, ly1 - ly0, 6, lz0, lz1 - lz0)
-    sil_lid = lid_in.cut(T["lid_master"])
+    # v3.7: силікон = порожнина розбірного каркаса − ключі − майстер (рівновіддалений блок)
+    sil_body = M.mold_silicone("body")
+    sil_lid = M.mold_silicone("lid")
     X.export_step(sil_body, f"{TOOL}/step/T15_ref_outer_silicone_mold_body.step")
     X.export_step(sil_lid, f"{TOOL}/step/T16_ref_silicone_mold_lid.step")
     rho_s = v(p.RHO_SILICONE)
@@ -126,11 +123,11 @@ def main():
     print("tooling exported", round(time.time() - t0, 1))
 
     # GLB для рендерів: оснащення в базуванні лиття
-    X.export_glb([("t_sleeve", T["body_sleeve"], "print"), ("t_silicone", sil_body, "silicone"),
+    X.export_glb([("t_sleeve", M.body_sleeve(), "print"), ("t_silicone", sil_body, "silicone"),
                   ("t_core", T["core_silicone"], "silicone"), ("t_bridge", T["core_spine_bridge"], "print"),
                   ("t_stiff", T["finger_stiffener"], "print"), ("t_master", T["body_master"], "master")],
                  f"{SCR}/tooling_body.glb", tol=0.05, ang=0.15)
-    X.export_glb([("t_lid_sleeve", T["lid_sleeve"], "print"), ("t_lid_sil", sil_lid, "silicone"),
+    X.export_glb([("t_lid_sleeve", M.lid_sleeve(), "print"), ("t_lid_sil", sil_lid, "silicone"),
                   ("t_lid_master", T["lid_master"], "master")], f"{SCR}/tooling_lid.glb", tol=0.05, ang=0.15)
 
     # перерізи для рендерів / креслень
@@ -160,6 +157,8 @@ def main():
     R = A.run(f"{REP}/analysis.json")
     R["tooling"] = tool_info
     R["silicone"] = silicone
+    from stickbox import mold_check as MC        # v3.7: товщина силікону, прогин каркаса, зусилля на болтах
+    R["mold_frame"] = MC.run()
     with open(f"{REP}/analysis.json", "w") as f:
         json.dump(R, f, indent=2, ensure_ascii=False, default=float)
     with open(f"{REP}/parameters.json", "w") as f:

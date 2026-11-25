@@ -16,11 +16,9 @@ def flip(s):
     return s.rotate(Vector(0, 0, 0), Vector(1, 0, 0), 180)
 
 T = M.all_tooling()
-ix0, ix1, iy0, iy1, z0, z1 = M._sleeve_dims()
-sleeve_in = M._rrp(((ix0 + ix1) / 2, (iy0 + iy1) / 2), ix1 - ix0, iy1 - iy0, 6, z0, z1 - z0)
-sil = sleeve_in.cut(T["body_master"]).cut(T["finger_stiffener"])
+sil = M.mold_silicone("body")
 casting = M.S(P.body(product=False, height_extra=M.GA))
-items = [("t_sleeve", T["body_sleeve"], "print"), ("t_silicone", sil, "silicone"),
+items = [("t_sleeve", M.body_sleeve(), "print"), ("t_silicone", sil, "silicone"),
          ("t_core", T["core_silicone"], "silicone"), ("t_bridge", T["core_spine_bridge"], "print"),
          ("t_stiff", T["finger_stiffener"], "print"), ("t_concrete", casting, "body")]
 # положення лиття: догори дном; переріз по y=0
@@ -29,12 +27,19 @@ X.export_glb(sec, f"{OUT}/tooling_body_section.glb", tol=0.05, ang=0.15)
 # вибухова схема оснащення (повні тіла, положення лиття)
 X.export_glb([(n, flip(s), mk) for n, s, mk in items if n != "t_concrete"] + [("t_master", flip(T["body_master"]), "master")],
              f"{OUT}/tooling_body_full.glb", tol=0.05, ang=0.15)
+# v3.7: розбірний каркас — заливка силікону (майстер на плиті) і переріз по x = 0 (рівновіддалений силікон, ключі)
+fr_f, fr_b = M.frame_halves("body")
+X.export_glb([("frame_front", fr_f, "print"), ("frame_back", fr_b, "print"), ("silicone", sil, "silicone"),
+              ("master", T["body_master"], "master"), ("plate", T["body_base_plate"], "mold"),
+              ("stiff", T["finger_stiffener"], "print")], f"{OUT}/mold_frame.glb", tol=0.05, ang=0.15)
+cut_x0 = M.box(-big, 0, -big, big, -big, big)   # прибрати x < 0 — видно переріз
+X.export_glb([(n, s_.cut(cut_x0), mk) for n, s_, mk in [("frame_front", fr_f, "print"), ("frame_back", fr_b, "print"),
+              ("silicone", sil, "silicone"), ("master", T["body_master"], "master"), ("plate", T["body_base_plate"], "mold"),
+              ("stiff", T["finger_stiffener"], "print")]], f"{OUT}/mold_frame_section.glb", tol=0.05, ang=0.15)
 # форма кришки в розрізі (пробкою донизу)
-lx0, lx1, ly0, ly1, lz0, lz1 = M._lid_sleeve_dims()
-lid_in = M._rrp(((lx0 + lx1) / 2, (ly0 + ly1) / 2), lx1 - lx0, ly1 - ly0, 6, lz0, lz1 - lz0)
-sil_lid = lid_in.cut(T["lid_master"])
+sil_lid = M.mold_silicone("lid")
 lid_cast = M.S(P.lid(product=False, grind_allow=M.GA))
-X.export_glb([(n, flip(s.cut(half)), mk) for n, s, mk in [("t_lid_sleeve", T["lid_sleeve"], "print"), ("t_lid_sil", sil_lid, "silicone"),
+X.export_glb([(n, flip(s.cut(half)), mk) for n, s, mk in [("t_lid_sleeve", M.lid_sleeve(), "print"), ("t_lid_sil", sil_lid, "silicone"),
               ("t_lid_concrete", lid_cast, "lid")]], f"{OUT}/tooling_lid_section.glb", tol=0.04, ang=0.12)
 # форма малої кришечки в розрізі (пробкою донизу) — лише якщо кришечка є (до v3.0)
 if P.has_relief_lid():

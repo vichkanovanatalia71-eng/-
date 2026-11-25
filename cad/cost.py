@@ -37,7 +37,8 @@ area_m2 = (P.body().Area() + P.lid().Area() + (P.relief_lid().Area() if RL else 
 sil = R["silicone"]
 mold_sil_kg = (sil["outer_mold_body_kg"] + sil["core_cup_kg"] + sil["lid_mold_kg"] + sil.get("relief_lid_mold_kg", 0.0)) * 1.1
 tool = R["tooling"]
-fdm_keys = ["T02_body_sleeve", "T03_body_base_plate", "T04_finger_stiffener", "T05_core_spine_bridge", "T09_lid_sleeve", "T10_lid_base_plate", "T17_stiffener_holder", "T19_rlid_sleeve", "T20_rlid_base_plate"]
+fdm_keys = ["T02a_body_frame_front", "T02b_body_frame_back", "T03_body_base_plate", "T04_finger_stiffener", "T05_core_spine_bridge",
+            "T09a_lid_frame_front", "T09b_lid_frame_back", "T10_lid_base_plate", "T17_stiffener_holder", "T19_rlid_sleeve", "T20_rlid_base_plate"]
 resin_keys = ["T01_body_master", "T06_core_mold", "T08_lid_master", "T18_rlid_master", "T13_gauge_hole_go_7p90", "T14_gauge_stick_heets"]
 fdm_kg = sum(tool[k]["volume_ml"] for k in tool if any(k.startswith(x[:3]) and x in k for x in fdm_keys)) * 1.27 / 1000 * 0.45  # ~45% ефективне заповнення
 resin_l = sum(tool[k]["volume_ml"] for k in tool if any(x in k for x in resin_keys)) / 1000 * 0.35  # порожнисті/з товщиною стінки
@@ -77,7 +78,7 @@ L.append(f"| **Разом змінні** | | **{var_lo:.2f}** | **{var_hi:.2f}**
 L.append("## 2. Одноразові витрати на оснащення (1 комплект форм)\n")
 L.append("| Стаття | Кількість | Мін, € | Макс, € |\n|---|---|---|---|")
 L.append(f"| Платиновий силікон форм (корпус + сердечник + кришка, +10%) | {mold_sil_kg:.2f} кг | {mold_lo:.0f} | {mold_hi:.0f} |")
-L.append(f"| Друк FDM (гільзи, плити, хребет, ребро), ефективна маса | ≈{fdm_kg:.2f} кг | {fdm_kg*PRICES['petg_eur_per_kg'][0]:.0f} | {fdm_kg*PRICES['petg_eur_per_kg'][1]:.0f} |")
+L.append(f"| Друк FDM (каркаси, плити, хребет, ребро), ефективна маса | ≈{fdm_kg:.2f} кг | {fdm_kg*PRICES['petg_eur_per_kg'][0]:.0f} | {fdm_kg*PRICES['petg_eur_per_kg'][1]:.0f} |")
 L.append(f"| Друк смолою (майстри, форма сердечника, майстер кришечки, калібри) | ≈{resin_l:.2f} л | {resin_l*PRICES['resin_eur_per_l'][0]:.0f} | {resin_l*PRICES['resin_eur_per_l'][1]:.0f} |")
 L.append(f"| **Разом оснащення** | | **{mold_lo + tool_lo:.0f}** | **{mold_hi + tool_hi:.0f}** |\n")
 L.append(f"Амортизація силіконових форм при ресурсі {MOLD_LIFE[0]}–{MOLD_LIFE[1]} виливків: **{amort_lo:.2f}–{amort_hi:.2f} € / комплект**. "

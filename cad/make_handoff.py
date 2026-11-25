@@ -14,15 +14,18 @@ OUT = os.path.join(ROOT, "handoff")
 REV = "v3.7"
 ZIP = os.path.join(OUT, f"STICKBOX_01_{REV}_molds_handoff.zip")
 PDF = os.path.join(OUT, f"00_TZ_silicone_molds_{REV}.pdf")
+PDF_FRAME = os.path.join(OUT, f"01_mold_frame_calc_{REV}.pdf")   # розбірний каркас: розрахунок і використання
 
-TOOL = ["T01_body_master", "T02_body_sleeve", "T03_body_base_plate", "T04_finger_stiffener", "T05_core_spine_bridge",
-        "T06_core_mold", "T07_ref_cast_part_core_silicone", "T08_lid_master", "T09_lid_sleeve", "T10_lid_base_plate",
+TOOL = ["T01_body_master", "T02a_body_frame_front", "T02b_body_frame_back", "T03_body_base_plate", "T04_finger_stiffener",
+        "T05_core_spine_bridge", "T06_core_mold", "T07_ref_cast_part_core_silicone", "T08_lid_master",
+        "T09a_lid_frame_front", "T09b_lid_frame_back", "T10_lid_base_plate",
         "T13_gauge_hole_go_7p90", "T14_gauge_stick_heets", "T17_stiffener_holder"]
 TOOL_REF = ["T15_ref_outer_silicone_mold_body", "T16_ref_silicone_mold_lid"]
 PRODUCT = ["exports/step/00_STICKBOX_01_Monolith_assembly.step", "exports/step/01_body_concrete.step",
            "exports/step/02_lid_concrete.step", "drawings/STICKBOX_01_Monolith_drawings_A3.pdf"]
 RENDERS = ["20_tooling_body_casting_section.png", "21_tooling_body_exploded.png", "22_tooling_lid_section.png",
-           "01_hero_front_left.png", "07_exploded.png", "13_lid_oring.png", "26_lid_tab_back.png", "27_notch_tab_from_below.png"]
+           "01_hero_front_left.png", "07_exploded.png", "13_lid_oring.png", "26_lid_tab_back.png", "27_notch_tab_from_below.png",
+           "28_mold_frame_open_pour.png", "29_mold_frame_section_x0.png"]
 
 CSS = """
 @page { size: A4; margin: 16mm 15mm 16mm 15mm; }
@@ -43,14 +46,14 @@ strong { color: #000; }
 """
 
 
-def build_pdf():
-    md = open(os.path.join(ROOT, "docs", "13_mold_maker_brief.md"), encoding="utf-8").read()
+def build_pdf(src="13_mold_maker_brief.md", dst=PDF, title="ТЗ на силіконові форми"):
+    md = open(os.path.join(ROOT, "docs", src), encoding="utf-8").read()
     # Python-Markdown суворіший за GitHub: вкладені списки — 4 пробіли, перед списком — порожній рядок
     import re
     lines, out = md.split("\n"), []
     is_item = lambda t: bool(re.match(r"^\s*(\* |\d+\. )", t))
     for ln in lines:
-        m_ = re.match(r"^( {2,3})\* ", ln)
+        m_ = re.match(r"^( {2,3})(\* |\d+\. )", ln)
         if m_:
             ln = "    " + ln[len(m_.group(1)):]
         if is_item(ln) and out and out[-1].strip() and not is_item(out[-1]) and not out[-1].startswith((" ", "\t")):
@@ -64,11 +67,11 @@ def build_pdf():
     # PDF друкує Chromium через Node-Playwright (той самий, що й рендери)
     import json, subprocess
     footer = ("<div style='font-size:7pt;width:100%;text-align:center;color:#777'>"
-              f"STICKBOX 01 Monolith · ТЗ на силіконові форми · {REV} · "
+              f"STICKBOX 01 Monolith · {title} · {REV} · "
               "<span class='pageNumber'></span>/<span class='totalPages'></span></div>")
     js = ("const { chromium } = require('playwright');(async()=>{const b=await chromium.launch();const p=await b.newPage();"
           f"await p.goto({json.dumps('file://' + tmp)});"
-          f"await p.pdf({{path:{json.dumps(PDF)},format:'A4',printBackground:true,displayHeaderFooter:true,"
+          f"await p.pdf({{path:{json.dumps(dst)},format:'A4',printBackground:true,displayHeaderFooter:true,"
           f"headerTemplate:'<span></span>',footerTemplate:{json.dumps(footer)},"
           "margin:{top:'16mm',bottom:'16mm',left:'15mm',right:'15mm'}});await b.close();})();")
     subprocess.run(["node", "-e", js], check=True, cwd=os.path.join(ROOT, "cad", "render"))
@@ -79,6 +82,7 @@ def build_zip():
     missing = []
     with zipfile.ZipFile(ZIP, "w", compression=zipfile.ZIP_DEFLATED, compresslevel=9) as z:
         z.write(PDF, os.path.basename(PDF))
+        z.write(PDF_FRAME, os.path.basename(PDF_FRAME))
         for n in TOOL:
             for ext, folder in (("step", "01_tooling_STEP"), ("stl", "02_tooling_print_STL"), ("3mf", "03_tooling_print_3MF")):
                 src = os.path.join(ROOT, "tooling", ext, f"{n}.{ext}")
@@ -112,6 +116,7 @@ def build_zip():
 if __name__ == "__main__":
     os.makedirs(OUT, exist_ok=True)
     build_pdf()
+    build_pdf("14_mold_frame.md", PDF_FRAME, "Розбірний каркас форм")
     build_zip()
     with zipfile.ZipFile(ZIP) as z:
         n, size = len(z.infolist()), sum(i.file_size for i in z.infolist())

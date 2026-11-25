@@ -42,6 +42,25 @@ PRELOAD = 0.3        # (застаріле) натяг торцевих стик
 TAB_PRELOAD = 1.0    # натяг вкладки виїмки в стінку зовнішньої форми (податливий стик, аудит C3)
 ROD_HOLE = 5.3       # наскрізні отвори під стяжні шпильки M5 (аудит C4)
 
+# --- v3.7: розбірний каркас (материнська форма) для заливки силікону й лиття бетону ---
+# Силікон — рівновіддалений від майстра (внутрішній контур каркаса = контур майстра + товщина), тож тонших місць немає;
+# каркас — 2 половини (фронт / зад) з фланцями на болтах M4 і шпунтом; ключі всередині фіксують силіконовий блок
+# по висоті (не витягується разом із виливком/сердечником); зовнішні обручі — жорсткість стінок при литті бетону.
+SIL_SIDE = 15.0      # силікон з боків корпусу (номінал)
+SIL_TOP = 15.0       # силікон над верхом майстра корпусу
+LID_SIL_SIDE = 14.0  # силікон з боків кришки
+LID_SIL_TOP = 12.0   # силікон над верхом майстра кришки
+SIL_MIN = 12.0       # мінімум силікону між каркасом і майстром (у місцях ключів)
+FRAME_T = 5.0        # стінка каркаса
+KEY_H = 3.0          # висота ключа (виступ усередину) — корпус; кришка — 2.0
+KEY_B, KEY_TOP = 9.0, 3.0   # основа / вершина трапецієподібного ключа (грані 45° — друк без підтримок)
+HOOP_D, HOOP_T = 8.0, 4.0   # зовнішні обручі жорсткості: виліт / товщина
+FL_W, FL_T = 12.0, 6.0      # фланці роз'єму: виліт від стінки / товщина кожної половини
+BOLT_HOLE = 4.5             # отвори під болти M4
+TONGUE_W, TONGUE_H = 2.0, 1.5   # шпунт на торці передньої половини
+GROOVE_W, GROOVE_H = 2.5, 1.9   # паз на задній половині (зазор 0.25 на сторону)
+RIM_H, RIM_W, RIM_GAP = 3.0, 3.0, 0.3   # бортик плити заливки навколо каркаса
+
 
 def _rrp(c, w, h, r, z0, ext):
     cx, cy = c
@@ -75,50 +94,202 @@ def body_master():
     return S(m)
 
 
+_FRAME_CACHE = {}
+
+
+def frame_spec(kind="body"):
+    """Внутрішній контур каркаса = габарит майстра + товщина силікону; кути — R майстра + товщина (рівновіддалено)."""
+    if kind in _FRAME_CACHE:
+        return _FRAME_CACHE[kind]
+    if kind == "body":
+        bb = body_master().BoundingBox()
+        ts, tt, key_h = SIL_SIDE, SIL_TOP, KEY_H
+        r_m = v(p.R_V) * K
+        n_key, hoops, bolts = 2, (0.0, 1 / 3, 2 / 3, 1.0), (1 / 6, 1 / 2, 5 / 6)
+    else:
+        bb = lid_master("main" if kind == "lid" else kind).BoundingBox()
+        ts, tt, key_h = LID_SIL_SIDE, LID_SIL_TOP, 2.0
+        r_m = (v(p.CAV_R_OUT) - v(p.PLUG_GAP)) * K if v(p.FULL_LID_ON) else v(p.R_CAV) * K
+        n_key, hoops, bolts = 1, (0.0, 1.0), (0.5,)
+    w, h = bb.xlen + 2 * ts, bb.ylen + 2 * ts
+    sp = dict(kind=kind, cx=(bb.xmin + bb.xmax) / 2, cy=(bb.ymin + bb.ymax) / 2, w=w, h=h, r=r_m + ts, r_master=r_m,
+              z0=bb.zmin, z1=bb.zmax + tt, t_side=ts, t_top=tt, key_h=key_h, n_key=n_key, hoops=hoops, bolts=bolts,
+              master_bb=(bb.xmin, bb.xmax, bb.ymin, bb.ymax, bb.zmin, bb.zmax))
+    sp["hf"] = sp["z1"] - sp["z0"]
+    sp["key_z"] = [sp["z0"] + sp["hf"] * (i + 1) / (n_key + 1) for i in range(n_key)]
+    _FRAME_CACHE[kind] = sp
+    return sp
+
+
+def _frame_lugs(sp):
+    """Вушка під шпильки M5 — на діагоналях кутів, впритул до заокругленої стінки."""
+    ax, ay = sp["w"] / 2 - sp["r"], sp["h"] / 2 - sp["r"]
+    dd = (sp["r"] + FRAME_T + LUG / 2 - 1.5) / math.sqrt(2)
+    return [(sp["cx"] + sx * (ax + dd), sp["cy"] + sy * (ay + dd)) for sx, sy in ((-1, -1), (1, -1), (1, 1), (-1, 1))]
+
+
 def _sleeve_dims():
-    bb = body_master().BoundingBox()
-    ix0, ix1 = bb.xmin - SIL_WALL, bb.xmax + SIL_WALL
-    iy0, iy1 = bb.ymin - SIL_WALL, bb.ymax + SIL_WALL
-    z0 = bb.zmin
-    z1 = bb.zmax + SIL_WALL
-    return ix0, ix1, iy0, iy1, z0, z1
+    """Сумісність: прямокутник внутрішнього контуру каркаса корпусу (ix0, ix1, iy0, iy1, z0, z1)."""
+    sp = frame_spec("body")
+    return (sp["cx"] - sp["w"] / 2, sp["cx"] + sp["w"] / 2, sp["cy"] - sp["h"] / 2, sp["cy"] + sp["h"] / 2, sp["z0"], sp["z1"])
 
 
 def lug_positions():
-    ix0, ix1, iy0, iy1, _, _ = _sleeve_dims()
-    o = SLEEVE_T + LUG / 2
-    return [(ix0 - o + LUG / 2 - 1, iy0 - o + LUG / 2 - 1), (ix1 + o - LUG / 2 + 1, iy0 - o + LUG / 2 - 1),
-            (ix1 + o - LUG / 2 + 1, iy1 + o - LUG / 2 + 1), (ix0 - o + LUG / 2 - 1, iy1 + o - LUG / 2 + 1)]
+    return _frame_lugs(frame_spec("body"))
 
 
-def body_sleeve():
-    """Гільза (материнська форма): відкрита з обох торців, кутові вушка з наскрізними отворами Ø5.3."""
-    ix0, ix1, iy0, iy1, z0, z1 = _sleeve_dims()
-    t = SLEEVE_T
-    outer = _rrp(((ix0 + ix1) / 2, (iy0 + iy1) / 2), ix1 - ix0 + 2 * t, iy1 - iy0 + 2 * t, 8, z0, z1 - z0)
-    inner = _rrp(((ix0 + ix1) / 2, (iy0 + iy1) / 2), ix1 - ix0, iy1 - iy0, 6, z0 - 1, z1 - z0 + 2)
-    s = outer.cut(inner)
-    for (x, y) in lug_positions():
-        lug = cyl(LUG / 2, z0, z1, x, y)
-        web = box(min(x, (ix0 + ix1) / 2 + (x - (ix0 + ix1) / 2) * 0.9), max(x, (ix0 + ix1) / 2 + (x - (ix0 + ix1) / 2) * 0.9),
-                  min(y, (iy0 + iy1) / 2 + (y - (iy0 + iy1) / 2) * 0.9), max(y, (iy0 + iy1) / 2 + (y - (iy0 + iy1) / 2) * 0.9), z0, z1)
-        s = s.fuse(lug).fuse(web.cut(inner))
+def frame_inner(sp, extra=0.0):
+    """Порожнина каркаса (без ключів)."""
+    return P.prism_rrect(sp["w"], sp["h"], sp["r"], sp["z0"] - extra, sp["z1"] + extra, cx=sp["cx"], cy=sp["cy"])
+
+
+def frame_keys(sp):
+    """Ключі: трапецієподібні виступи всередину на фронтальній і задній прямих ділянках (по X)."""
+    kh = sp["key_h"]
+    L = sp["w"] - 2 * sp["r"] - 4.0                       # лише пряма ділянка (кути — без ключів: вільне розкриття)
+    keys = []
+    for zk in sp["key_z"]:
+        for sy in (-1, 1):
+            y_wall = sp["cy"] + sy * sp["h"] / 2
+            prof = (cq.Workplane("YZ", origin=(sp["cx"] - L / 2, 0, 0))
+                    .polyline([(y_wall + sy * 0.5, zk - KEY_B / 2), (y_wall - sy * kh, zk - KEY_TOP / 2),
+                               (y_wall - sy * kh, zk + KEY_TOP / 2), (y_wall + sy * 0.5, zk + KEY_B / 2)]).close()
+                    .extrude(L).val())
+            # торці ключа — скіс 45° у плані (плавний вихід канавки в силіконі, без різкого уступу)
+            plan = (cq.Workplane("XY", origin=(0, 0, zk - KEY_B / 2 - 1))
+                    .polyline([(sp["cx"] - L / 2, y_wall + sy * 0.6), (sp["cx"] - L / 2 + kh + 0.6, y_wall - sy * (kh + 0.01)),
+                               (sp["cx"] + L / 2 - kh - 0.6, y_wall - sy * (kh + 0.01)), (sp["cx"] + L / 2, y_wall + sy * 0.6)]).close()
+                    .extrude(KEY_B + 2).val())
+            keys.append(prof.intersect(plan))
+    out = keys[0]
+    for k_ in keys[1:]:
+        out = out.fuse(k_)
+    return out
+
+
+def _rr_wire(sp, off, z):
+    w, h, r = sp["w"] / 2 + off, sp["h"] / 2 + off, sp["r"] + off
+    return P._rr_wire(sp["cx"] - w, sp["cx"] + w, sp["cy"] - h, sp["cy"] + h, r, z)
+
+
+def _hoop(sp, f):
+    """Обруч: плоска смуга HOOP_T × HOOP_D; знизу (крім обруча на столі принтера, z0) — скіс 45°, друк без підтримок."""
+    t, z0, z1 = FRAME_T, sp["z0"], sp["z1"]
+    if f <= 0.0:
+        return _rrp((sp["cx"], sp["cy"]), sp["w"] + 2 * (t + HOOP_D), sp["h"] + 2 * (t + HOOP_D), sp["r"] + t + HOOP_D, z0, HOOP_T)
+    zt = min(z0 + f * sp["hf"] + HOOP_T / 2, z1)
+    zb = zt - HOOP_T
+    flat = _rrp((sp["cx"], sp["cy"]), sp["w"] + 2 * (t + HOOP_D), sp["h"] + 2 * (t + HOOP_D), sp["r"] + t + HOOP_D, zb, HOOP_T)
+    cham = cq.Solid.makeLoft([_rr_wire(sp, t - 0.5, zb - HOOP_D - 0.5), _rr_wire(sp, t + HOOP_D, zb)], True)
+    return flat.fuse(cham)
+
+
+def _frame_whole(sp):
+    """Каркас цілим (до розрізання на половини)."""
+    t = FRAME_T
+    cxy = (sp["cx"], sp["cy"])
+    z0, z1 = sp["z0"], sp["z1"]
+    outer = _rrp(cxy, sp["w"] + 2 * t, sp["h"] + 2 * t, sp["r"] + t, z0, sp["hf"])
+    s = outer
+    for f in sp["hoops"]:                                   # обручі жорсткості (на торцях — широкі опорні поверхні)
+        s = s.fuse(_hoop(sp, f))
+    xo = sp["w"] / 2 + t
+    for sx in (-1, 1):                                       # фланці роз'єму (площина y = cy)
+        xa, xb = sorted((sp["cx"] + sx * (xo - 1.0), sp["cx"] + sx * (xo + FL_W)))
+        s = s.fuse(box(xa, xb, sp["cy"] - FL_T, sp["cy"] + FL_T, z0, z1))
+    for (x, y) in _frame_lugs(sp):                          # вушка під шпильки M5
+        s = s.fuse(cyl(LUG / 2, z0, z1, x, y))
+        ang = math.atan2(y - sp["cy"], x - sp["cx"])
+        web = (cq.Workplane("XY", origin=(x, y, z0)).transformed(rotate=(0, 0, math.degrees(ang)))
+               .center(-LUG / 2, 0).rect(LUG, LUG * 0.8).extrude(sp["hf"]).val())
+        s = s.fuse(web)
+    s = s.cut(frame_inner(sp, extra=1.0))
+    s = s.fuse(frame_keys(sp))
+    for (x, y) in _frame_lugs(sp):
         s = s.cut(cyl(PIN_HOLE / 2, z0 - 1, z1 + 1, x, y))
-    # вікна для полегшення та огляду не робимо — стінка тримає силікон від розпирання
+    for f in sp["bolts"]:
+        zc = z0 + f * sp["hf"]
+        for sx in (-1, 1):
+            xb_ = sp["cx"] + sx * (xo + FL_W / 2)
+            s = s.cut(cq.Solid.makeCylinder(BOLT_HOLE / 2, 2 * FL_T + 2, Vector(xb_, sp["cy"] - FL_T - 1, zc), Vector(0, 1, 0)))
     return s.clean()
 
 
-def body_base_plate():
-    """Базова плита заливки силікону: штифти у вушка гільзи + 3 штифти центрування майстра."""
-    ix0, ix1, iy0, iy1, z0, z1 = _sleeve_dims()
-    t = 6.0
-    m = LUG + SLEEVE_T + 2
-    plate = _rrp(((ix0 + ix1) / 2, (iy0 + iy1) / 2), ix1 - ix0 + 2 * m, iy1 - iy0 + 2 * m, 10, z0 - t, t)
-    for (x, y) in lug_positions():
+_HALVES_CACHE = {}
+
+
+def frame_halves(kind="body"):
+    """Передня (y < cy) і задня (y > cy) половини; шпунт на передній, паз на задній (по товщині стінки, на всю висоту)."""
+    if kind not in _HALVES_CACHE:
+        _HALVES_CACHE[kind] = _frame_halves(kind)
+    return _HALVES_CACHE[kind]
+
+
+def _frame_halves(kind):
+    sp = frame_spec(kind)
+    whole = _frame_whole(sp)
+    big = 600
+    front = whole.intersect(box(-big, big, -big, sp["cy"], -big, big))
+    back = whole.intersect(box(-big, big, sp["cy"], big, -big, big))
+    xm = sp["w"] / 2 + FRAME_T / 2
+    for sx in (-1, 1):
+        x = sp["cx"] + sx * xm
+        front = front.fuse(box(x - TONGUE_W / 2, x + TONGUE_W / 2, sp["cy"] - 0.01, sp["cy"] + TONGUE_H, sp["z0"], sp["z1"]))
+        back = back.cut(box(x - GROOVE_W / 2, x + GROOVE_W / 2, sp["cy"] - 1, sp["cy"] + GROOVE_H, sp["z0"] - 1, sp["z1"] + 1))
+    return front.clean(), back.clean()
+
+
+def mold_silicone(kind="body"):
+    """Силіконовий блок форми: порожнина каркаса − ключі − майстер (− ребро «пальця» для корпусу)."""
+    sp = frame_spec(kind)
+    sil = frame_inner(sp).cut(frame_keys(sp))
+    if kind == "body":
+        st = finger_stiffener()
+        sil = sil.cut(body_master()).cut(st)
+        # гнізда Ø3.2 у фланці ребра займають штифти тримача T17 — силікону там немає
+        cx, cy = d["pocket_cx"] * K, d["pocket_cy"] * K
+        zt = st.BoundingBox().zmax
+        for dy in (-18, 18):
+            sil = sil.cut(cyl(1.6, zt - 3.0, zt + 0.5, cx, cy + dy))   # лише в товщі фланця (3 мм)
+    else:
+        sil = sil.cut(lid_master("main" if kind == "lid" else kind))
+    # дрібні замкнені об'єми — гнізда штифтів у низі майстра (їх займають штифти плити), не силікон
+    sols = sorted(sil.clean().Solids(), key=lambda q: -q.Volume())
+    return sols[0]
+
+
+def body_sleeve():
+    """Каркас корпусу (обидві половини разом) — для візуалізації; друкуються окремо: T02a, T02b."""
+    f, b = frame_halves("body")
+    return cq.Compound.makeCompound([f, b])
+
+
+def _plate(sp, lugs, master_pins, pin_r, t=6.0):
+    """Плита заливки силікону: штифти у вушка каркаса, штифти майстра, бортик навколо каркаса (герметичність стику)."""
+    m = 3.0                                   # поле за бортиком (вушка й штифти — всередині контуру обручів)
+    cxy = (sp["cx"], sp["cy"])
+    z0 = sp["z0"]
+    ow, oh, orr = sp["w"] + 2 * (FRAME_T + HOOP_D), sp["h"] + 2 * (FRAME_T + HOOP_D), sp["r"] + FRAME_T + HOOP_D
+    plate = _rrp(cxy, ow + 2 * (m + RIM_W), oh + 2 * (m + RIM_W), orr + 6, z0 - t, t)
+    rim = (_rrp(cxy, ow + 2 * (RIM_GAP + RIM_W), oh + 2 * (RIM_GAP + RIM_W), orr + RIM_GAP + RIM_W, z0, RIM_H)
+           .cut(_rrp(cxy, ow + 2 * RIM_GAP, oh + 2 * RIM_GAP, orr + RIM_GAP, z0 - 1, RIM_H + 2)))
+    xo = sp["w"] / 2 + FRAME_T
+    for sx in (-1, 1):                         # проріз бортика під фланці роз'єму
+        xa, xb = sorted((sp["cx"] + sx * (xo - 1), sp["cx"] + sx * (xo + FL_W + 1)))
+        rim = rim.cut(box(xa, xb, sp["cy"] - FL_T - 1, sp["cy"] + FL_T + 1, z0 - 1, z0 + RIM_H + 1))
+    for (x, y) in lugs:                        # і під вушка
+        rim = rim.cut(cyl(LUG / 2 + 1.0, z0 - 1, z0 + RIM_H + 1, x, y))
+    plate = plate.fuse(rim)
+    for (x, y) in lugs:
         plate = plate.fuse(cyl(PIN_D / 2 - 0.1, z0, z0 + 8, x, y))
-    for (x, y) in MASTER_PINS:
-        plate = plate.fuse(cyl(3.0 * K - 0.15, z0, z0 + 5, x * K, y * K))
+    for (x, y) in master_pins:
+        plate = plate.fuse(cyl(pin_r, z0, z0 + 5, x, y))
     return plate.clean()
+
+
+def body_base_plate():
+    """Базова плита заливки силікону: штифти у вушка каркаса + 3 штифти центрування майстра + бортик."""
+    return _plate(frame_spec("body"), lug_positions(), [(x * K, y * K) for x, y in MASTER_PINS], 3.0 * K - 0.15)
 
 
 def finger_stiffener():
@@ -386,44 +557,29 @@ def lid_master(kind="main"):
     return S(m)
 
 
+def _lid_kind(kind):
+    return "lid" if kind == "main" else kind
+
+
 def _lid_sleeve_dims(kind="main"):
-    bb = lid_master(kind).BoundingBox()
-    return (bb.xmin - LID_SIL, bb.xmax + LID_SIL, bb.ymin - LID_SIL, bb.ymax + LID_SIL, bb.zmin, bb.zmax + 10.0)
+    sp = frame_spec(_lid_kind(kind))
+    return (sp["cx"] - sp["w"] / 2, sp["cx"] + sp["w"] / 2, sp["cy"] - sp["h"] / 2, sp["cy"] + sp["h"] / 2, sp["z0"], sp["z1"])
 
 
 def lid_lugs(kind="main"):
-    ix0, ix1, iy0, iy1, _, _ = _lid_sleeve_dims(kind)
-    o = 4 + 6
-    return [(ix0 - o + 6, iy0 - o + 6), (ix1 + o - 6, iy0 - o + 6), (ix1 + o - 6, iy1 + o - 6), (ix0 - o + 6, iy1 + o - 6)]
+    return _frame_lugs(frame_spec(_lid_kind(kind)))
 
 
 def lid_sleeve(kind="main"):
-    ix0, ix1, iy0, iy1, z0, z1 = _lid_sleeve_dims(kind)
-    t = 4.0
-    cxy = ((ix0 + ix1) / 2, (iy0 + iy1) / 2)
-    outer = _rrp(cxy, ix1 - ix0 + 2 * t, iy1 - iy0 + 2 * t, 8, z0, z1 - z0)
-    inner = _rrp(cxy, ix1 - ix0, iy1 - iy0, 6, z0 - 1, z1 - z0 + 2)
-    s = outer.cut(inner)
-    for (x, y) in lid_lugs(kind):
-        s = s.fuse(cyl(6, z0, z1, x, y)).cut(inner)
-        s = s.cut(cyl(PIN_HOLE / 2, z0 - 1, z1 + 1, x, y))
-    return s.clean()
+    f, b = frame_halves(_lid_kind(kind))
+    return cq.Compound.makeCompound([f, b])
 
 
 def lid_base_plate(kind="main"):
-    ix0, ix1, iy0, iy1, z0, z1 = _lid_sleeve_dims(kind)
-    t = 5.0
-    cxy = ((ix0 + ix1) / 2, (iy0 + iy1) / 2)
-    plate = _rrp(cxy, ix1 - ix0 + 30, iy1 - iy0 + 30, 8, z0 - t, t)
-    for (x, y) in lid_lugs(kind):
-        plate = plate.fuse(cyl(PIN_D / 2 - 0.1, z0, z0 + 6, x, y))
+    sp = frame_spec(_lid_kind(kind))
     if kind == "main":
-        for (x, y) in LID_PINS:
-            plate = plate.fuse(cyl(2.5 * K - 0.15, z0, z0 + 3, x * K, y * K))
-    else:
-        for (x, y) in rl_pins():
-            plate = plate.fuse(cyl(2.5 * K - 0.15, z0, z0 + 2.5, x * K, y * K))
-    return plate.clean()
+        return _plate(sp, lid_lugs(kind), [(x * K, y * K) for x, y in LID_PINS], 2.5 * K - 0.15, t=5.0)
+    return _plate(sp, lid_lugs(kind), [(x * K, y * K) for x, y in rl_pins()], 2.5 * K - 0.15, t=5.0)
 
 
 def rl_pins():
@@ -498,7 +654,8 @@ def all_tooling():
     go, stick_g = gauges()
     return {
         "body_master": body_master(),
-        "body_sleeve": body_sleeve(),
+        "body_frame_front": frame_halves("body")[0],
+        "body_frame_back": frame_halves("body")[1],
         "body_base_plate": body_base_plate(),
         "finger_stiffener": finger_stiffener(),
         "stiffener_holder": stiffener_holder(),
@@ -506,7 +663,8 @@ def all_tooling():
         "core_spine_bridge": core_spine_and_bridge(),
         "core_mold": core_mold(),
         "lid_master": lid_master(),
-        "lid_sleeve": lid_sleeve(),
+        "lid_frame_front": frame_halves("lid")[0],
+        "lid_frame_back": frame_halves("lid")[1],
         "lid_base_plate": lid_base_plate(),
         "gauge_hole_go_7p90": go,
         "gauge_stick_heets": stick_g,
